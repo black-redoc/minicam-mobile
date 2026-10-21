@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext is needed for minicam on the LAN (plain http://192.168.x.x). Domain-based
+  configs can't express "private IPs only", so ServerConfig is the gate: it refuses
+  http:// for anything that isn't a private IPv4, loopback or *.local host (docs/SECURITY.md).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

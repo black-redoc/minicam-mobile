@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window background matches --cam-bg so there is no white flash before Compose draws. -->
+    <style name="Theme.Minicam" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/cam_bg</item>
+        <item name="android:statusBarColor">@color/cam_bg</item>
+        <item name="android:navigationBarColor">@color/cam_bg</item>
+    </style>
+</resources>
