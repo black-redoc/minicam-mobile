@@ -1,0 +1,31 @@
+# Roadmap
+
+## M0 - Bootstrap
+- [x] Repo layout (`android/`, `ios/`, `docs/`), docs, ADRs 0001-0002
+- [x] Android app skeleton (Kotlin + Jetpack Compose) with desktop design tokens
+- [x] iOS app skeleton (SwiftUI) + `MinicamKit` Swift package with tests
+- [ ] Toolchains installed, Gradle wrapper generated, Xcode project generated (DEVELOPMENT.md)
+- [ ] CI for both apps
+
+## M1 - Viewer v1 (specs/001-viewer-v1.md)
+Scope: server URL, minicam login/logout, list of viewable cameras, live stream, hold-to-move PTZ,
+Cloudflare Access login for WAN hosts.
+- [ ] Backend prerequisites merged in minicam (specs/002-backend-mobile-endpoints.md)
+- [ ] Android: all spec 001 acceptance criteria passing
+- [ ] iOS: all spec 001 acceptance criteria passing
+- [ ] Tested on a real device on LAN and through the tunnel
+
+Non-goals for M1: admin (users, permissions), camera settings, AI detection settings,
+push notifications, recordings/playback, multi-server profiles, tablets-specific layouts.
+
+## M2 - Comfort
+- [ ] Grid view (several cameras at once), mirroring the desktop grid
+- [ ] Data-saver mode (lower FPS / pause when on cellular), see SECURITY.md bandwidth note
+- [ ] Biometric unlock before showing streams
+
+## Backlog
+- Push notifications on detections (needs a backend push design + ADR)
+- Admin screens (users, per-camera permissions, `wan_access` grant)
+- Store distribution (Play Store / App Store / TestFlight)
+- Kotlin Multiplatform for shared networking logic (would supersede part of ADR 0001)
+- Bump pinned dependency versions to the latest stable releases (DEPENDENCIES.md)

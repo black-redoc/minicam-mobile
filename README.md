@@ -1,0 +1,26 @@
+# minicam-mobile
+
+Native Android and iOS viewers for a self-hosted [minicam](https://github.com/black-redoc/minicam)
+server: log in, watch the cameras you're allowed to see, drive PTZ. Works on the LAN and through
+Cloudflare Tunnel + Access. Same dark slate / sky look as the desktop dashboard.
+
+```
+android/            Kotlin + Jetpack Compose app
+ios/MinicamKit/     Swift package: API, auth, stream (tested with `swift test`)
+ios/MinicamApp/     SwiftUI app (Xcode project generated with XcodeGen)
+docs/               Plan, architecture, security, specs and ADRs — start at docs/PLAN.md
+```
+
+## Quick start
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for toolchains and [docs/VALIDATION.md](docs/VALIDATION.md)
+for the test/lint/build commands.
+
+```bash
+cd ios/MinicamKit && swift test      # core iOS logic, no Xcode needed
+cd android && ./gradlew testDebugUnitTest
+```
+
+## Requirements on the server
+The apps need two endpoints that minicam doesn't have yet:
+`GET /api/me/cameras` and `GET /api/mobile/access-handoff`
+([spec 002](docs/specs/002-backend-mobile-endpoints.md)).

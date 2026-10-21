@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/.kotlin/
+*.iml
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# iOS / Swift
+ios/MinicamKit/.build/
+ios/MinicamKit/.swiftpm/
+ios/MinicamApp/MinicamApp.xcodeproj/
+ios/MinicamApp/Info.plist
+DerivedData/
+xcuserdata/
+*.ipa
+
+# Knowledge graph (regenerated locally)
+graphify-out/

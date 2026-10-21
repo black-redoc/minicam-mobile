@@ -1,0 +1,36 @@
+# Security
+
+## Threat model
+| Asset | Threat | Control |
+|---|---|---|
+| minicam password | phishing, interception, storage leak | Never stored; sent only to the configured host; `https` required off-LAN |
+| `minicam_session` cookie | theft from device storage or logs | Keystore/Keychain only (`WhenUnlockedThisDeviceOnly`), never logged, cleared on logout/401 |
+| CF Access token | interception of the handoff redirect | Random `state` checked on callback; token in URL fragment; it is only the first factor (a minicam session is still required) |
+| Camera feed | sniffing on untrusted networks | `http` allowed only to LAN hosts; WAN is `https`/`wss` through the tunnel |
+| Stream token | reuse | Issued per camera, 30 s TTL by the server; never persisted |
+
+## Transport rules
+- `https://` hosts: always allowed. `http://` hosts: only private IPv4 (10/8, 172.16/12,
+  192.168/16), loopback, and `*.local` names. Enforced in `ServerConfig` on both platforms.
+- Android: cleartext is enabled in `network_security_config.xml` because domain-based configs can't
+  express "private IPs"; `ServerConfig` is the gate. iOS: `NSAllowsLocalNetworking` only (no
+  arbitrary loads).
+- Known limitation inherited from minicam: on LAN the password and cookie travel in clear text.
+  Users on shared Wi-Fi should use the WAN hostname. Tracked in KNOWN_ISSUES.md.
+
+## Cloudflare Access handoff
+See [ADR 0002](adr/0002-cloudflare-access-handoff.md). Custom URL schemes can be claimed by other
+apps on Android. A hijacked callback leaks the Access token only; minicam still requires the
+password session, and the server pins the redirect target (no open redirect).
+
+## Bandwidth / cost note
+MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer). The app must close streams when not
+visible. A data-saver mode is planned (ROADMAP M2).
+
+## Per-feature checklist
+- [ ] Input validation: server URL, camera names URL-encoded in paths
+- [ ] AuthN/AuthZ: handles 401 (logout), 403 (Access/WAN gate), 404 (no permission) distinctly
+- [ ] Secrets: nothing sensitive in logs, crash output, screenshots of login fields, or backups
+  (`android:allowBackup="false"`)
+- [ ] Transport: rules above hold; no new hosts contacted
+- [ ] Dependencies: any new one follows DEPENDENCIES.md
