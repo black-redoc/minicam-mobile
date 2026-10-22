@@ -11,11 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -70,6 +73,31 @@ fun FullscreenIcon(exit: Boolean, modifier: Modifier = Modifier, color: Color = 
             drawLine(color, elbow, Offset(elbow.x + sign * dx * arm, elbow.y), stroke, StrokeCap.Round)
             drawLine(color, elbow, Offset(elbow.x, elbow.y + sign * dy * arm), stroke, StrokeCap.Round)
         }
+    }
+}
+
+/** Game controller outline (d-pad + two buttons) for the "show PTZ controls" button. */
+@Composable
+fun GamepadIcon(modifier: Modifier = Modifier, color: Color = Color.White) {
+    Canvas(modifier.size(width = 24.dp, height = 16.dp)) {
+        val stroke = 1.8.dp.toPx()
+        val inset = stroke / 2
+        drawRoundRect(
+            color,
+            topLeft = Offset(inset, inset),
+            size = Size(size.width - stroke, size.height - stroke),
+            cornerRadius = CornerRadius(size.height / 2),
+            style = Stroke(stroke),
+        )
+        // D-pad on the left.
+        val pad = Offset(size.width * 0.30f, size.height / 2)
+        val arm = size.height * 0.22f
+        drawLine(color, Offset(pad.x - arm, pad.y), Offset(pad.x + arm, pad.y), stroke, StrokeCap.Round)
+        drawLine(color, Offset(pad.x, pad.y - arm), Offset(pad.x, pad.y + arm), stroke, StrokeCap.Round)
+        // Two action buttons on the right.
+        val dot = 1.4.dp.toPx()
+        drawCircle(color, dot, Offset(size.width * 0.66f, size.height * 0.58f))
+        drawCircle(color, dot, Offset(size.width * 0.76f, size.height * 0.40f))
     }
 }
 

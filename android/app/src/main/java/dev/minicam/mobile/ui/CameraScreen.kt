@@ -11,7 +11,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -208,17 +205,11 @@ private fun FullscreenCamera(
             }
 
             if (canUsePtz && !showPtz) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .height(44.dp)
-                        .glass(CircleShape)
-                        .clickable(onClickLabel = "Show PTZ controls", role = Role.Button) { onShowPtz(true) }
-                        .padding(horizontal = 18.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("PTZ", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                }
+                GlassIconButton(
+                    label = "Show PTZ controls",
+                    onClick = { onShowPtz(true) },
+                    modifier = Modifier.align(Alignment.TopEnd),
+                ) { GamepadIcon() }
             }
 
             AnimatedVisibility(

@@ -69,17 +69,9 @@ struct CameraView: View {
                     StatusBadge(status: status)
                     Spacer()
                     if camera.canUsePTZ, !showPTZ {
-                        Button {
+                        glassButton("Show PTZ controls", systemImage: "gamecontroller") {
                             withAnimation(.snappy) { showPTZ = true }
-                        } label: {
-                            Label("PTZ", systemImage: "dpad")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 16)
-                                .frame(height: 44)
-                                .glassSurface(in: Capsule())
                         }
-                        .accessibilityLabel("Show PTZ controls")
                     }
                 }
                 Spacer()
