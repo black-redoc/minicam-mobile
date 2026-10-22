@@ -18,6 +18,9 @@ object CamColors {
     val Border = Color(0xFF334155)
     val Accent = Color(0xFF0EA5E9)
     val AccentHover = Color(0xFF38BDF8)
+
+    /** sky-300: the brand dot's halo, lighter than the dot itself. */
+    val Glow = Color(0xFF7DD3FC)
     val Danger = Color(0xFFEF4444)
     val Success = Color(0xFF22C55E)
     val Text = Color(0xFFF8FAFC)

@@ -53,6 +53,7 @@ New endpoints this app needs: [specs/002-backend-mobile-endpoints.md](specs/002-
 | surface2 | `#263348` | PTZ buttons |
 | border | `#334155` | borders |
 | accent / accentHover | `#0ea5e9` / `#38bdf8` | primary actions, brand dot |
+| glow | `#7dd3fc` | brand dot halo, pulsing on/off (2.4 s, like `.dot-glow`) |
 | danger / success | `#ef4444` / `#22c55e` | badges, logout |
 | text / muted | `#f8fafc` / `#94a3b8` | text |
 | radius sm / md / lg | 6 / 8 / 12 dp/pt | inputs / buttons / cards, video |

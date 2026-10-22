@@ -9,6 +9,8 @@ enum Theme {
     static let border = Color(hex: 0x334155)
     static let accent = Color(hex: 0x0EA5E9)
     static let accentHover = Color(hex: 0x38BDF8)
+    /// sky-300: the brand dot's halo, lighter than the dot itself.
+    static let glow = Color(hex: 0x7DD3FC)
     static let danger = Color(hex: 0xEF4444)
     static let success = Color(hex: 0x22C55E)
     static let text = Color(hex: 0xF8FAFC)
@@ -84,22 +86,35 @@ extension View {
     }
 }
 
-/// Brand mark from the desktop header: glowing sky dot + "minicam".
+/// Brand mark from the desktop header: sky dot + "minicam". A lighter, blurred halo behind the
+/// dot fades in and out like a light switching on and off (desktop `.dot-glow`, 2.4 s cycle).
 struct BrandTitle: View {
-    @State private var glow = false
-
     var body: some View {
         HStack(spacing: 8) {
             Circle()
                 .fill(Theme.accentHover)
                 .frame(width: 8, height: 8)
-                .shadow(color: Theme.accentHover.opacity(glow ? 0.15 : 1), radius: glow ? 1 : 6)
-                .animation(.easeInOut(duration: 1.2).repeatForever(), value: glow)
-                .onAppear { glow = true }
+                // A background, so the halo doesn't change the layout. Driven by a timeline, not
+                // an onAppear animation, which never starts inside a toolbar item.
+                .background {
+                    TimelineView(.animation) { context in
+                        Circle()
+                            .fill(Theme.glow)
+                            .frame(width: 22, height: 22)
+                            .blur(radius: 5)
+                            .opacity(0.95 * Self.glow(at: context.date))
+                    }
+                }
             Text("minicam")
                 .font(.headline.weight(.bold))
                 .tracking(-0.3)
                 .foregroundStyle(Theme.accentHover)
         }
+    }
+
+    /// 1 (on) → 0 (off) → 1 over 2.4 s, eased like the desktop's `ease-in-out`.
+    static func glow(at date: Date) -> Double {
+        let phase = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2.4) / 2.4
+        return (1 + cos(2 * .pi * phase)) / 2
     }
 }
