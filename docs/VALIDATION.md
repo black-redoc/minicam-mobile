@@ -21,7 +21,7 @@ iOS:
 cd ios/MinicamKit && swift build && swift test           # core library (no Xcode needed)
 cd ios/MinicamApp && xcodegen generate                   # Xcode project
 xcodebuild -project MinicamApp.xcodeproj -scheme MinicamApp \
-  -destination 'platform=iOS Simulator,name=iPhone 16' build
+  -destination 'generic/platform=iOS Simulator' build    # no Swift warnings expected
 ```
 
 ## Definition of Done

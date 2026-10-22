@@ -4,9 +4,9 @@
 Toolchain installed; unit tests, lint, debug and release builds pass. The first real build caught
 an XML comment containing `--` in themes.xml (invalid XML), fixed in the same commit.
 
-## KI-2 iOS app target not built yet — Status: Open
-Only Command Line Tools installed; `MinicamKit` builds and its tests pass, the SwiftUI target has
-never compiled. Fix: install Xcode + XcodeGen, then VALIDATION.md iOS commands.
+## KI-2 iOS app target not built yet — Status: Resolved 2026-10-21
+Built with Xcode 27.1 + XcodeGen 2.46.0 for the simulator with no Swift warnings; launched on an
+iPhone 18 Pro simulator and the login screen renders with the desktop theme.
 
 ## KI-3 Backend endpoints missing — Status: In review (blocker for M1)
 `GET /api/me/cameras` and `GET /api/mobile/access-handoff` (spec 002) are implemented on minicam

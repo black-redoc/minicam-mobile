@@ -45,7 +45,7 @@ AuthenticationServices, SwiftUI, Swift Testing.
 | Tool | Version | Why |
 |---|---|---|
 | Gradle | 9.8.2 | Android build (wrapper, `distributionSha256Sum` pinned) |
-| XcodeGen | 2.42.0 | Generates the Xcode project from `ios/MinicamApp/project.yml` so no `.pbxproj` is hand-edited |
+| XcodeGen | 2.46.0 | Generates the Xcode project from `ios/MinicamApp/project.yml` so no `.pbxproj` is hand-edited |
 
 Last bumped 2026-10-21 to the latest stable releases on Maven Central / Google Maven.
 Lockfiles: `android/app/gradle.lockfile`, `android/settings-gradle.lockfile`.

@@ -5,7 +5,7 @@
 - [x] Android app skeleton (Kotlin + Jetpack Compose) with desktop design tokens
 - [x] iOS app skeleton (SwiftUI) + `MinicamKit` Swift package with tests
 - [x] Toolchains installed, Gradle wrapper generated (DEVELOPMENT.md)
-- [ ] Xcode project generated and the iOS app built
+- [x] Xcode project generated and the iOS app built
 - [ ] CI for both apps
 
 ## M1 - Viewer v1 (specs/001-viewer-v1.md)

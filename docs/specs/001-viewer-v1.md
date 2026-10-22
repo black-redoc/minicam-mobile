@@ -36,7 +36,7 @@ SECURITY.md transport rules and checklist. Password never stored. `allowBackup=f
 - [x] Android skeleton, theme, screens, data layer, unit tests
 - [x] iOS MinicamKit + tests (`swift test` passing), SwiftUI app sources, project.yml
 - [x] Android tests/lint/debug+release build passing (deps bumped to latest stable)
-- [ ] Build the iOS app in Xcode
+- [x] iOS app builds in Xcode (simulator), login screen checked visually
 - [ ] Backend spec 002 merged in minicam (implemented on `feat/mobile-endpoints`)
 - [ ] Manual device checks (LAN, WAN)
 

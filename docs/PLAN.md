@@ -6,10 +6,9 @@ allowed to see and drives PTZ. The apps never talk to any service other than the
 minicam host and their Cloudflare Access login page.
 
 ## Current focus
-Milestone: M1 - Viewer v1 · Spec: specs/001-viewer-v1.md · Next step: install the toolchains
-(see DEVELOPMENT.md), generate the Gradle wrapper and the Xcode project, and get both apps
-building; in parallel, land the backend endpoints from specs/002-backend-mobile-endpoints.md
-in the minicam repo.
+Milestone: M1 - Viewer v1 · Spec: specs/001-viewer-v1.md · Next step: merge minicam branch
+`feat/mobile-endpoints` (spec 002), then test both apps end to end against a real server on LAN
+and through the tunnel; add CI for both apps.
 
 ## Docs
 [ROADMAP](ROADMAP.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) ·
