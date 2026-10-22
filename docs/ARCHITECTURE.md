@@ -10,11 +10,13 @@ android/   Kotlin + Jetpack Compose, single :app module
   ui/      theme/ (desktop tokens), LoginScreen, CamerasScreen, CameraScreen (+ fullscreen),
            PtzPad, Glass (floating glass controls)
   ui/admin/ CameraSettingsScreen, AiDetectionScreen, AdminScreen, form controls (ADR 0004)
+  ui/       RecordingsScreen (Media3 ExoPlayer over the app's OkHttp client, ADR 0005)
 ios/
   MinicamKit/   Swift package, Foundation only (builds + tests with `swift test` on macOS):
                 ServerConfig, MinicamAPI, StreamClient, AccessHandoff, CredentialStore protocol
   MinicamApp/   SwiftUI app target (XcodeGen project.yml): views, theme, Keychain store,
-                OrientationLock (landscape only while fullscreen), Admin/ (ADR 0004)
+                OrientationLock (landscape only while fullscreen), Admin/ (ADR 0004),
+                RecordingsView (AVPlayer, ADR 0005)
 ```
 
 ## Data flow
@@ -38,7 +40,11 @@ ios/
    which call minicam's admin JSON API (`/api/cameras`, `/api/detection/*`, `/api/auth/users`,
    `/api/auth/permissions`, `/api/auth/wan-access`, `/api/notifications/settings`). A string
    `detail` in an error body is shown to the user.
-8. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
+8. Recordings (ADR 0005): `GET /api/recordings` pages clips of viewable cameras; the player
+   streams `/api/recordings/{id}/video` (HTTP Range) with the same auth headers; download
+   fetches `?download=true` in-app. Admins: `DELETE /api/recordings/{id}` and
+   `GET/PUT /api/recordings/settings` on the Admin screen.
+9. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
    re-run the Access login.
 
 ## Backend contract

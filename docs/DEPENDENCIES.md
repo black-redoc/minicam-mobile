@@ -29,6 +29,7 @@
 | com.squareup.okhttp3:okhttp | 5.5.0 | HTTP + WebSocket (no platform WebSocket client) |
 | org.jetbrains.kotlinx:kotlinx-serialization-json | 1.12.0 | JSON parsing |
 | org.jetbrains.kotlinx:kotlinx-coroutines-android | 1.11.0 | async |
+| androidx.media3 (exoplayer, ui, datasource-okhttp) | 1.11.1 | Recording playback with Range/seek over the app's OkHttp client ([ADR 0005](adr/0005-event-recordings-in-the-apps.md)); brings Guava transitively (R8 strips unused code) |
 
 ## Android test
 | Dependency | Version | Why |
@@ -39,7 +40,7 @@
 
 ## iOS
 No third-party packages: URLSession (HTTP + WebSocket), Security (Keychain),
-AuthenticationServices, SwiftUI, Swift Testing.
+AuthenticationServices, SwiftUI, AVKit (recording playback), Swift Testing.
 
 ## CI (GitHub Actions, pinned by commit SHA)
 | Action | Version |
