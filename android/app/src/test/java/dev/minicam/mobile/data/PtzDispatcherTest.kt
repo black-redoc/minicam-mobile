@@ -97,6 +97,6 @@ class PtzDispatcherTest {
         dispatcher.dispatch(PtzAction.STOP)
 
         assertEquals(listOf("up", "stop"), takeActions(2))
-        assertEquals(listOf(MinicamException.Server(503)), synchronized(errors) { errors.toList() })
+        assertEquals(listOf(MinicamException.Rejected("PTZ offline")), synchronized(errors) { errors.toList() })
     }
 }

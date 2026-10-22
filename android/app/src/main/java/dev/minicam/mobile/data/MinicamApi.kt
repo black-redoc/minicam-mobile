@@ -6,6 +6,7 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
@@ -19,7 +20,7 @@ import okhttp3.Response
 
 /**
  * REST client for the minicam endpoints the viewer needs
- * (docs/ARCHITECTURE.md "Data flow").
+ * (docs/ARCHITECTURE.md "Data flow"). Admin endpoints live in AdminApi.kt.
  */
 class MinicamApi(
     val config: ServerConfig,
@@ -73,6 +74,23 @@ class MinicamApi(
 
     // -- Plumbing ---------------------------------------------------------
 
+    internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T =
+        send("GET", path) { _, text -> decode(serializer, text) }
+
+    internal suspend fun <B, T> sendJson(
+        method: String,
+        path: String,
+        bodySerializer: KSerializer<B>,
+        body: B,
+        serializer: KSerializer<T>,
+    ): T = send(method, path, json.encodeToString(bodySerializer, body).toRequestBody(JSON)) { _, text ->
+        decode(serializer, text)
+    }
+
+    internal suspend fun sendEmpty(method: String, path: String) {
+        send(method, path, if (method == "DELETE") null else EMPTY) { _, _ -> }
+    }
+
     private suspend fun <T> send(
         method: String,
         path: String,
@@ -123,11 +141,12 @@ class MinicamApi(
             }
             404 -> throw MinicamException.NotFound
             429 -> throw MinicamException.RateLimited
-            else -> throw MinicamException.Server(code)
+            // minicam's validation errors (400/409/502/503 …) explain themselves.
+            else -> throw detail(text)?.let { MinicamException.Rejected(it) } ?: MinicamException.Server(code)
         }
     }
 
-    private fun <T> decode(serializer: kotlinx.serialization.KSerializer<T>, text: String): T =
+    private fun <T> decode(serializer: KSerializer<T>, text: String): T =
         runCatching { json.decodeFromString(serializer, text) }
             .getOrElse { throw MinicamException.InvalidResponse }
 
@@ -139,7 +158,10 @@ class MinicamApi(
         const val ACCESS_TOKEN_HEADER = "cf-access-token"
         private val JSON = "application/json".toMediaType()
         private val EMPTY = ByteArray(0).toRequestBody(null)
-        private val json = Json { ignoreUnknownKeys = true }
+        private val json = Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
 
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder().build()
     }

@@ -15,7 +15,11 @@ import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.MinicamException
 import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
+import dev.minicam.mobile.data.User
 import kotlinx.coroutines.launch
+
+/** Top-level screens besides login and the camera view. Admin ones need `is_admin` (ADR 0004). */
+enum class Screen { CAMERAS, CAMERA_SETTINGS, AI_DETECTION, ADMIN }
 
 /** App-wide state: which server, whether we have a session, the camera list. */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,6 +32,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var cameras by mutableStateOf(emptyList<CameraSummary>())
         private set
     var selectedCamera by mutableStateOf<CameraSummary?>(null)
+    var screen by mutableStateOf(Screen.CAMERAS)
+
+    /** The signed-in account; null until login or the first `GET /api/auth/me`. */
+    var user by mutableStateOf<User?>(null)
+        private set
     var serverUrlText by mutableStateOf(store.get(CredentialKey.SERVER_URL) ?: "https://")
     var errorMessage by mutableStateOf<String?>(null)
     var busy by mutableStateOf(false)
@@ -93,7 +102,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun login(email: String, password: String) {
         val api = applyServerUrl() ?: return
         launchBusy {
-            api.login(email, password)
+            user = api.login(email, password)
             signedIn = true
             cameras = api.cameras()
         }
@@ -101,7 +110,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         val api = api ?: return
-        launchBusy { cameras = api.cameras() }
+        launchBusy {
+            if (user == null) user = api.me()
+            cameras = api.cameras()
+        }
     }
 
     fun logout() {
@@ -110,31 +122,46 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             api?.logout()
             cameras = emptyList()
             selectedCamera = null
+            screen = Screen.CAMERAS
+            user = null
             signedIn = false
         }
     }
 
     /** Central error mapping, shared by every screen. */
     fun handle(error: Throwable) {
-        errorMessage = when (error) {
-            MinicamException.InvalidCredentials -> "Invalid email or password"
-            MinicamException.Unauthorized -> {
-                signedIn = false
-                selectedCamera = null
-                "Your session expired. Sign in again."
-            }
-            MinicamException.AccessRequired -> {
-                store.set(CredentialKey.ACCESS_TOKEN, null)
-                accessTokenPresent = false
-                signedIn = false
-                selectedCamera = null
-                "Sign in with Cloudflare Access again."
-            }
-            MinicamException.RateLimited -> "Too many attempts. Wait a few minutes."
-            is MinicamException.Forbidden -> error.detail
-            MinicamException.NotFound -> "Not found or not allowed."
-            else -> "Can't reach the server."
+        errorMessage = describe(error)
+    }
+
+    /**
+     * User-facing message for [error]. A lost session or Access token also signs out here,
+     * so every screen gets the same behavior (spec 001 AC4).
+     */
+    fun describe(error: Throwable): String = when (error) {
+        MinicamException.InvalidCredentials -> "Invalid email or password"
+        MinicamException.Unauthorized -> {
+            signOutLocally()
+            "Your session expired. Sign in again."
         }
+        MinicamException.AccessRequired -> {
+            store.set(CredentialKey.ACCESS_TOKEN, null)
+            accessTokenPresent = false
+            signOutLocally()
+            "Sign in with Cloudflare Access again."
+        }
+        MinicamException.RateLimited -> "Too many attempts. Wait a few minutes."
+        is MinicamException.Forbidden -> error.detail
+        is MinicamException.Rejected -> error.detail
+        MinicamException.NotFound -> "Not found or not allowed."
+        is MinicamException.Server -> "The server failed (${error.code})."
+        else -> "Can't reach the server."
+    }
+
+    private fun signOutLocally() {
+        signedIn = false
+        selectedCamera = null
+        screen = Screen.CAMERAS
+        user = null
     }
 
     private fun launchBusy(work: suspend () -> Unit) {

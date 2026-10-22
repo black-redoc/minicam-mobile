@@ -35,7 +35,12 @@ fun CamerasScreen(viewModel: AppViewModel) {
     LaunchedEffect(Unit) { viewModel.refresh() }
 
     Column(Modifier.fillMaxSize().background(CamColors.Bg).safeDrawingPadding()) {
-        Header(onRefresh = viewModel::refresh, onLogout = viewModel::logout)
+        Header(
+            isAdmin = viewModel.user?.isAdmin == true,
+            onRefresh = viewModel::refresh,
+            onOpen = { viewModel.screen = it },
+            onLogout = viewModel::logout,
+        )
 
         if (viewModel.cameras.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
@@ -66,9 +71,12 @@ fun CamerasScreen(viewModel: AppViewModel) {
     }
 }
 
-/** The desktop top bar (`h-14`, slate-900, bottom border) with its "More options" menu. */
+/**
+ * The desktop top bar (`h-14`, slate-900, bottom border) with its "More options" menu. Admins
+ * also get the admin sections there (ADR 0004); the server enforces it either way.
+ */
 @Composable
-private fun Header(onRefresh: () -> Unit, onLogout: () -> Unit) {
+private fun Header(isAdmin: Boolean, onRefresh: () -> Unit, onOpen: (Screen) -> Unit, onLogout: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp),
@@ -84,6 +92,21 @@ private fun Header(onRefresh: () -> Unit, onLogout: () -> Unit) {
                 onDismissRequest = { menuOpen = false },
                 modifier = Modifier.background(CamColors.Surface),
             ) {
+                if (isAdmin) {
+                    listOf(
+                        Screen.CAMERA_SETTINGS to "Camera settings",
+                        Screen.AI_DETECTION to "AI detection",
+                        Screen.ADMIN to "Admin",
+                    ).forEach { (screen, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label, color = CamColors.Text) },
+                            onClick = {
+                                menuOpen = false
+                                onOpen(screen)
+                            },
+                        )
+                    }
+                }
                 DropdownMenuItem(
                     text = { Text("Log out", color = CamColors.Danger) },
                     onClick = {

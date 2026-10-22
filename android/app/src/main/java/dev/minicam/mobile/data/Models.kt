@@ -45,6 +45,8 @@ sealed class MinicamException(message: String) : Exception(message) {
     data class Forbidden(val detail: String) : MinicamException(detail)
     data object NotFound : MinicamException("Not found")
     data object RateLimited : MinicamException("Too many attempts")
+    /** minicam refused the request and said why (its JSON `detail`). */
+    data class Rejected(val detail: String) : MinicamException(detail)
     data class Server(val code: Int) : MinicamException("Server error $code")
     data object InvalidResponse : MinicamException("Unexpected server response")
 }
