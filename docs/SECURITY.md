@@ -34,3 +34,8 @@ visible. A data-saver mode is planned (ROADMAP M2).
   (`android:allowBackup="false"`)
 - [ ] Transport: rules above hold; no new hosts contacted
 - [ ] Dependencies: any new one follows DEPENDENCIES.md
+
+## CI/CD
+Workflows default to `contents: read`; only the release publish job can write. The Android
+keystore lives only in repo secrets and `$RUNNER_TEMP` during the build; fork PRs get no secrets.
+Third-party actions are pinned by commit SHA (ADR 0003).

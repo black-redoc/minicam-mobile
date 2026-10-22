@@ -24,6 +24,11 @@ xcodebuild -project MinicamApp.xcodeproj -scheme MinicamApp \
   -destination 'generic/platform=iOS Simulator' build    # no Swift warnings expected
 ```
 
+## CI/CD
+`.github/workflows/ci.yml` runs the commands above on every PR (ADR 0003) and uploads the
+installable builds as artifacts; `release.yml` publishes them as a GitHub release on every merge
+to `master`. UI tests are not run in CI (they need a live minicam).
+
 ## README screenshots
 Run a minicam with a user who can view a camera named `entrada`, then:
 ```bash

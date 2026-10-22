@@ -25,6 +25,17 @@ cd ios/MinicamApp && xcodegen generate && open MinicamApp.xcodeproj
 - iOS: run the `MinicamApp` scheme from Xcode. The simulator reaches the host at
   `http://localhost:8000`.
 
+## Release signing (Android)
+Release builds use the key in `MINICAM_KEYSTORE_PATH` (+ `MINICAM_KEYSTORE_PASSWORD`,
+`MINICAM_KEY_ALIAS`, `MINICAM_KEY_PASSWORD`); without it they fall back to the debug key. For CI,
+create the key once, back it up outside the repo, and set the repo secrets:
+```bash
+keytool -genkeypair -keystore minicam-release.jks -alias minicam -keyalg RSA -keysize 4096 -validity 10000
+gh secret set ANDROID_KEYSTORE_BASE64 < <(base64 -i minicam-release.jks)
+gh secret set ANDROID_KEYSTORE_PASSWORD; gh secret set ANDROID_KEY_ALIAS; gh secret set ANDROID_KEY_PASSWORD
+```
+Losing the key means users must uninstall to update. iOS builds from CI are unsigned (ADR 0003).
+
 ## Conventions
 - Package / bundle id: `dev.minicam.mobile`. Callback scheme: `minicam://access-callback`.
 - Keep Android and iOS behavior identical; when one changes, update the other or open an issue.

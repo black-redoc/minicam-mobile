@@ -6,7 +6,7 @@
 - [x] iOS app skeleton (SwiftUI) + `MinicamKit` Swift package with tests
 - [x] Toolchains installed, Gradle wrapper generated (DEVELOPMENT.md)
 - [x] Xcode project generated and the iOS app built
-- [ ] CI for both apps
+- [ ] CI for both apps + release on merge to `master` (specs/003-ci-cd.md, ADR 0003)
 
 ## M1 - Viewer v1 (specs/001-viewer-v1.md)
 Scope: server URL, minicam login/logout, list of viewable cameras, live stream, hold-to-move PTZ,
