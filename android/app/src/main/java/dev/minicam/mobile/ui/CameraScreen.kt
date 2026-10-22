@@ -14,7 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -221,11 +219,9 @@ private fun FullscreenCamera(
                 Column(
                     Modifier.glass(RoundedCornerShape(20.dp)).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.End,
                 ) {
-                    Row(Modifier.width(IntrinsicSize.Max), verticalAlignment = Alignment.CenterVertically) {
-                        Text("PTZ", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f).padding(start = 4.dp))
-                        GlassIconButton(label = "Hide PTZ controls", onClick = { onShowPtz(false) }, size = 30.dp) { CloseIcon() }
-                    }
+                    GlassIconButton(label = "Hide PTZ controls", onClick = { onShowPtz(false) }, size = 30.dp) { CloseIcon() }
                     ptzPad()
                 }
             }

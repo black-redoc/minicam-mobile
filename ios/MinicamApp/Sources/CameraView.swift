@@ -88,16 +88,9 @@ struct CameraView: View {
     }
 
     private func ptzPanel(api: MinicamAPI) -> some View {
-        VStack(spacing: 10) {
-            HStack {
-                Text("PTZ")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.leading, 4)
-                Spacer()
-                glassButton("Hide PTZ controls", systemImage: "xmark", size: 30) {
-                    withAnimation(.snappy) { showPTZ = false }
-                }
+        VStack(alignment: .trailing, spacing: 10) {
+            glassButton("Hide PTZ controls", systemImage: "xmark", size: 30) {
+                withAnimation(.snappy) { showPTZ = false }
             }
             PTZPad(api: api, camera: camera.name, glass: true) { model.handle($0) }
         }
