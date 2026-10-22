@@ -109,14 +109,7 @@ struct CameraView: View {
     private func glassButton(
         _ label: String, systemImage: String, size: CGFloat = 44, action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: size * 0.36, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: size, height: size)
-                .glassSurface(in: Circle())
-        }
-        .accessibilityLabel(label)
+        GlassIconButton(label: label, systemImage: systemImage, size: size, action: action)
     }
 
     /// Frame fitted to the container (`object-fit: contain`) with a spinner while not live.
@@ -187,5 +180,24 @@ struct StatusBadge: View {
         case .disconnected: "Disconnected"
         case .connecting: "Connecting…"
         }
+    }
+}
+
+/// Round glass button floating over video (spec 004), also used by the recordings player.
+struct GlassIconButton: View {
+    let label: String
+    let systemImage: String
+    var size: CGFloat = 44
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: size * 0.36, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: size, height: size)
+                .glassSurface(in: Circle())
+        }
+        .accessibilityLabel(label)
     }
 }

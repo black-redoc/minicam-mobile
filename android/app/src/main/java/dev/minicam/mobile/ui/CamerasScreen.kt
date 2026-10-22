@@ -72,8 +72,9 @@ fun CamerasScreen(viewModel: AppViewModel) {
 }
 
 /**
- * The desktop top bar (`h-14`, slate-900, bottom border) with its "More options" menu. Admins
- * also get the admin sections there (ADR 0004); the server enforces it either way.
+ * The desktop top bar (`h-14`, slate-900, bottom border) with its "More options" menu:
+ * Recordings for everyone (ADR 0005); admins also get the admin sections there (ADR 0004).
+ * The server enforces it either way.
  */
 @Composable
 private fun Header(isAdmin: Boolean, onRefresh: () -> Unit, onOpen: (Screen) -> Unit, onLogout: () -> Unit) {
@@ -92,6 +93,13 @@ private fun Header(isAdmin: Boolean, onRefresh: () -> Unit, onOpen: (Screen) -> 
                 onDismissRequest = { menuOpen = false },
                 modifier = Modifier.background(CamColors.Surface),
             ) {
+                DropdownMenuItem(
+                    text = { Text("Recordings", color = CamColors.Text) },
+                    onClick = {
+                        menuOpen = false
+                        onOpen(Screen.RECORDINGS)
+                    },
+                )
                 if (isAdmin) {
                     listOf(
                         Screen.CAMERA_SETTINGS to "Camera settings",

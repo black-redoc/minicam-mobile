@@ -6,8 +6,8 @@ allowed to see and drives PTZ. The apps never talk to any service other than the
 minicam host and their Cloudflare Access login page.
 
 ## Current focus
-Milestone: M2 - Admin · Spec: specs/005-admin-screens.md (ADR 0004) · Next step: implement the
-admin screens on Android and iOS. M1 still open: device checks on LAN/WAN (specs/001, 004).
+Milestone: M2.5 - Recordings · Spec: specs/006-recordings.md (ADR 0005) · Next step: implement
+recordings on Android and iOS. Still open: M1 device checks (specs/001, 004), M2 manual check (005).
 
 ## Docs
 [ROADMAP](ROADMAP.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) ·

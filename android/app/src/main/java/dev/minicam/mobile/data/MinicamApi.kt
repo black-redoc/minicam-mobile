@@ -1,6 +1,7 @@
 package dev.minicam.mobile.data
 
 import java.io.IOException
+import java.io.OutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +73,15 @@ class MinicamApi(
     fun streamRequest(camera: String, token: String): Request =
         authorized(Request.Builder().url(config.streamUrl(camera, token))).build()
 
+    /**
+     * Headers every request to the server carries: the session cookie and, on WAN hosts, the
+     * Access token. For clients that build their own requests on [client] (the video player).
+     */
+    fun authHeaders(): Map<String, String> = buildMap {
+        store.get(CredentialKey.SESSION_COOKIE)?.let { put("Cookie", "$SESSION_COOKIE=$it") }
+        if (config.isWan) store.get(CredentialKey.ACCESS_TOKEN)?.let { put(ACCESS_TOKEN_HEADER, it) }
+    }
+
     // -- Plumbing ---------------------------------------------------------
 
     internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T =
@@ -89,6 +99,17 @@ class MinicamApi(
 
     internal suspend fun sendEmpty(method: String, path: String) {
         send(method, path, if (method == "DELETE") null else EMPTY) { _, _ -> }
+    }
+
+    /** Streams the body of `GET [path]` into [out]: for files too large to read as text. */
+    internal suspend fun download(path: String, out: OutputStream) {
+        val request = authorized(Request.Builder().url(config.url(path))).build()
+        withContext(Dispatchers.IO) {
+            client.newCall(request).await().use { response ->
+                if (!response.isSuccessful) check(response.code, response.body.string(), isLogin = false)
+                response.body.byteStream().copyTo(out)
+            }
+        }
     }
 
     private suspend fun <T> send(
@@ -116,10 +137,7 @@ class MinicamApi(
     }
 
     private fun authorized(builder: Request.Builder): Request.Builder {
-        store.get(CredentialKey.SESSION_COOKIE)?.let { builder.header("Cookie", "$SESSION_COOKIE=$it") }
-        if (config.isWan) {
-            store.get(CredentialKey.ACCESS_TOKEN)?.let { builder.header(ACCESS_TOKEN_HEADER, it) }
-        }
+        authHeaders().forEach { (name, value) -> builder.header(name, value) }
         return builder
     }
 

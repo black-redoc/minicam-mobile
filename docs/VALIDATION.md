@@ -32,7 +32,7 @@ to `master`. UI tests are not run in CI (they need a live minicam).
 ## README screenshots
 Run a minicam with a user who can view a camera named `entrada`, then:
 ```bash
-# iOS: ScreenshotTests logs in and attaches ios-login / ios-cameras / ios-camera / ios-fullscreen*,
+# iOS: ScreenshotTests logs in and attaches ios-login / ios-cameras / ios-camera / ios-fullscreen*, ios-recordings,
 # plus ios-camera-settings / ios-ai-detection / ios-admin when the account is an admin
 TEST_RUNNER_MINICAM_SERVER=http://localhost:8000 TEST_RUNNER_MINICAM_EMAIL=… \
 TEST_RUNNER_MINICAM_PASSWORD=… xcodebuild test -project MinicamApp.xcodeproj \

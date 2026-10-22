@@ -27,11 +27,15 @@ import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.CameraPermission
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.NotificationSettings
+import dev.minicam.mobile.data.RecordingSettings
 import dev.minicam.mobile.data.UserAccess
 import dev.minicam.mobile.data.adminCameras
 import dev.minicam.mobile.data.createUser
 import dev.minicam.mobile.data.deleteUser
+import dev.minicam.mobile.data.formatStorageBytes
 import dev.minicam.mobile.data.notificationSettings
+import dev.minicam.mobile.data.recordingSettings
+import dev.minicam.mobile.data.saveRecordingSettings
 import dev.minicam.mobile.data.saveNotificationSettings
 import dev.minicam.mobile.data.setPermission
 import dev.minicam.mobile.data.setWanAccess
@@ -96,6 +100,7 @@ fun AdminScreen(viewModel: AppViewModel) {
     AdminScaffold("Admin", onBack = { viewModel.screen = Screen.CAMERAS }) {
         CreateUserSection(viewModel, api) { scope.launch { loadUsers() } }
         NotificationsSection(viewModel, api)
+        RecordingSettingsSection(viewModel, api)
 
         SectionTitle("Users & camera permissions")
         FormMessage(usersError)
@@ -209,6 +214,60 @@ private fun NotificationsSection(viewModel: AppViewModel, api: MinicamApi) {
                         ?.let {
                             settings = it
                             cooldown = it.cooldownSeconds.toString()
+                            saved = true
+                        }
+                    busy = false
+                }
+            }
+        }
+        FormMessage(error, if (saved) "Saved." else null)
+    }
+}
+
+/** The desktop "Event recordings" card (minicam `recording-settings.js`), ADR 0005. */
+@Composable
+private fun RecordingSettingsSection(viewModel: AppViewModel, api: MinicamApi) {
+    val scope = rememberCoroutineScope()
+    var settings by remember { mutableStateOf<RecordingSettings?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var saved by remember { mutableStateOf(false) }
+
+    LaunchedEffect(api) {
+        viewModel.attempt({ error = it }) { api.recordingSettings() }?.let { settings = it }
+    }
+
+    Section("Event recordings") {
+        val current = settings
+        if (current == null) {
+            if (error == null) Spinner("Loading…")
+        } else {
+            LabeledSwitch("Record a clip while a camera detects one of its classes", current.enabled) {
+                settings = current.copy(enabled = it)
+                saved = false
+            }
+            OptionPicker(
+                label = "Storage limit",
+                options = current.options.map { it.gb to "${it.gb} GB" },
+                selected = current.maxStorageGb,
+                // Limits the disk can't hold stay visible but can't be chosen, like the web.
+                unavailable = current.options.filter { !it.available }.associate { it.gb to "Not enough space" },
+            ) {
+                settings = current.copy(maxStorageGb = it)
+                saved = false
+            }
+            Hint("Recordings use ${formatStorageBytes(current.usedBytes)} · ${formatStorageBytes(current.freeBytes)} free on disk")
+            Hint(
+                "Clips start about 3 seconds before a detection and stop about 5 seconds after the last one. " +
+                    "When the limit is reached, the oldest clips are deleted. Users watch them from ⋮ → Recordings.",
+            )
+            PrimaryButton("Save", busy = busy) {
+                scope.launch {
+                    busy = true
+                    error = null
+                    viewModel.attempt({ error = it }) { api.saveRecordingSettings(current.enabled, current.maxStorageGb) }
+                        ?.let {
+                            settings = it
                             saved = true
                         }
                     busy = false

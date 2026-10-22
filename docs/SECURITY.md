@@ -32,6 +32,14 @@ password session, and the server pins the redirect target (no open redirect).
 - Text from the remote model catalog is rendered as plain text. Model URLs must be `https`
   (checked in the app and by the server); the server, not the app, downloads them.
 
+## Recordings (ADR 0005)
+- Who sees a clip is the server's decision (`can_view`, WAN gate); the app never filters clips.
+- Deleting a clip always asks for confirmation first.
+- The session cookie / Access token are sent only by the app's own clients (OkHttp data source,
+  AVURLAsset, URLSession); never handed to `DownloadManager`, a browser or another app.
+- Downloads go only where the user picks (Android SAF) or to the app's temp dir, removed after
+  the share sheet closes (iOS).
+
 ## Bandwidth / cost note
 MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer). The app must close streams when not
 visible. A data-saver mode is planned (ROADMAP M2).

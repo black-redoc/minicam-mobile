@@ -37,6 +37,7 @@ struct CamerasView: View {
             .refreshable { await model.refresh() }
             .task { await model.refresh() }
             .navigationDestination(for: CameraSummary.self) { CameraView(camera: $0) }
+            .navigationDestination(for: RecordingsRoute.self) { _ in RecordingsView() }
             .navigationDestination(for: AdminRoute.self) { route in
                 switch route {
                 case .cameraSettings: CameraSettingsView()
@@ -48,6 +49,9 @@ struct CamerasView: View {
                 ToolbarItem(placement: .topBarLeading) { BrandTitle().fixedSize().padding(.horizontal, 8) }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        NavigationLink(value: RecordingsRoute()) {
+                            Label("Recordings", systemImage: "video.badge.checkmark")
+                        }
                         // Admins only (ADR 0004); the server enforces it either way.
                         if model.user?.isAdmin == true {
                             NavigationLink(value: AdminRoute.cameraSettings) {

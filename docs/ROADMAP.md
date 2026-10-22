@@ -17,7 +17,7 @@ Cloudflare Access login for WAN hosts.
 - [ ] Tested on a real device on LAN and through the tunnel
 - [ ] Fullscreen camera view with floating glass controls and PTZ panel (specs/004-fullscreen-camera.md)
 
-Non-goals for M1: admin screens (moved to M2, ADR 0004), push notifications, recordings/playback, multi-server profiles, tablets-specific layouts.
+Non-goals for M1: admin screens (moved to M2, ADR 0004), push notifications, recordings/playback (now M2.5, ADR 0005), multi-server profiles, tablets-specific layouts.
 
 ## M2 - Admin (specs/005-admin-screens.md, ADR 0004)
 Scope: admin-only Camera settings (add/edit/delete, ONVIF discovery, detection classes,
@@ -28,6 +28,15 @@ Admin (users, per-camera permissions, WAN access, global detection notifications
 - [ ] Checked against a local minicam on emulator/simulator
 
 Non-goals for M2: uploading `.onnx` files from the phone, first-run setup.
+
+## M2.5 - Recordings (specs/006-recordings.md, ADR 0005)
+Scope: event clip list (by day, camera filter, paging), player, download, admin delete, and the
+admin "Event recordings" settings card, mirroring the minicam web Recordings page.
+- [ ] Android: all spec 006 acceptance criteria passing
+- [ ] iOS: all spec 006 acceptance criteria passing
+- [ ] Checked against a local minicam with recordings on emulator/simulator
+
+Non-goals for M2.5: thumbnails, offline clip cache, trimming/exporting.
 
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid

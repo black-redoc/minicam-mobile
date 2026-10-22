@@ -50,9 +50,18 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["Exit fullscreen"].tap()
         XCTAssertTrue(app.buttons["PTZ up"].waitForExistence(timeout: 10))
 
-        // Spec 005: admin sections, only when the test account is an admin.
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(cameraRow.waitForExistence(timeout: 10))
+
+        // Spec 006: Recordings, for every user.
+        app.buttons["moreOptions"].tap()
+        app.buttons["Recordings"].tap()
+        XCTAssertTrue(app.navigationBars["Recordings"].waitForExistence(timeout: 10))
+        attach(app, name: "ios-recordings")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(cameraRow.waitForExistence(timeout: 10))
+
+        // Spec 005: admin sections, only when the test account is an admin.
         for (item, name, marker) in [
             ("Camera settings", "ios-camera-settings", "Add camera"),
             ("AI detection", "ios-ai-detection", "Backend"),

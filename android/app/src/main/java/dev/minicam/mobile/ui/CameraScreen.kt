@@ -255,7 +255,7 @@ private fun PtzCircle(onClose: () -> Unit, ptzPad: @Composable () -> Unit) {
  * (`configChanges` in the manifest), so the stream is not torn down.
  */
 @Composable
-private fun ImmersiveLandscape() {
+internal fun ImmersiveLandscape() {
     val activity = LocalActivity.current ?: return
     DisposableEffect(activity) {
         val controller = WindowCompat.getInsetsController(activity.window, activity.window.decorView)

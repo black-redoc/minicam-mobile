@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Media3 "minimal mode" (small player): its fullscreen button sits 4dp above the bottom,
+         on top of the time bar. Lift it clear of the bar (spec 006 AC9). Private to media3-ui:
+         check it still applies when bumping Media3 (exact version, DEPENDENCIES.md). -->
+    <dimen name="exo_styled_minimal_controls_margin_bottom" tools:override="true"
+        tools:ignore="UnusedResources">16dp</dimen>
+</resources>
