@@ -73,3 +73,11 @@
 - Tests: Android 48/48 + lint 0 warnings + debug/release builds; iOS `swift test` 46/46,
   simulator + UI test builds with no Swift warnings
 - Next: manual check on emulator/simulator against a local minicam with recordings
+
+## 2026-10-22 — Spec 006 AC10-AC11 time bar colors, iOS controls, player animation
+- Done: sky played part on the time bar (both); iOS custom controls over AVPlayerLayer; player
+  fades in while the list slides down, one 0.5 s ease-in-out curve (both)
+- Commit: 3ed1002, 9dc4954 (Android), 35e6503 (iOS)
+- Tests: Android 48/48 + lint 0 warnings + debug/release builds; iOS `swift test` 47/47,
+  simulator + UI test builds with no Swift warnings
+- Next: visual check of controls and animation on emulator/simulator
