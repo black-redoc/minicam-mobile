@@ -17,3 +17,12 @@
 - Tests: Android 17/17, lint 0 warnings, debug + release build OK; iOS MinicamKit 16/16, app
   builds for the simulator with no warnings
 - Next: merge the minicam branch, end-to-end check on devices, CI
+
+## 2026-10-21 — End-to-end check on emulator/simulator + README screenshots
+- Done: both apps signed in to a local minicam (spec 002 branch) and listed cameras; found and
+  fixed KI-6 (Android read responses on the main thread); fixed truncated iOS toolbar title and
+  list spacing on Android; iOS `ScreenshotTests` UI test; screenshots in the README; minicam PR #12
+- Commit: d91de5b, 05104e2, db44764, f606340
+- Tests: Android 18/18, lint 0 warnings; iOS MinicamKit 16/16, UI test passing
+- Next: merge minicam PR #12, create the GitHub remote for this repo, live video check with a real
+  camera, CI
