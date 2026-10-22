@@ -1,10 +1,17 @@
 package dev.minicam.mobile.data
 
+import java.util.concurrent.Executors
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.EventListener
+import okhttp3.OkHttpClient
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Before
@@ -137,6 +144,29 @@ class MinicamApiTest {
         val api = lanApi()
 
         assertEquals(MinicamException.AccessRequired, runCatching { api.cameras() }.exceptionOrNull())
+    }
+
+    /** KI-6: Android forbids network I/O on the main thread, where viewModelScope runs. */
+    @Test
+    fun responseBody_isNeverReadOnTheCallersThread() = runTest {
+        enqueue(200, "[]")
+        val bodyThreads = mutableListOf<String>()
+        val client = OkHttpClient.Builder()
+            .eventListener(
+                object : EventListener() {
+                    override fun responseBodyStart(call: Call) {
+                        bodyThreads += Thread.currentThread().name
+                    }
+                },
+            )
+            .build()
+        val api = MinicamApi(ServerConfig.parse(server.url("/").toString()), store, client)
+        val fakeMain = Executors.newSingleThreadExecutor { Thread(it, "fake-main") }.asCoroutineDispatcher()
+
+        fakeMain.use { withContext(it) { api.cameras() } }
+
+        assertEquals(1, bodyThreads.size)
+        assertNotEquals("fake-main", bodyThreads.single())
     }
 
     @Test

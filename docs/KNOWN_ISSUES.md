@@ -21,3 +21,11 @@ same Wi-Fi. Mitigation: use the WAN (https) hostname on untrusted networks.
 With only Command Line Tools selected, the first `swift test` after a clean build sometimes fails
 with "plugin for module 'TestingMacros' not found"; a second run passes. With Xcode's toolchain
 (`xcode-select -s /Applications/Xcode.app` or `DEVELOPER_DIR=...`) it passes from clean every time.
+
+## KI-6 Android login fails with "Can't reach the server" — Status: Resolved 2026-10-21
+Repro: emulator, real minicam on LAN, valid credentials. Server logs `POST /api/auth/login 200`,
+app shows "Can't reach the server". Expected: signed in. Cause: `MinicamApi.send` read the
+response body after resuming on the caller's dispatcher (Main in `viewModelScope`) →
+`NetworkOnMainThreadException`, mapped to the generic error. JVM tests don't enforce this.
+Test: `MinicamApiTest.responseBody_isNeverReadOnTheCallersThread`. Fix: the whole request/response
+cycle runs in `withContext(Dispatchers.IO)`; verified on the emulator against a real minicam.

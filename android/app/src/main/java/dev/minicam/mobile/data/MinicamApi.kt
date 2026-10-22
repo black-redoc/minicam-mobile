@@ -3,7 +3,9 @@ package dev.minicam.mobile.data
 import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
@@ -84,10 +86,14 @@ class MinicamApi(
                 .header("Accept", "application/json")
                 .method(method, body),
         ).build()
-        return client.newCall(request).await().use { response ->
-            val text = response.body.string()
-            check(response.code, text, isLogin)
-            parse(response, text)
+        // Reading the body is blocking network I/O: never on the caller's
+        // dispatcher, which is Main for viewModelScope (KI-6).
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).await().use { response ->
+                val text = response.body.string()
+                check(response.code, text, isLogin)
+                parse(response, text)
+            }
         }
     }
 
