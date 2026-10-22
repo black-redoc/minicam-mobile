@@ -46,29 +46,37 @@ struct RecordingsView: View {
         }
     }
 
+    /// Player, clip actions, camera filter and the list title stay fixed; only the clips scroll.
     private var list: some View {
-        ScrollViewReader { proxy in
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                if let selected {
+                    playerCard(selected).transition(.opacity)
+                }
+                HStack(spacing: 16) {
+                    // The clip's actions fade in with the player, pushing the filter along (AC11).
+                    if let selected {
+                        clipActions(selected).transition(.opacity)
+                    }
+                    Picker("Camera", selection: $camera) {
+                        Text("All cameras").tag(String?.none)
+                        ForEach(model.cameras) { Text($0.name).tag(String?.some($0.name)) }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    Spacer(minLength: 0)
+                }
+                Text("Event recordings".uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.5)
+                    .foregroundStyle(Theme.muted)
+                    .padding(.top, 4)
+            }
+            .padding([.horizontal, .top], 16)
+            .padding(.bottom, 8)
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if let selected {
-                        playerCard(selected)
-                            .id("player")
-                            .transition(.opacity)
-                    }
-
-                    HStack {
-                        Text("Event recordings".uppercased())
-                            .font(.caption2.weight(.semibold))
-                            .tracking(1.5)
-                            .foregroundStyle(Theme.muted)
-                        Spacer()
-                        Picker("Camera", selection: $camera) {
-                            Text("All cameras").tag(String?.none)
-                            ForEach(model.cameras) { Text($0.name).tag(String?.some($0.name)) }
-                        }
-                        .pickerStyle(.menu)
-                    }
-
                     if let error { FormMessage(error: error) }
                     if let items, items.isEmpty {
                         Text(camera == nil
@@ -86,7 +94,7 @@ struct RecordingsView: View {
                             VStack(spacing: 0) {
                                 ForEach(Array(day.recordings.enumerated()), id: \.element.id) { index, recording in
                                     if index > 0 { Divider().overlay(Theme.border) }
-                                    Button { open(recording, proxy: proxy) } label: {
+                                    Button { open(recording) } label: {
                                         ClipRow(recording: recording, selected: recording == selected)
                                     }
                                     .buttonStyle(.plain)
@@ -106,12 +114,13 @@ struct RecordingsView: View {
                         .disabled(loading)
                     }
                 }
-                .padding(16)
+                .padding([.horizontal, .bottom], 16)
+                .padding(.top, 8)
             }
+            .refreshable { await load(reset: true) }
         }
         .background(Theme.bg.ignoresSafeArea())
         .task(id: camera) { await load(reset: true) }
-        .refreshable { await load(reset: true) }
         .confirmationDialog(
             "Delete recording?",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
@@ -152,27 +161,30 @@ struct RecordingsView: View {
             formatClipSize(recording.sizeBytes),
             recording.classes.isEmpty ? nil : recording.classes.joined(separator: ", "),
         ]
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 4) {
             Text(recording.cameraName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
             Text(details.compactMap { $0 }.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.muted)
-            HStack(spacing: 16) {
-                Button {
-                    Task { await download(recording) }
-                } label: {
-                    if downloading { ProgressView() } else { Label("Download", systemImage: "arrow.down.to.line") }
-                }
-                .disabled(downloading)
-                // Admins only; the server's `require_admin` enforces it either way.
-                if model.user?.isAdmin == true {
-                    Button(role: .destructive) { pendingDelete = recording } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    .foregroundStyle(Theme.danger)
-                }
-            }
-            .buttonStyle(.borderless)
-            .font(.callout)
         }
+    }
+
+    private func clipActions(_ recording: Recording) -> some View {
+        HStack(spacing: 16) {
+            Button {
+                Task { await download(recording) }
+            } label: {
+                if downloading { ProgressView() } else { Label("Download", systemImage: "arrow.down.to.line") }
+            }
+            .disabled(downloading)
+            // Admins only; the server's `require_admin` enforces it either way.
+            if model.user?.isAdmin == true {
+                Button(role: .destructive) { pendingDelete = recording } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .foregroundStyle(Theme.danger)
+            }
+        }
+        .buttonStyle(.borderless)
+        .font(.callout)
     }
 
     // MARK: - Actions
@@ -191,18 +203,13 @@ struct RecordingsView: View {
         }
     }
 
-    /// Opens a clip and scrolls up to the player (top of the page), so it's never left hidden
-    /// above the list, like the web. From a closed player the opening animates (AC11);
-    /// switching clips just swaps the video.
-    private func open(_ recording: Recording, proxy: ScrollViewProxy) {
+    /// Opens a clip. The player is in the fixed top part, so it's always in view. From a closed
+    /// player the opening animates (AC11); switching clips just swaps the video.
+    private func open(_ recording: Recording) {
         if selected == nil {
-            withAnimation(Self.playerAnimation) {
-                selected = recording
-                proxy.scrollTo("player", anchor: .top)
-            }
+            withAnimation(Self.playerAnimation) { selected = recording }
         } else {
             selected = recording
-            withAnimation(Self.playerAnimation) { proxy.scrollTo("player", anchor: .top) }
         }
     }
 
