@@ -40,3 +40,11 @@
 - Commit: 28e72c5
 - Tests: Android 21/21 + lint + debug/release builds; iOS `swift test` 19/19 + simulator build
 - Next: check PTZ on a real camera over LAN and WAN
+
+## 2026-10-22 — Spec 004 fullscreen camera view
+- Done: fullscreen toggle on the video, floating glass exit/PTZ buttons, glass PTZ panel on the
+  right with an (x) close button, landscape + hidden system bars, on Android and iOS
+- Commit: 7a0f38c
+- Tests: Android 21/21 + lint 0 warnings + debug/release builds; iOS `swift test` 19/19,
+  simulator build + UI test build with no Swift warnings
+- Next: visual check on emulator/simulator (`ScreenshotTests` now captures fullscreen) and device
