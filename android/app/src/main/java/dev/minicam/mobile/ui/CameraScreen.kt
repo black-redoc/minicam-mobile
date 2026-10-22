@@ -243,7 +243,7 @@ private fun PtzCircle(onClose: () -> Unit, ptzPad: @Composable () -> Unit) {
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset(x = closeSize / 2 - inset, y = inset - closeSize / 2)
-                .background(Color.Black.copy(alpha = 0.45f), CircleShape),
+                .background(CamColors.Bg.copy(alpha = 0.6f), CircleShape),
             size = closeSize,
         ) { CloseIcon() }
     }

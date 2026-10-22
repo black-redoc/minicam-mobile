@@ -101,7 +101,7 @@ struct CameraView: View {
                 glassButton("Hide PTZ controls", systemImage: "xmark", size: closeSize) {
                     withAnimation(.snappy) { showPTZ = false }
                 }
-                .background(Color.black.opacity(0.45), in: Circle())
+                .background(Theme.bg.opacity(0.6), in: Circle())
                 .offset(x: closeSize / 2 - inset, y: inset - closeSize / 2)
             }
     }

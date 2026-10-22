@@ -22,16 +22,17 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.minicam.mobile.ui.theme.CamColors
 
 /**
- * Translucent "glass" surface for controls floating over the video: a dark tint so they stay
- * readable on bright frames, a light top-down sheen and a thin bright edge. Compose has no
+ * Translucent "glass" surface for controls floating over the video: a tint of the app's dark
+ * blue background so they stay readable on bright frames and match the theme, a light top-down sheen and a thin bright edge. Compose has no
  * backdrop blur without extra dependencies, so the look comes from translucency alone.
  */
 fun Modifier.glass(shape: Shape): Modifier = this
     .clip(shape)
-    .background(Color.Black.copy(alpha = 0.28f))
-    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.06f))))
+    .background(CamColors.Bg.copy(alpha = 0.55f))
+    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.03f))))
     .border(
         1.dp,
         Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.12f))),
