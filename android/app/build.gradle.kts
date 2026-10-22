@@ -14,7 +14,7 @@ android {
         targetSdk = 37
         // CI passes -PversionCode=<run number> so each published APK upgrades the previous one.
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
     }
 
     // Release key comes from the environment (CI secrets, docs/adr/0003). Without it, release
