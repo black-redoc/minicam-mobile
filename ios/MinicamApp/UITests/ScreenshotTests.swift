@@ -1,0 +1,61 @@
+import XCTest
+
+/// Logs in against a running minicam and captures the README screenshots
+/// (docs/VALIDATION.md "README screenshots"). Skipped unless the server and
+/// credentials are passed as TEST_RUNNER_MINICAM_* environment variables.
+@MainActor
+final class ScreenshotTests: XCTestCase {
+    func testCaptureScreens() throws {
+        let env = ProcessInfo.processInfo.environment
+        guard let server = env["MINICAM_SERVER"], let email = env["MINICAM_EMAIL"],
+              let password = env["MINICAM_PASSWORD"]
+        else { throw XCTSkip("MINICAM_SERVER / MINICAM_EMAIL / MINICAM_PASSWORD not set") }
+        let camera = env["MINICAM_CAMERA"] ?? "entrada"
+
+        let app = XCUIApplication()
+        app.launch()
+
+        let serverField = app.textFields["server"]
+        XCTAssertTrue(serverField.waitForExistence(timeout: 10))
+        attach(app, name: "ios-login")
+
+        serverField.tap()
+        let current = serverField.value as? String ?? ""
+        serverField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count) + server)
+        app.textFields["email"].tap()
+        app.textFields["email"].typeText(email)
+        app.secureTextFields["password"].tap()
+        app.secureTextFields["password"].typeText(password)
+        app.buttons["signIn"].tap()
+        dismissSavePasswordPrompt()
+
+        // The row's label combines the name and the "PTZ" tag, e.g. "entrada, PTZ".
+        let cameraRow = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", camera)).firstMatch
+        XCTAssertTrue(cameraRow.waitForExistence(timeout: 15))
+        attach(app, name: "ios-cameras")
+
+        cameraRow.tap()
+        XCTAssertTrue(app.buttons["PTZ up"].waitForExistence(timeout: 10))
+        attach(app, name: "ios-camera")
+    }
+
+    /// iOS offers to save the password after login; it covers the screen.
+    private func dismissSavePasswordPrompt() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let notNow = NSPredicate(format: "label IN %@", ["Not Now", "Ahora no"])
+        for source in [XCUIApplication(), springboard] {
+            let button = source.buttons.matching(notNow).firstMatch
+            if button.waitForExistence(timeout: 3) {
+                button.tap()
+                return
+            }
+        }
+    }
+
+    private func attach(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

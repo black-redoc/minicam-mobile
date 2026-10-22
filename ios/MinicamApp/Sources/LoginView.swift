@@ -30,6 +30,7 @@ struct LoginView: View {
                         TextField("https://cam.example.com", text: $model.serverURLText)
                             .keyboardType(.URL)
                             .textContentType(.URL)
+                            .accessibilityIdentifier("server")
                     }
 
                     if model.needsAccessLogin {
@@ -45,10 +46,12 @@ struct LoginView: View {
                             TextField("", text: $email)
                                 .keyboardType(.emailAddress)
                                 .textContentType(.username)
+                                .accessibilityIdentifier("email")
                         }
                         field("Password") {
                             SecureField("", text: $password)
                                 .textContentType(.password)
+                                .accessibilityIdentifier("password")
                         }
                         Button {
                             Task { await model.login(email: email, password: password) }
@@ -57,6 +60,7 @@ struct LoginView: View {
                         }
                         .buttonStyle(PrimaryButtonStyle())
                         .disabled(model.isBusy || email.isEmpty || password.isEmpty)
+                        .accessibilityIdentifier("signIn")
                     }
 
                     if let error = model.errorMessage {

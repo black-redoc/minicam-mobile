@@ -36,3 +36,22 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: dev.minicam.mobile.access-callback
             CFBundleURLSchemes: [minicam]
+  MinicamAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: MinicamApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.minicam.mobile.uitests
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  MinicamApp:
+    build:
+      targets:
+        MinicamApp: all
+        MinicamAppUITests: [test]
+    test:
+      targets: [MinicamAppUITests]

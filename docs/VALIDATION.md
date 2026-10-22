@@ -24,6 +24,19 @@ xcodebuild -project MinicamApp.xcodeproj -scheme MinicamApp \
   -destination 'generic/platform=iOS Simulator' build    # no Swift warnings expected
 ```
 
+## README screenshots
+Run a minicam with a user who can view a camera named `entrada`, then:
+```bash
+# iOS: ScreenshotTests logs in and attaches ios-login / ios-cameras / ios-camera
+TEST_RUNNER_MINICAM_SERVER=http://localhost:8000 TEST_RUNNER_MINICAM_EMAIL=… \
+TEST_RUNNER_MINICAM_PASSWORD=… xcodebuild test -project MinicamApp.xcodeproj \
+  -scheme MinicamApp -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -resultBundlePath shots.xcresult
+xcrun xcresulttool export attachments --path shots.xcresult --output-path shots/
+```
+Android: `adb reverse tcp:8000 tcp:8000`, sign in to `http://127.0.0.1:8000` in the emulator and
+`adb exec-out screencap -p > shot.png`. Without the `TEST_RUNNER_MINICAM_*` variables the UI
+test is skipped. Run the emulator and simulator one at a time; together they starve each other.
+
 ## Definition of Done
 - [ ] Every acceptance criterion has a passing test
 - [ ] All commands above pass for the touched platform(s)
