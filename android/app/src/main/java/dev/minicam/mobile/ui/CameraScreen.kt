@@ -19,9 +19,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -216,16 +219,33 @@ private fun FullscreenCamera(
                 enter = fadeIn() + slideInHorizontally { it / 2 },
                 exit = fadeOut() + slideOutHorizontally { it / 2 },
             ) {
-                Column(
-                    Modifier.glass(RoundedCornerShape(20.dp)).padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    GlassIconButton(label = "Hide PTZ controls", onClick = { onShowPtz(false) }, size = 30.dp) { CloseIcon() }
-                    ptzPad()
-                }
+                PtzCircle(onClose = { onShowPtz(false) }, ptzPad = ptzPad)
             }
         }
+    }
+}
+
+/**
+ * The PTZ pad inside a glass circle, with the (x) centred on the circle's edge at its top-right
+ * (45°): half over the circle, half outside it, drawn on top.
+ */
+@Composable
+private fun PtzCircle(onClose: () -> Unit, ptzPad: @Composable () -> Unit) {
+    val diameter = CamDimens.PtzSize * 3 + 12.dp + 32.dp
+    val closeSize = 30.dp
+    // Distance from the bounding box's top-right corner to the 45° point on the circle, per axis.
+    val inset = diameter / 2 * (1f - 0.7071f)
+    Box(Modifier.size(diameter)) {
+        Box(Modifier.fillMaxSize().glass(CircleShape), contentAlignment = Alignment.Center) { ptzPad() }
+        GlassIconButton(
+            label = "Hide PTZ controls",
+            onClick = onClose,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = closeSize / 2 - inset, y = inset - closeSize / 2)
+                .background(Color.Black.copy(alpha = 0.45f), CircleShape),
+            size = closeSize,
+        ) { CloseIcon() }
     }
 }
 

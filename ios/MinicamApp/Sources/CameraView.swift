@@ -87,16 +87,23 @@ struct CameraView: View {
         .background(Color.black.ignoresSafeArea())
     }
 
+    /// The PTZ pad inside a glass circle, with the (x) centred on the circle's edge at its
+    /// top-right (45°): half over the circle, half outside it, drawn on top.
     private func ptzPanel(api: MinicamAPI) -> some View {
-        VStack(alignment: .trailing, spacing: 10) {
-            glassButton("Hide PTZ controls", systemImage: "xmark", size: 30) {
-                withAnimation(.snappy) { showPTZ = false }
+        let diameter = Theme.ptzSize * 3 + 12 + 32
+        let closeSize: CGFloat = 30
+        // Distance from the bounding box's top-right corner to the 45° point on the circle, per axis.
+        let inset = diameter / 2 * (1 - 0.7071)
+        return PTZPad(api: api, camera: camera.name, glass: true) { model.handle($0) }
+            .frame(width: diameter, height: diameter)
+            .glassSurface(in: Circle())
+            .overlay(alignment: .topTrailing) {
+                glassButton("Hide PTZ controls", systemImage: "xmark", size: closeSize) {
+                    withAnimation(.snappy) { showPTZ = false }
+                }
+                .background(Color.black.opacity(0.45), in: Circle())
+                .offset(x: closeSize / 2 - inset, y: inset - closeSize / 2)
             }
-            PTZPad(api: api, camera: camera.name, glass: true) { model.handle($0) }
-        }
-        .fixedSize()
-        .padding(12)
-        .glassSurface(in: RoundedRectangle(cornerRadius: 20))
     }
 
     private func glassButton(

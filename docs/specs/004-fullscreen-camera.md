@@ -15,7 +15,8 @@ The iOS `ScreenshotTests` UI test walks AC1-AC3/AC5 and attaches `ios-fullscreen
   the screen; cameras without PTZ show no button → manual
 - [ ] AC4: Floating buttons and the PTZ pad use a translucent glass look (iOS 26+ Liquid Glass,
   material blur on older iOS, translucent tint + light border on Android) → manual
-- [ ] AC5: The PTZ panel has an (x) button that hides it; hold-to-move keeps the AC7b dispatch
+- [ ] AC5: The PTZ pad sits in a glass circle; an (x) centred on the circle edge at its top-right
+  (half inside, half outside, drawn on top) hides it; hold-to-move keeps the AC7b dispatch
   rules from spec 001 → manual + existing PTZ dispatcher tests
 - [ ] AC6: The stream keeps running while entering/leaving fullscreen and rotating → manual
 
