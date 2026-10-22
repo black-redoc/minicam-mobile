@@ -2,14 +2,14 @@ import MinicamKit
 import SwiftUI
 
 /// Compass-style 3x3 PTZ grid (`.ptz-grid` in main.css). Holding a direction
-/// moves the camera; releasing sends `stop`. Only one request is in flight:
-/// a newer action cancels the pending one, like desktop `ptz.js`.
+/// moves the camera; releasing sends `stop`. `PTZDispatcher` keeps at most one
+/// request in flight.
 struct PTZPad: View {
     let api: MinicamAPI
     let camera: String
     let onError: (Error) -> Void
 
-    @State private var inFlight: Task<Void, Never>?
+    @State private var dispatcher: PTZDispatcher?
     @State private var pressed: PTZAction?
 
     var body: some View {
@@ -60,17 +60,11 @@ struct PTZPad: View {
     }
 
     private func dispatch(_ action: PTZAction) {
-        inFlight?.cancel()
-        inFlight = Task {
-            do {
-                try await api.ptz(camera: camera, action: action)
-            } catch is CancellationError {
-                return
-            } catch let error as URLError where error.code == .cancelled {
-                return
-            } catch {
-                onError(error)
-            }
-        }
+        let dispatcher = self.dispatcher ?? PTZDispatcher(
+            send: { [api, camera] in try await api.ptz(camera: camera, action: $0) },
+            onError: onError
+        )
+        self.dispatcher = dispatcher
+        dispatcher.dispatch(action)
     }
 }
