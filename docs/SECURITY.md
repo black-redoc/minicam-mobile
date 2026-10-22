@@ -23,6 +23,15 @@ See [ADR 0002](adr/0002-cloudflare-access-handoff.md). Custom URL schemes can be
 apps on Android. A hijacked callback leaks the Access token only; minicam still requires the
 password session, and the server pins the redirect target (no open redirect).
 
+## Admin screens (ADR 0004)
+- Shown only to admins, but authorization is the server's `require_admin`; the app never relies
+  on hiding a screen.
+- Camera passwords and new-user passwords exist only in the open form: never prefilled (the
+  server redacts them), never in saved state, logs or preferences.
+- Deleting a camera or a user always asks for confirmation first.
+- Text from the remote model catalog is rendered as plain text. Model URLs must be `https`
+  (checked in the app and by the server); the server, not the app, downloads them.
+
 ## Bandwidth / cost note
 MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer). The app must close streams when not
 visible. A data-saver mode is planned (ROADMAP M2).

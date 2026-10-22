@@ -17,16 +17,24 @@ Cloudflare Access login for WAN hosts.
 - [ ] Tested on a real device on LAN and through the tunnel
 - [ ] Fullscreen camera view with floating glass controls and PTZ panel (specs/004-fullscreen-camera.md)
 
-Non-goals for M1: admin (users, permissions), camera settings, AI detection settings,
-push notifications, recordings/playback, multi-server profiles, tablets-specific layouts.
+Non-goals for M1: admin screens (moved to M2, ADR 0004), push notifications, recordings/playback, multi-server profiles, tablets-specific layouts.
 
-## M2 - Comfort
+## M2 - Admin (specs/005-admin-screens.md, ADR 0004)
+Scope: admin-only Camera settings (add/edit/delete, ONVIF discovery, detection classes,
+notifications mode), AI detection (model catalog, engine settings, fetch model from URL) and
+Admin (users, per-camera permissions, WAN access, global detection notifications).
+- [ ] Android: all spec 005 acceptance criteria passing
+- [ ] iOS: all spec 005 acceptance criteria passing
+- [ ] Checked against a local minicam on emulator/simulator
+
+Non-goals for M2: uploading `.onnx` files from the phone, first-run setup.
+
+## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid
 - [ ] Data-saver mode (lower FPS / pause when on cellular), see SECURITY.md bandwidth note
 - [ ] Biometric unlock before showing streams
 
 ## Backlog
 - Push notifications on detections (needs a backend push design + ADR)
-- Admin screens (users, per-camera permissions, `wan_access` grant)
 - Store distribution (Play Store / App Store / TestFlight)
 - Kotlin Multiplatform for shared networking logic (would supersede part of ADR 0001)
