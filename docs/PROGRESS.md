@@ -34,3 +34,9 @@
 - Tests: PR run 39716417543 green (Android 4m59s, iOS 1m18s), artifacts `android` + `ios`
   uploaded; local apksigner/aapt2 check of signing and versionCode
 - Next: merge PR #1, check the first release, set the Android keystore secrets
+
+## 2026-10-22 — KI-8 PTZ buttons never move the camera
+- Done: PTZ dispatcher no longer cancels pending requests; one in flight, latest action queued
+- Commit: 28e72c5
+- Tests: Android 21/21 + lint + debug/release builds; iOS `swift test` 19/19 + simulator build
+- Next: check PTZ on a real camera over LAN and WAN
