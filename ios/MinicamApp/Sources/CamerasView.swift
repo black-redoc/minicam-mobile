@@ -38,7 +38,7 @@ struct CamerasView: View {
             .task { await model.refresh() }
             .navigationDestination(for: CameraSummary.self) { CameraView(camera: $0) }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { BrandTitle() }
+                ToolbarItem(placement: .topBarLeading) { BrandTitle().fixedSize().padding(.horizontal, 8) }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Log out", role: .destructive) { Task { await model.logout() } }
