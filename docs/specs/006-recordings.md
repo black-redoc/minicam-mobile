@@ -34,8 +34,10 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
   styled → test: `timeBar_fractionIsClamped` + manual
 - [ ] AC11: Opening the player from the list fades it in while everything below slides down,
   one 0.5 s ease-in-out curve for both so they start and end together (closing reverses it);
-  switching clips doesn't animate. Opening any clip scrolls up until the player (top of the
-  page) is visible → manual
+  switching clips doesn't animate → manual
+- [ ] AC12: Player, clip details, Download/Delete with the camera filter next to them (no
+  "Camera" label) and the "Event recordings" title stay fixed at the top; only the clip list
+  scrolls, so the player is always in view → manual
 
 ## Design
 Data: `recordings`/`deleteRecording`/`recordingSettings`/`saveRecordingSettings`/
