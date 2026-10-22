@@ -4,7 +4,7 @@
 - Unit tests for everything outside the UI: URL rules, API request building/parsing, Access
   handoff, stream reconnection policy, PTZ dispatch.
 - Android: JUnit 4 + OkHttp MockWebServer (`android/app/src/test`).
-- iOS: Swift Testing in `ios/MinicamKit/Tests` (runs on macOS with Command Line Tools, no Xcode).
+- iOS: Swift Testing in `ios/MinicamKit/Tests`, run on macOS with `swift test`.
 - Manual device check per milestone: LAN and WAN (tunnel) login, stream, PTZ, logout.
 
 ## Commands
@@ -18,7 +18,7 @@ Android (from `android/`, with `JAVA_HOME` set as in DEVELOPMENT.md):
 
 iOS:
 ```bash
-cd ios/MinicamKit && swift build && swift test           # core library (no Xcode needed)
+cd ios/MinicamKit && swift build && swift test           # core library (use Xcode's toolchain, KI-5)
 cd ios/MinicamApp && xcodegen generate                   # Xcode project
 xcodebuild -project MinicamApp.xcodeproj -scheme MinicamApp \
   -destination 'generic/platform=iOS Simulator' build    # no Swift warnings expected
