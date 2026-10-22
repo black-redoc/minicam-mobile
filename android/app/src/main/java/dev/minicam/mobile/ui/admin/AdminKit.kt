@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,12 +65,15 @@ suspend fun <T> AppViewModel.attempt(onError: (String) -> Unit, work: suspend ()
     null
 }
 
-/** Admin page shell, like the desktop `minicam / Admin` header with its "← Dashboard" link. */
+/**
+ * Admin page shell, like the desktop `minicam / Admin` header with its "← Dashboard" link.
+ * [fixedTop] stays put above the scrolling [content].
+ */
 @Composable
 fun AdminScaffold(
     title: String,
     onBack: () -> Unit,
-    scrollState: ScrollState = rememberScrollState(),
+    fixedTop: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -86,8 +88,9 @@ fun AdminScaffold(
             Text(title, color = CamColors.Text, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(CamColors.Surface))
+        fixedTop?.let { Column(Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp), content = it) }
         Column(
-            Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content,
         )

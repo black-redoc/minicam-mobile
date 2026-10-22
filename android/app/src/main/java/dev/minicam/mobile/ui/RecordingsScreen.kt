@@ -9,23 +9,27 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -80,7 +84,6 @@ import dev.minicam.mobile.ui.admin.AdminScaffold
 import dev.minicam.mobile.ui.admin.ConfirmDialog
 import dev.minicam.mobile.ui.admin.FormMessage
 import dev.minicam.mobile.ui.admin.Hint
-import dev.minicam.mobile.ui.admin.OptionPicker
 import dev.minicam.mobile.ui.admin.SectionTitle
 import dev.minicam.mobile.ui.admin.Spinner
 import dev.minicam.mobile.ui.admin.attempt
@@ -108,7 +111,6 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     var downloading by remember { mutableStateOf<Recording?>(null) }
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     var shownRecording by remember { mutableStateOf<Recording?>(null) }
-    val scrollState = rememberScrollState()
     var playError by remember { mutableStateOf<String?>(null) }
     // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
     val player = rememberClipPlayer(viewModel, api) { playError = it }
@@ -169,53 +171,54 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         return
     }
 
-    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }, scrollState = scrollState) {
-        // One child with the header below it: the list's 16dp gap never pops in or out, so
-        // everything under the player slides smoothly while it fades in (AC11).
-        Column {
-            AnimatedVisibility(
-                visible = selected != null,
-                enter = fadeIn(playerAnimation()) + expandVertically(playerAnimation(), expandFrom = Alignment.Top),
-                exit = fadeOut(playerAnimation()) + shrinkVertically(playerAnimation(), shrinkTowards = Alignment.Top),
-            ) {
-                // Keeps showing the last clip while the player closes.
-                val recording = selected ?: shownRecording ?: return@AnimatedVisibility
-                Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    ClipVideo(
-                        player,
-                        fullscreen = false,
-                        onFullscreen = { fullscreen = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                            .clip(RoundedCornerShape(CamDimens.RadiusLg))
-                            .background(Color.Black),
-                    )
-                    FormMessage(playError)
-                    ClipDetails(
-                        recording = recording,
-                        isAdmin = viewModel.user?.isAdmin == true,
-                        downloading = downloading != null,
-                        onDownload = {
-                            downloading = recording
-                            saveAs.launch(recordingFileName(recording))
-                        },
-                        onDelete = { pendingDelete = recording },
-                    )
-                }
-            }
-
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionTitle("Event recordings", Modifier.weight(1f).padding(bottom = 18.dp))
-                Column(Modifier.weight(1f)) {
-                    OptionPicker(
-                        label = "Camera",
-                        options = listOf<Pair<String?, String>>(null to "All cameras") + viewModel.cameras.map { it.name to it.name },
-                        selected = camera,
-                    ) { camera = it }
-                }
+    val isAdmin = viewModel.user?.isAdmin == true
+    // Player, clip actions, camera filter and the list title stay fixed; only the clips scroll.
+    val fixedTop: @Composable ColumnScope.() -> Unit = {
+        AnimatedVisibility(
+            visible = selected != null,
+            enter = fadeIn(playerAnimation()) + expandVertically(playerAnimation(), expandFrom = Alignment.Top),
+            exit = fadeOut(playerAnimation()) + shrinkVertically(playerAnimation(), shrinkTowards = Alignment.Top),
+        ) {
+            // Keeps showing the last clip while the player closes.
+            val recording = selected ?: shownRecording ?: return@AnimatedVisibility
+            Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ClipVideo(
+                    player,
+                    fullscreen = false,
+                    onFullscreen = { fullscreen = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(CamDimens.RadiusLg))
+                        .background(Color.Black),
+                )
+                FormMessage(playError)
+                ClipDetails(recording)
             }
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // The clip's actions slide in with the player, pushing the filter along (AC11).
+            AnimatedVisibility(
+                visible = selected != null,
+                enter = fadeIn(playerAnimation()) + expandHorizontally(playerAnimation(), expandFrom = Alignment.Start),
+                exit = fadeOut(playerAnimation()) + shrinkHorizontally(playerAnimation(), shrinkTowards = Alignment.Start),
+            ) {
+                val recording = selected ?: shownRecording ?: return@AnimatedVisibility
+                Row(Modifier.padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SecondaryButton("Download", busy = downloading != null) {
+                        downloading = recording
+                        saveAs.launch(recordingFileName(recording))
+                    }
+                    // Admins only; the server's `require_admin` enforces it either way.
+                    if (isAdmin) SecondaryButton("Delete", danger = true) { pendingDelete = recording }
+                }
+            }
+            CameraFilter(viewModel.cameras.map { it.name }, camera) { camera = it }
+        }
+        SectionTitle("Event recordings", Modifier.padding(top = 16.dp))
+    }
+
+    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }, fixedTop = fixedTop) {
         FormMessage(error, notice)
 
         val list = items
@@ -235,9 +238,6 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                         day.recordings.forEachIndexed { index, recording ->
                             if (index > 0) HorizontalDivider(color = CamColors.Border)
                             ClipRow(recording, selected = recording.id == selected?.id) {
-                                // Scroll up to the player (top of the page) whenever a clip opens, so
-                                // it's never left hidden above the list, like the web.
-                                scope.launch { scrollState.animateScrollTo(0, playerAnimation()) }
                                 selected = recording
                                 shownRecording = recording
                             }
@@ -331,13 +331,7 @@ private fun ClassChip(text: String) {
 }
 
 @Composable
-private fun ClipDetails(
-    recording: Recording,
-    isAdmin: Boolean,
-    downloading: Boolean,
-    onDownload: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun ClipDetails(recording: Recording) {
     val day = recordingDays(listOf(recording)).first().label
     val details = listOfNotNull(
         "$day, ${localTime(recording)}",
@@ -345,13 +339,28 @@ private fun ClipDetails(
         formatClipSize(recording.sizeBytes),
         recording.classes.takeIf { it.isNotEmpty() }?.joinToString(", "),
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(recording.cameraName, color = CamColors.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Text(details.joinToString(" · "), color = CamColors.Muted, fontSize = 12.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton("Download", busy = downloading, onClick = onDownload)
-            // Admins only; the server's `require_admin` enforces it either way.
-            if (isAdmin) SecondaryButton("Delete", danger = true, onClick = onDelete)
+    }
+}
+
+/** Camera filter: a button like Download/Delete (no label) that opens the camera list. */
+@Composable
+private fun CameraFilter(cameras: List<String>, selected: String?, onSelect: (String?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        SecondaryButton("${selected ?: "All cameras"}  ▾") { open = true }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.background(CamColors.Surface)) {
+            (listOf<String?>(null) + cameras).forEach { camera ->
+                DropdownMenuItem(
+                    text = { Text(camera ?: "All cameras", color = if (camera == selected) CamColors.AccentHover else CamColors.Text) },
+                    onClick = {
+                        open = false
+                        onSelect(camera)
+                    },
+                )
+            }
         }
     }
 }
