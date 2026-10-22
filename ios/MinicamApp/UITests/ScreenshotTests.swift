@@ -49,6 +49,25 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(app.buttons["Show PTZ controls"].waitForExistence(timeout: 5))
         app.buttons["Exit fullscreen"].tap()
         XCTAssertTrue(app.buttons["PTZ up"].waitForExistence(timeout: 10))
+
+        // Spec 005: admin sections, only when the test account is an admin.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(cameraRow.waitForExistence(timeout: 10))
+        for (item, name, marker) in [
+            ("Camera settings", "ios-camera-settings", "Add camera"),
+            ("AI detection", "ios-ai-detection", "Backend"),
+            ("Admin", "ios-admin", "Create"),
+        ] {
+            app.buttons["moreOptions"].tap()
+            let menuItem = app.buttons[item]
+            guard menuItem.waitForExistence(timeout: 3) else { return }
+            menuItem.tap()
+            XCTAssertTrue(app.staticTexts[marker].firstMatch.waitForExistence(timeout: 15)
+                || app.buttons[marker].firstMatch.waitForExistence(timeout: 1))
+            attach(app, name: name)
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            XCTAssertTrue(cameraRow.waitForExistence(timeout: 10))
+        }
     }
 
     /// iOS offers to save the password after login; it covers the screen.

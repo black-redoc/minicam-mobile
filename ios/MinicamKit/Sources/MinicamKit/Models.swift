@@ -53,6 +53,8 @@ public enum MinicamError: Error, Equatable {
     case forbidden(String)
     case notFound
     case rateLimited
+    /// minicam refused the request and said why (its JSON `detail`).
+    case rejected(String)
     case server(Int)
     case invalidResponse
 }
