@@ -25,6 +25,9 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
   limits that don't fit shown struck through with "Not enough space" and not selectable), usage
   line, `GET/PUT /api/recordings/settings`, server `detail` shown on 400 → test:
   `recordingSettings_roundTrip`, `storageBytes_formats`
+- [ ] AC9: The player has a fullscreen mode like the live view (spec 004): landscape, system bars
+  hidden, playback continues without restarting, back / exit button leaves it (Android: the
+  Media3 controls' fullscreen button; iOS: a glass button over the video) → manual
 
 ## Design
 Data: `recordings`/`deleteRecording`/`recordingSettings`/`saveRecordingSettings`/
@@ -45,6 +48,7 @@ and download use the app's own client). Downloaded files are written only where 
 - [x] iOS: MinicamKit API + models + formatting + tests
 - [x] iOS: Recordings view + menu, admin card
 - [x] Builds, lint and tests pass on both platforms
+- [x] Fullscreen player on Android and iOS (AC9)
 - [ ] Manual check against a local minicam with recordings (emulator/simulator); iOS
   `ScreenshotTests` attaches `ios-recordings`
 

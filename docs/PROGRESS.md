@@ -65,3 +65,11 @@
 - Tests: Android 48/48 + lint 0 warnings + debug/release builds; iOS `swift test` 46/46,
   simulator build + UI test build with no Swift warnings
 - Next: manual check against a local minicam with recordings (emulator/simulator), WAN playback
+
+## 2026-10-22 — Spec 006 AC9 fullscreen recordings player
+- Done: fullscreen player (landscape, hidden system bars, no restart); Android uses the Media3
+  controls' fullscreen button, iOS a glass button like the live view
+- Commit: 7b0770b (Android), bcf121f (iOS)
+- Tests: Android 48/48 + lint 0 warnings + debug/release builds; iOS `swift test` 46/46,
+  simulator + UI test builds with no Swift warnings
+- Next: manual check on emulator/simulator against a local minicam with recordings
