@@ -9,11 +9,12 @@ android/   Kotlin + Jetpack Compose, single :app module
            SessionStore (Android Keystore), AccessHandoff
   ui/      theme/ (desktop tokens), LoginScreen, CamerasScreen, CameraScreen (+ fullscreen),
            PtzPad, Glass (floating glass controls)
+  ui/admin/ CameraSettingsScreen, AiDetectionScreen, AdminScreen, form controls (ADR 0004)
 ios/
   MinicamKit/   Swift package, Foundation only (builds + tests with `swift test` on macOS):
                 ServerConfig, MinicamAPI, StreamClient, AccessHandoff, CredentialStore protocol
   MinicamApp/   SwiftUI app target (XcodeGen project.yml): views, theme, Keychain store,
-                OrientationLock (landscape only while fullscreen)
+                OrientationLock (landscape only while fullscreen), Admin/ (ADR 0004)
 ```
 
 ## Data flow
@@ -33,7 +34,11 @@ ios/
 6. PTZ: press a direction → `POST /api/ptz/{name}/{dir}`; release → `POST …/stop`. Only one PTZ
    request in flight; actions pressed meanwhile wait in a one-slot queue (latest wins) and a
    started request is never cancelled, so a quick tap still reaches the server (KI-8).
-7. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
+7. Admins only (ADR 0004): the camera list menu opens Camera settings, AI detection and Admin,
+   which call minicam's admin JSON API (`/api/cameras`, `/api/detection/*`, `/api/auth/users`,
+   `/api/auth/permissions`, `/api/auth/wan-access`, `/api/notifications/settings`). A string
+   `detail` in an error body is shown to the user.
+8. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
    re-run the Access login.
 
 ## Backend contract

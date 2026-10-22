@@ -13,6 +13,8 @@ final class AppModel {
 
     private(set) var phase: Phase = .signedOut
     private(set) var cameras: [CameraSummary] = []
+    /// The signed-in account; nil until login or the first `GET /api/auth/me`.
+    private(set) var user: User?
     private(set) var api: MinicamAPI?
     var serverURLText: String
     var errorMessage: String?
@@ -66,7 +68,7 @@ final class AppModel {
     func login(email: String, password: String) async {
         guard let api = applyServerURL() else { return }
         await run {
-            _ = try await api.login(email: email, password: password)
+            self.user = try await api.login(email: email, password: password)
             self.phase = .signedIn
             try await self.reloadCameras()
         }
@@ -74,6 +76,7 @@ final class AppModel {
 
     func reloadCameras() async throws {
         guard let api else { return }
+        if user == nil { user = try await api.me() }
         cameras = try await api.cameras()
     }
 
@@ -84,30 +87,57 @@ final class AppModel {
     func logout() async {
         await api?.logout()
         cameras = []
+        user = nil
         phase = .signedOut
     }
 
     /// Central error mapping, shared by every screen.
     func handle(_ error: Error) {
+        errorMessage = describe(error)
+    }
+
+    /// User-facing message for `error`. A lost session or Access token also signs out here,
+    /// so every screen gets the same behavior (spec 001 AC4).
+    func describe(_ error: Error) -> String {
         switch error {
         case MinicamError.invalidCredentials:
-            errorMessage = "Invalid email or password"
+            return "Invalid email or password"
         case MinicamError.unauthorized:
-            phase = .signedOut
-            errorMessage = "Your session expired. Sign in again."
+            signOutLocally()
+            return "Your session expired. Sign in again."
         case MinicamError.accessRequired:
             store.set(nil, for: .accessToken)
-            phase = .signedOut
-            errorMessage = "Sign in with Cloudflare Access again."
+            signOutLocally()
+            return "Sign in with Cloudflare Access again."
         case MinicamError.rateLimited:
-            errorMessage = "Too many attempts. Wait a few minutes."
-        case let MinicamError.forbidden(detail):
-            errorMessage = detail
+            return "Too many attempts. Wait a few minutes."
+        case let MinicamError.forbidden(detail), let MinicamError.rejected(detail):
+            return detail
         case MinicamError.notFound:
-            errorMessage = "Not found or not allowed."
+            return "Not found or not allowed."
+        case let MinicamError.server(code):
+            return "The server failed (\(code))."
         default:
-            errorMessage = "Can't reach the server."
+            return "Can't reach the server."
         }
+    }
+
+    /// Runs an admin request: returns its result, or nil after reporting the failure
+    /// through `onError`.
+    func attempt<T>(_ onError: (String) -> Void, _ work: () async throws -> T) async -> T? {
+        do {
+            return try await work()
+        } catch is CancellationError {
+            return nil
+        } catch {
+            onError(describe(error))
+            return nil
+        }
+    }
+
+    private func signOutLocally() {
+        user = nil
+        phase = .signedOut
     }
 
     private func run(_ work: @escaping () async throws -> Void) async {

@@ -1,7 +1,7 @@
 import Foundation
 
 /// REST client for the minicam endpoints the viewer needs
-/// (docs/ARCHITECTURE.md "Data flow").
+/// (docs/ARCHITECTURE.md "Data flow"). Admin endpoints live in AdminAPI.swift.
 public final class MinicamAPI: Sendable {
     static let sessionCookieName = "minicam_session"
     static let accessTokenHeader = "cf-access-token"
@@ -58,7 +58,15 @@ public final class MinicamAPI: Sendable {
 
     // MARK: - Plumbing
 
-    private func send(
+    func get<T: Decodable>(_ path: String) async throws -> T {
+        try decode(T.self, try await send("GET", path).0)
+    }
+
+    func sendJSON<B: Encodable, T: Decodable>(_ method: String, _ path: String, body: B) async throws -> T {
+        try decode(T.self, try await send(method, path, body: try JSONEncoder().encode(body)).0)
+    }
+
+    func send(
         _ method: String, _ path: String, body: Data? = nil, isLogin: Bool = false
     ) async throws -> (Data, HTTPURLResponse) {
         var request = URLRequest(url: config.url(path: path))
@@ -105,6 +113,8 @@ public final class MinicamAPI: Sendable {
         case 429:
             throw MinicamError.rateLimited
         default:
+            // minicam's validation errors (400/409/502/503 …) explain themselves.
+            if let detail = Self.detail(from: data) { throw MinicamError.rejected(detail) }
             throw MinicamError.server(response.statusCode)
         }
     }
