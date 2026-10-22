@@ -1,6 +1,8 @@
 package dev.minicam.mobile.ui
 
 import android.provider.DocumentsContract
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.children
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -50,6 +54,7 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.PlayerView
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.MinicamException
@@ -360,6 +365,23 @@ private fun rememberClipPlayer(viewModel: AppViewModel, api: MinicamApi, onError
     return player
 }
 
+/** The controls' time bar, found by type: Media3's view ids are private resources. */
+@OptIn(UnstableApi::class)
+private fun View.findTimeBar(): DefaultTimeBar? = when (this) {
+    is DefaultTimeBar -> this
+    is ViewGroup -> children.firstNotNullOfOrNull { it.findTimeBar() }
+    else -> null
+}
+
+/** Played part in the brand sky, clearly apart from the buffered and remaining track. */
+@OptIn(UnstableApi::class)
+private fun DefaultTimeBar.styleProgress() {
+    setPlayedColor(CamColors.AccentHover.toArgb())
+    setScrubberColor(CamColors.AccentHover.toArgb())
+    setBufferedColor(Color.White.copy(alpha = 0.4f).toArgb())
+    setUnplayedColor(Color.White.copy(alpha = 0.15f).toArgb())
+}
+
 /** The player's video and controls; the controls' fullscreen button toggles [fullscreen] (AC9). */
 @OptIn(UnstableApi::class)
 @Composable
@@ -370,6 +392,7 @@ private fun ClipVideo(player: Player, fullscreen: Boolean, onFullscreen: (Boolea
             PlayerView(it).apply {
                 this.player = player
                 setFullscreenButtonClickListener { enter -> toggle(enter) }
+                findTimeBar()?.styleProgress()
             }
         },
         update = { it.setFullscreenButtonState(fullscreen) },
