@@ -33,26 +33,29 @@ import dev.minicam.mobile.data.PtzDispatcher
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 
-/** Compass-style 3x3 PTZ grid (`.ptz-grid` in main.css). Hold to move, release to stop. */
+/**
+ * Compass-style 3x3 PTZ grid (`.ptz-grid` in main.css). Hold to move, release to stop.
+ * [glass] draws translucent buttons for the fullscreen overlay (spec 004).
+ */
 @Composable
-fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit) {
+fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit, glass: Boolean = false) {
     val scope = rememberCoroutineScope()
     val dispatcher = remember(api, camera) { PtzDispatcher(scope, { api.ptz(camera, it) }, onError) }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Spacer()
-            PtzButton("▲", PtzAction.UP, dispatcher)
+            PtzButton("▲", PtzAction.UP, dispatcher, glass)
             Spacer()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            PtzButton("◀", PtzAction.LEFT, dispatcher)
-            PtzButton("■", PtzAction.STOP, dispatcher)
-            PtzButton("▶", PtzAction.RIGHT, dispatcher)
+            PtzButton("◀", PtzAction.LEFT, dispatcher, glass)
+            PtzButton("■", PtzAction.STOP, dispatcher, glass)
+            PtzButton("▶", PtzAction.RIGHT, dispatcher, glass)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Spacer()
-            PtzButton("▼", PtzAction.DOWN, dispatcher)
+            PtzButton("▼", PtzAction.DOWN, dispatcher, glass)
             Spacer()
         }
     }
@@ -62,19 +65,23 @@ fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit) {
 private fun Spacer() = Box(Modifier.size(CamDimens.PtzSize))
 
 @Composable
-private fun PtzButton(glyph: String, action: PtzAction, dispatcher: PtzDispatcher) {
+private fun PtzButton(glyph: String, action: PtzAction, dispatcher: PtzDispatcher, glass: Boolean) {
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.93f else 1f, label = "ptzScale")
     val shape = RoundedCornerShape(CamDimens.Radius)
     val idle = if (action == PtzAction.STOP) CamColors.PtzStop else CamColors.Surface2
+    val surface = when {
+        pressed && glass -> Modifier.clip(shape).background(CamColors.Accent.copy(alpha = 0.75f)).border(1.dp, CamColors.AccentHover, shape)
+        pressed -> Modifier.clip(shape).background(CamColors.Accent).border(1.dp, CamColors.Accent, shape)
+        glass -> Modifier.glass(shape)
+        else -> Modifier.clip(shape).background(idle).border(1.dp, CamColors.Border, shape)
+    }
 
     Box(
         Modifier
             .size(CamDimens.PtzSize)
             .scale(scale)
-            .clip(shape)
-            .background(if (pressed) CamColors.Accent else idle)
-            .border(1.dp, if (pressed) CamColors.Accent else CamColors.Border, shape)
+            .then(surface)
             .semantics { contentDescription = "PTZ ${action.path}" }
             .pointerInput(action) {
                 detectTapGestures(

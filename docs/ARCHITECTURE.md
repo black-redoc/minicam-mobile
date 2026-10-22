@@ -7,11 +7,13 @@ Two independent native apps that share a design and a backend contract, not code
 android/   Kotlin + Jetpack Compose, single :app module
   data/    ServerConfig, MinicamApi (OkHttp), StreamClient (OkHttp WebSocket),
            SessionStore (Android Keystore), AccessHandoff
-  ui/      theme/ (desktop tokens), LoginScreen, CamerasScreen, CameraScreen, PtzPad
+  ui/      theme/ (desktop tokens), LoginScreen, CamerasScreen, CameraScreen (+ fullscreen),
+           PtzPad, Glass (floating glass controls)
 ios/
   MinicamKit/   Swift package, Foundation only (builds + tests with `swift test` on macOS):
                 ServerConfig, MinicamAPI, StreamClient, AccessHandoff, CredentialStore protocol
-  MinicamApp/   SwiftUI app target (XcodeGen project.yml): views, theme, Keychain store
+  MinicamApp/   SwiftUI app target (XcodeGen project.yml): views, theme, Keychain store,
+                OrientationLock (landscape only while fullscreen)
 ```
 
 ## Data flow

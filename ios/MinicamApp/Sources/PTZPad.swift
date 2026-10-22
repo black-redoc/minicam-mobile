@@ -3,10 +3,11 @@ import SwiftUI
 
 /// Compass-style 3x3 PTZ grid (`.ptz-grid` in main.css). Holding a direction
 /// moves the camera; releasing sends `stop`. `PTZDispatcher` keeps at most one
-/// request in flight.
+/// request in flight. `glass` draws translucent buttons for the fullscreen overlay (spec 004).
 struct PTZPad: View {
     let api: MinicamAPI
     let camera: String
+    var glass = false
     let onError: (Error) -> Void
 
     @State private var dispatcher: PTZDispatcher?
@@ -37,10 +38,10 @@ struct PTZPad: View {
         return Image(systemName: systemImage)
             .font(action == .stop ? .footnote : .title3)
             .frame(width: Theme.ptzSize, height: Theme.ptzSize)
-            .foregroundStyle(isPressed ? Color.white : Theme.text)
-            .background(isPressed ? Theme.accent : (action == .stop ? Color(hex: 0x1F2937) : Theme.surface2))
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(isPressed ? Theme.accent : Theme.border))
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radius))
+            .foregroundStyle(isPressed || glass ? Color.white : Theme.text)
+            // Inside `background` so the press styling never changes the view's identity and
+            // cancels the drag gesture mid-press.
+            .background { surface(action, pressed: isPressed) }
             .scaleEffect(isPressed ? 0.93 : 1)
             .animation(.easeOut(duration: 0.08), value: isPressed)
             .gesture(
@@ -57,6 +58,20 @@ struct PTZPad: View {
             )
             .accessibilityLabel("PTZ \(action.rawValue)")
             .accessibilityAddTraits(.isButton)
+    }
+
+    @ViewBuilder
+    private func surface(_ action: PTZAction, pressed: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.radius)
+        if pressed {
+            shape.fill(Theme.accent.opacity(glass ? 0.75 : 1))
+                .overlay(shape.stroke(glass ? Theme.accentHover : Theme.accent))
+        } else if glass {
+            Color.clear.glassSurface(in: shape)
+        } else {
+            shape.fill(action == .stop ? Color(hex: 0x1F2937) : Theme.surface2)
+                .overlay(shape.stroke(Theme.border))
+        }
     }
 
     private func dispatch(_ action: PTZAction) {

@@ -37,6 +37,18 @@ final class ScreenshotTests: XCTestCase {
         cameraRow.tap()
         XCTAssertTrue(app.buttons["PTZ up"].waitForExistence(timeout: 10))
         attach(app, name: "ios-camera")
+
+        // Spec 004: fullscreen with the glass PTZ panel opened and closed.
+        app.buttons["Enter fullscreen"].tap()
+        XCTAssertTrue(app.buttons["Show PTZ controls"].waitForExistence(timeout: 10))
+        attach(app, name: "ios-fullscreen")
+        app.buttons["Show PTZ controls"].tap()
+        XCTAssertTrue(app.buttons["Hide PTZ controls"].waitForExistence(timeout: 5))
+        attach(app, name: "ios-fullscreen-ptz")
+        app.buttons["Hide PTZ controls"].tap()
+        XCTAssertTrue(app.buttons["Show PTZ controls"].waitForExistence(timeout: 5))
+        app.buttons["Exit fullscreen"].tap()
+        XCTAssertTrue(app.buttons["PTZ up"].waitForExistence(timeout: 10))
     }
 
     /// iOS offers to save the password after login; it covers the screen.
