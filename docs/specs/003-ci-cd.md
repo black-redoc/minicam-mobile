@@ -4,9 +4,9 @@ Every PR runs tests, lint and builds for both apps; every merge to `master` publ
 Android and iOS builds as a GitHub release ([ADR 0003](../adr/0003-ci-cd-github-actions.md)).
 
 ## Acceptance criteria
-- [ ] AC1: A PR runs Android unit tests + lint and iOS `swift test`; any failure fails the check →
+- [x] AC1: A PR runs Android unit tests + lint and iOS `swift test`; any failure fails the check →
   test: `CI / Android`, `CI / iOS` jobs on the PR
-- [ ] AC2: The PR run uploads `minicam-android.apk`, `minicam-android-debug.apk`,
+- [x] AC2: The PR run uploads `minicam-android.apk`, `minicam-android-debug.apk`,
   `minicam-ios-unsigned.ipa`, `minicam-ios-simulator.zip` → test: artifacts `android`, `ios`
 - [x] AC3: With `MINICAM_KEYSTORE_*` set the release APK is signed with that key and carries
   `-PversionCode`; without them it is signed with the debug key → test: local `apksigner verify`
@@ -26,7 +26,8 @@ by SHA; XcodeGen checksum verified.
 ## Tasks
 - [x] Gradle: env-based release signing + `versionCode` property
 - [x] `ci.yml` and `release.yml`
-- [ ] Green PR run; release after merge
+- [x] Green PR run (run 39716417543)
+- [ ] Release after merge
 - [ ] Set the keystore secrets (repo owner)
 
 ## Out of scope

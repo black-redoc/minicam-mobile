@@ -26,3 +26,11 @@
 - Tests: Android 18/18, lint 0 warnings; iOS MinicamKit 16/16, UI test passing
 - Next: merge minicam PR #12, create the GitHub remote for this repo, live video check with a real
   camera, CI
+
+## 2026-10-21 — Spec 003 CI/CD
+- Done: `ci.yml` (tests, lint, installable builds on PRs), `release.yml` (GitHub release on merge
+  to `master`), env-based Android release signing, ADR 0003
+- Commit: 81210da (PR #1)
+- Tests: PR run 39716417543 green (Android 4m59s, iOS 1m18s), artifacts `android` + `ios`
+  uploaded; local apksigner/aapt2 check of signing and versionCode
+- Next: merge PR #1, check the first release, set the Android keystore secrets
