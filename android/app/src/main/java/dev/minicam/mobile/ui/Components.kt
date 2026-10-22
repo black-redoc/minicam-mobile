@@ -1,5 +1,6 @@
 package dev.minicam.mobile.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -30,7 +31,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,20 +44,34 @@ import dev.minicam.mobile.data.StreamStatus
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 
-/** Brand mark from the desktop header: glowing sky dot + "minicam" (`.dot-glow`). */
+/**
+ * Brand mark from the desktop header: sky dot + "minicam". A lighter, blurred halo behind the
+ * dot fades in and out like a light switching on and off (desktop `.dot-glow`, 2.4 s cycle).
+ */
 @Composable
 fun BrandTitle() {
     val glow by rememberInfiniteTransition(label = "glow").animateFloat(
-        initialValue = 8f,
-        targetValue = 2f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
-        label = "glowRadius",
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glowAlpha",
     )
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             Modifier
                 .size(8.dp)
-                .shadow(glow.dp, CircleShape, ambientColor = CamColors.AccentHover, spotColor = CamColors.AccentHover)
+                // Drawn outside the dot's bounds, so the halo doesn't change the layout.
+                .drawBehind {
+                    val radius = size.minDimension * 1.75f
+                    drawCircle(
+                        Brush.radialGradient(
+                            listOf(CamColors.Glow.copy(alpha = 0.85f * glow), CamColors.Glow.copy(alpha = 0f)),
+                            center = center,
+                            radius = radius,
+                        ),
+                        radius = radius,
+                    )
+                }
                 .background(CamColors.AccentHover, CircleShape),
         )
         Text("minicam", color = CamColors.AccentHover, fontWeight = FontWeight.Bold, fontSize = 16.sp)
