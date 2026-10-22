@@ -131,6 +131,15 @@ import Testing
         #expect(formatClipSize(1_610_612_736) == "1.5 GB")
     }
 
+    @Test func timeBar_fractionIsClamped() {
+        #expect(clipFraction(4.5, of: 18) == 0.25)
+        #expect(clipFraction(-1, of: 18) == 0)
+        #expect(clipFraction(30, of: 18) == 1)
+        // Not loaded yet: duration 0 or NaN.
+        #expect(clipFraction(3, of: 0) == 0)
+        #expect(clipFraction(3, of: .nan) == 0)
+    }
+
     @Test func storageBytes_formats() {
         #expect(formatStorageBytes(734_003_200) == "700 MB")
         #expect(formatStorageBytes(21_474_836_480) == "20.0 GB")

@@ -160,6 +160,13 @@ public func formatClipSize(_ bytes: Int64) -> String {
     return "\(max(1, Int((value / 1024).rounded()))) KB"
 }
 
+/// Where `value` lies in `0...total`, from 0 to 1: time bar positions (a zero or unknown total
+/// is 0, so a clip that hasn't loaded yet shows an empty bar).
+public func clipFraction(_ value: Double, of total: Double) -> Double {
+    guard total > 0, value.isFinite, total.isFinite else { return 0 }
+    return min(max(value / total, 0), 1)
+}
+
 /// Disk usage line on the Admin card: GB with one decimal, MB below 1 GB.
 public func formatStorageBytes(_ bytes: Int64) -> String {
     let value = Double(bytes)

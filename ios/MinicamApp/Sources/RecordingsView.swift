@@ -1,4 +1,4 @@
-import AVKit
+import AVFoundation
 import MinicamKit
 import SwiftUI
 
@@ -8,6 +8,7 @@ struct RecordingsRoute: Hashable {}
 /// The desktop Recordings page (minicam `recordings.html`): clips by day, player, download, delete.
 struct RecordingsView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
     @State private var camera: String?
     @State private var items: [Recording]?
     @State private var nextBefore: Int?
@@ -18,10 +19,13 @@ struct RecordingsView: View {
     @State private var downloading = false
     @State private var sharedFile: SharedFile?
     // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
-    @State private var player = AVPlayer()
+    @State private var playback = ClipPlayback()
     @State private var playError: String?
     @State private var isFullscreen = false
-    @Environment(\.scenePhase) private var scenePhase
+
+    /// AC11: opening or closing the player. The player fades while everything below it slides,
+    /// both on this one curve, so they start and end together.
+    private static let playerAnimation = Animation.easeInOut(duration: 0.5)
 
     var body: some View {
         ZStack {
@@ -35,78 +39,77 @@ struct RecordingsView: View {
         .onChange(of: isFullscreen) { _, on in OrientationLock.landscape(on) }
         .task(id: selected?.id) { await play(selected) }
         // Never keep playing (and downloading) in the background.
-        .onChange(of: scenePhase) { _, phase in if phase != .active { player.pause() } }
+        .onChange(of: scenePhase) { _, phase in if phase != .active { playback.pause() } }
         .onDisappear {
-            player.pause()
+            playback.pause()
             if isFullscreen { OrientationLock.landscape(false) }
         }
     }
 
     private var list: some View {
-        List {
-            if let selected {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        VideoPlayer(player: player)
-                            .aspectRatio(16 / 9, contentMode: .fit)
-                            .background(Color.black)
-                            .overlay(alignment: .topTrailing) {
-                                GlassIconButton(
-                                    label: "Enter fullscreen", systemImage: "arrow.up.left.and.arrow.down.right", size: 40
-                                ) { isFullscreen = true }
-                                .padding(10)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let selected {
+                        playerCard(selected)
+                            .id("player")
+                            .transition(.opacity)
+                    }
+
+                    HStack {
+                        Text("Event recordings".uppercased())
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.5)
+                            .foregroundStyle(Theme.muted)
+                        Spacer()
+                        Picker("Camera", selection: $camera) {
+                            Text("All cameras").tag(String?.none)
+                            ForEach(model.cameras) { Text($0.name).tag(String?.some($0.name)) }
+                        }
+                        .pickerStyle(.menu)
+                    }
+
+                    if let error { FormMessage(error: error) }
+                    if let items, items.isEmpty {
+                        Text(camera == nil
+                            ? "No recordings yet. Clips appear here when a camera detects one of its classes."
+                            : "No recordings for this camera yet.")
+                            .font(.callout)
+                            .foregroundStyle(Theme.muted)
+                    } else if items == nil, error == nil {
+                        ProgressView("Loading…").frame(maxWidth: .infinity)
+                    }
+
+                    ForEach(recordingDays(items ?? [])) { day in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(day.label).font(.caption.weight(.medium)).foregroundStyle(Theme.muted)
+                            VStack(spacing: 0) {
+                                ForEach(Array(day.recordings.enumerated()), id: \.element.id) { index, recording in
+                                    if index > 0 { Divider().overlay(Theme.border) }
+                                    Button { open(recording, proxy: proxy) } label: {
+                                        ClipRow(recording: recording, selected: recording == selected)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
-                        if let playError { FormMessage(error: playError).padding(.horizontal) }
+                            .card()
+                        }
                     }
-                    .listRowInsets(EdgeInsets())
-                    clipDetails(selected)
-                }
-                .adminRow()
-            }
 
-            Section {
-                Picker("Camera", selection: $camera) {
-                    Text("All cameras").tag(String?.none)
-                    ForEach(model.cameras) { Text($0.name).tag(String?.some($0.name)) }
-                }
-                if let error { FormMessage(error: error) }
-                if let items, items.isEmpty {
-                    Text(camera == nil
-                        ? "No recordings yet. Clips appear here when a camera detects one of its classes."
-                        : "No recordings for this camera yet.")
-                        .font(.callout)
-                        .foregroundStyle(Theme.muted)
-                } else if items == nil, error == nil {
-                    ProgressView("Loading…")
-                }
-            } header: {
-                Text("Event recordings")
-            }
-            .adminRow()
-
-            ForEach(recordingDays(items ?? [])) { day in
-                Section(day.label) {
-                    ForEach(day.recordings) { recording in
-                        Button { selected = recording } label: { ClipRow(recording: recording, selected: recording == selected) }
-                            .listRowBackground(recording == selected ? Theme.accent.opacity(0.1) : Theme.surface)
+                    if nextBefore != nil {
+                        Button {
+                            Task { await load(reset: false) }
+                        } label: {
+                            if loading { ProgressView() } else { Text("Load more").font(.callout.weight(.medium)) }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .disabled(loading)
                     }
                 }
-            }
-
-            if nextBefore != nil {
-                Section {
-                    Button {
-                        Task { await load(reset: false) }
-                    } label: {
-                        if loading { ProgressView() } else { Text("Load more") }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .disabled(loading)
-                }
-                .adminRow()
+                .padding(16)
             }
         }
-        .adminForm()
+        .background(Theme.bg.ignoresSafeArea())
         .task(id: camera) { await load(reset: true) }
         .refreshable { await load(reset: true) }
         .confirmationDialog(
@@ -126,16 +129,20 @@ struct RecordingsView: View {
         }
     }
 
+    private func playerCard(_ recording: Recording) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ClipPlayerView(playback: playback, isFullscreen: false) { isFullscreen = $0 }
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
+            if let playError { FormMessage(error: playError) }
+            clipDetails(recording)
+        }
+    }
+
     /// AC9: the clip over the whole screen, landscape, like the live view (spec 004).
     private var fullscreenPlayer: some View {
-        ZStack(alignment: .topLeading) {
-            VideoPlayer(player: player).ignoresSafeArea()
-            GlassIconButton(label: "Exit fullscreen", systemImage: "arrow.down.right.and.arrow.up.left") {
-                isFullscreen = false
-            }
-            .padding(16)
-        }
-        .background(Color.black.ignoresSafeArea())
+        ClipPlayerView(playback: playback, isFullscreen: true) { isFullscreen = $0 }
+            .background(Color.black.ignoresSafeArea())
     }
 
     private func clipDetails(_ recording: Recording) -> some View {
@@ -184,13 +191,26 @@ struct RecordingsView: View {
         }
     }
 
+    /// Opens a clip. From a closed player this animates (AC11) and scrolls up to it, like the
+    /// web page; switching clips just swaps the video.
+    private func open(_ recording: Recording, proxy: ScrollViewProxy) {
+        guard selected == nil else {
+            selected = recording
+            return
+        }
+        withAnimation(Self.playerAnimation) {
+            selected = recording
+            proxy.scrollTo("player", anchor: .top)
+        }
+    }
+
     /// Streams the clip with the same auth headers as every other request (ADR 0005), seeking
     /// with HTTP Range.
     private func play(_ recording: Recording?) async {
         playError = nil
         guard let recording, let api = model.api else {
             isFullscreen = false
-            player.replaceCurrentItem(with: nil)
+            playback.load(nil)
             return
         }
         let request = api.recordingVideoRequest(id: recording.id)
@@ -198,8 +218,7 @@ struct RecordingsView: View {
         // Not a documented key, but the only way to give AVURLAsset headers (ADR 0005).
         let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": request.allHTTPHeaderFields ?? [:]])
         let item = AVPlayerItem(asset: asset)
-        player.replaceCurrentItem(with: item)
-        player.play()
+        playback.load(item)
         for await status in item.publisher(for: \.status).values where status == .failed {
             playError = "Can't play this clip."
         }
@@ -208,8 +227,10 @@ struct RecordingsView: View {
     private func delete(_ recording: Recording) async {
         guard let api = model.api else { return }
         if await model.attempt({ error = $0 }, { try await api.deleteRecording(id: recording.id) }) != nil {
-            items?.removeAll { $0.id == recording.id }
-            if selected == recording { selected = nil }
+            withAnimation(Self.playerAnimation) {
+                items?.removeAll { $0.id == recording.id }
+                if selected == recording { selected = nil }
+            }
         }
     }
 
@@ -255,6 +276,10 @@ private struct ClipRow: View {
             .font(.caption.monospacedDigit())
             .foregroundStyle(Theme.muted)
         }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+        .background(selected ? Theme.accent.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: Theme.radiusSm))
+        .contentShape(Rectangle())
     }
 }
 
