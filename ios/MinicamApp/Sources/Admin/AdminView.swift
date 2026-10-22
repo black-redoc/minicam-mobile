@@ -22,6 +22,11 @@ struct AdminView: View {
     @State private var notificationsError: String?
     @State private var notificationsSaved = false
 
+    @State private var recordings: RecordingSettings?
+    @State private var savingRecordings = false
+    @State private var recordingsError: String?
+    @State private var recordingsSaved = false
+
     var body: some View {
         Form {
             Section("Create user") {
@@ -42,6 +47,7 @@ struct AdminView: View {
             }
 
             notificationsSection
+            recordingsSection
 
             Section("Users & camera permissions") {
                 if let usersError { FormMessage(error: usersError) }
@@ -58,8 +64,10 @@ struct AdminView: View {
         .navigationTitle("Admin")
         .task {
             async let settings: Void = loadNotifications()
+            async let recordingSettings: Void = loadRecordings()
             await loadUsers()
             await settings
+            await recordingSettings
         }
         .refreshable { await loadUsers() }
         .confirmationDialog(
@@ -106,6 +114,61 @@ struct AdminView: View {
             Text("""
                 Notifies users who can view a camera when one of its selected detection classes is seen. \
                 A camera's own setting (Camera settings → Detection notifications) overrides this switch.
+                """)
+        }
+        .adminRow()
+    }
+
+    /// The desktop "Event recordings" card (minicam `recording-settings.js`), ADR 0005.
+    @ViewBuilder private var recordingsSection: some View {
+        Section {
+            if let current = recordings {
+                Toggle("Record a clip while a camera detects one of its classes", isOn: Binding(
+                    get: { current.enabled },
+                    set: {
+                        recordings?.enabled = $0
+                        recordingsSaved = false
+                    }
+                ))
+                HStack {
+                    Text("Storage limit").foregroundStyle(Theme.text)
+                    Spacer()
+                    Menu {
+                        // Limits the disk can't hold stay visible but can't be chosen, like the web.
+                        ForEach(current.options, id: \.gb) { option in
+                            Button(option.available ? "\(option.gb) GB" : "\(option.gb) GB · Not enough space") {
+                                recordings?.maxStorageGB = option.gb
+                                recordingsSaved = false
+                            }
+                            .disabled(!option.available)
+                        }
+                    } label: {
+                        Label("\(current.maxStorageGB) GB", systemImage: "chevron.up.chevron.down")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .accessibilityLabel("Storage limit, \(current.maxStorageGB) GB")
+                }
+                Text("Recordings use \(formatStorageBytes(current.usedBytes)) · \(formatStorageBytes(current.freeBytes)) free on disk")
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
+                FormMessage(error: recordingsError, success: recordingsSaved ? "Saved." : nil)
+                Button {
+                    Task { await saveRecordings() }
+                } label: {
+                    if savingRecordings { ProgressView() } else { Text("Save") }
+                }
+                .disabled(savingRecordings)
+            } else if let recordingsError {
+                FormMessage(error: recordingsError)
+            } else {
+                ProgressView("Loading…")
+            }
+        } header: {
+            Text("Event recordings")
+        } footer: {
+            Text("""
+                Clips start about 3 seconds before a detection and stop about 5 seconds after the last one. \
+                When the limit is reached, the oldest clips are deleted. Users watch them from ⋯ → Recordings.
                 """)
         }
         .adminRow()
@@ -269,6 +332,26 @@ struct AdminView: View {
             notifications = saved
             cooldown = String(saved.cooldownSeconds)
             notificationsSaved = true
+        }
+    }
+
+    private func loadRecordings() async {
+        guard let api = model.api else { return }
+        if let settings = await model.attempt({ recordingsError = $0 }, { try await api.recordingSettings() }) {
+            recordings = settings
+        }
+    }
+
+    private func saveRecordings() async {
+        guard let api = model.api, let current = recordings else { return }
+        recordingsError = nil
+        savingRecordings = true
+        defer { savingRecordings = false }
+        if let saved = await model.attempt({ recordingsError = $0 }, {
+            try await api.saveRecordingSettings(enabled: current.enabled, maxStorageGB: current.maxStorageGB)
+        }) {
+            recordings = saved
+            recordingsSaved = true
         }
     }
 }

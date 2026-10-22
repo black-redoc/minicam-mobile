@@ -7,7 +7,7 @@ public final class MinicamAPI: Sendable {
     static let accessTokenHeader = "cf-access-token"
 
     public let config: ServerConfig
-    private let transport: HTTPTransport
+    let transport: HTTPTransport
     private let store: CredentialStore
 
     public init(config: ServerConfig, transport: HTTPTransport, store: CredentialStore) {
@@ -81,7 +81,7 @@ public final class MinicamAPI: Sendable {
         return (data, response)
     }
 
-    private func authorized(_ request: URLRequest) -> URLRequest {
+    func authorized(_ request: URLRequest) -> URLRequest {
         var request = request
         if let cookie = store.value(for: .sessionCookie) {
             request.setValue("\(Self.sessionCookieName)=\(cookie)", forHTTPHeaderField: "Cookie")
@@ -92,7 +92,7 @@ public final class MinicamAPI: Sendable {
         return request
     }
 
-    private func check(_ response: HTTPURLResponse, data: Data, isLogin: Bool) throws {
+    func check(_ response: HTTPURLResponse, data: Data, isLogin: Bool = false) throws {
         switch response.statusCode {
         case 200..<300:
             return
