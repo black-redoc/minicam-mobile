@@ -18,8 +18,11 @@ import dev.minicam.mobile.data.ServerConfigException
 import dev.minicam.mobile.data.User
 import kotlinx.coroutines.launch
 
-/** Top-level screens besides login and the camera view. Admin ones need `is_admin` (ADR 0004). */
-enum class Screen { CAMERAS, CAMERA_SETTINGS, AI_DETECTION, ADMIN }
+/**
+ * Top-level screens besides login and the camera view. Recordings is for everyone (ADR 0005);
+ * the admin ones need `is_admin` (ADR 0004).
+ */
+enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN }
 
 /** App-wide state: which server, whether we have a session, the camera list. */
 class AppViewModel(application: Application) : AndroidViewModel(application) {

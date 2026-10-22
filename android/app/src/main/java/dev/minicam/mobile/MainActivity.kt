@@ -10,6 +10,7 @@ import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CameraScreen
 import dev.minicam.mobile.ui.CamerasScreen
 import dev.minicam.mobile.ui.LoginScreen
+import dev.minicam.mobile.ui.RecordingsScreen
 import dev.minicam.mobile.ui.Screen
 import dev.minicam.mobile.ui.admin.AdminScreen
 import dev.minicam.mobile.ui.admin.AiDetectionScreen
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
                         BackHandler { viewModel.selectedCamera = null }
                         CameraScreen(viewModel, camera)
                     }
+                    viewModel.screen == Screen.RECORDINGS -> RecordingsScreen(viewModel)
                     viewModel.screen == Screen.CAMERA_SETTINGS -> CameraSettingsScreen(viewModel)
                     viewModel.screen == Screen.AI_DETECTION -> AiDetectionScreen(viewModel)
                     viewModel.screen == Screen.ADMIN -> AdminScreen(viewModel)

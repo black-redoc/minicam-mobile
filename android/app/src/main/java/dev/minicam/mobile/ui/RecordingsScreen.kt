@@ -1,0 +1,335 @@
+package dev.minicam.mobile.ui
+
+import android.provider.DocumentsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.PlayerView
+import dev.minicam.mobile.data.MinicamApi
+import dev.minicam.mobile.data.MinicamException
+import dev.minicam.mobile.data.Recording
+import dev.minicam.mobile.data.RecordingPage
+import dev.minicam.mobile.data.deleteRecording
+import dev.minicam.mobile.data.downloadRecording
+import dev.minicam.mobile.data.formatClipDuration
+import dev.minicam.mobile.data.formatClipSize
+import dev.minicam.mobile.data.recordingDays
+import dev.minicam.mobile.data.recordingFileName
+import dev.minicam.mobile.data.recordingVideoUrl
+import dev.minicam.mobile.data.recordings
+import dev.minicam.mobile.ui.admin.AdminScaffold
+import dev.minicam.mobile.ui.admin.ConfirmDialog
+import dev.minicam.mobile.ui.admin.FormMessage
+import dev.minicam.mobile.ui.admin.Hint
+import dev.minicam.mobile.ui.admin.OptionPicker
+import dev.minicam.mobile.ui.admin.SectionTitle
+import dev.minicam.mobile.ui.admin.Spinner
+import dev.minicam.mobile.ui.admin.attempt
+import dev.minicam.mobile.ui.theme.CamColors
+import dev.minicam.mobile.ui.theme.CamDimens
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import kotlinx.coroutines.launch
+
+/** The desktop Recordings page (minicam `recordings.html`): clips by day, player, download, delete. */
+@Composable
+fun RecordingsScreen(viewModel: AppViewModel) {
+    val api = viewModel.api ?: return
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var camera by remember { mutableStateOf<String?>(null) }
+    var items by remember { mutableStateOf<List<Recording>?>(null) }
+    var nextBefore by remember { mutableStateOf<Int?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var selected by remember { mutableStateOf<Recording?>(null) }
+    var pendingDelete by remember { mutableStateOf<Recording?>(null) }
+    var downloading by remember { mutableStateOf<Recording?>(null) }
+
+    suspend fun load(reset: Boolean) {
+        if (loading) return
+        loading = true
+        error = null
+        viewModel.attempt({ error = it }) { api.recordings(camera, if (reset) null else nextBefore) }
+            ?.let { page: RecordingPage ->
+                items = if (reset) page.items else items.orEmpty() + page.items
+                nextBefore = page.nextBefore
+            }
+        loading = false
+    }
+    LaunchedEffect(api, camera) { load(reset = true) }
+
+    // The user picks where the MP4 goes (Storage Access Framework): no storage permission, and
+    // the session cookie never leaves this app (SECURITY.md "Recordings").
+    val saveAs = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("video/mp4")) { uri ->
+        val recording = downloading ?: return@rememberLauncherForActivityResult
+        if (uri == null) {
+            downloading = null
+            return@rememberLauncherForActivityResult
+        }
+        scope.launch {
+            error = null
+            notice = null
+            val resolver = context.contentResolver
+            val done = viewModel.attempt({ error = it }) {
+                resolver.openOutputStream(uri)?.use { api.downloadRecording(recording.id, it) }
+                    ?: throw MinicamException.InvalidResponse
+            }
+            if (done == null) runCatching { DocumentsContract.deleteDocument(resolver, uri) } else notice = "Saved."
+            downloading = null
+        }
+    }
+
+    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }) {
+        selected?.let { recording ->
+            ClipPlayer(viewModel, api, recording)
+            ClipDetails(
+                recording = recording,
+                isAdmin = viewModel.user?.isAdmin == true,
+                downloading = downloading != null,
+                onDownload = {
+                    downloading = recording
+                    saveAs.launch(recordingFileName(recording))
+                },
+                onDelete = { pendingDelete = recording },
+            )
+        }
+
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionTitle("Event recordings", Modifier.weight(1f).padding(bottom = 18.dp))
+            Column(Modifier.weight(1f)) {
+                OptionPicker(
+                    label = "Camera",
+                    options = listOf<Pair<String?, String>>(null to "All cameras") + viewModel.cameras.map { it.name to it.name },
+                    selected = camera,
+                ) { camera = it }
+            }
+        }
+        FormMessage(error, notice)
+
+        val list = items
+        when {
+            list == null -> if (error == null) Spinner("Loading…")
+            list.isEmpty() -> Hint(
+                if (camera != null) {
+                    "No recordings for this camera yet."
+                } else {
+                    "No recordings yet. Clips appear here when a camera detects one of its classes."
+                },
+            )
+            else -> recordingDays(list).forEach { day ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(day.label, color = CamColors.Muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Card(Modifier.fillMaxWidth()) {
+                        day.recordings.forEachIndexed { index, recording ->
+                            if (index > 0) HorizontalDivider(color = CamColors.Border)
+                            ClipRow(recording, selected = recording.id == selected?.id) { selected = recording }
+                        }
+                    }
+                }
+            }
+        }
+        if (nextBefore != null) {
+            SecondaryButton("Load more", Modifier.align(Alignment.CenterHorizontally), busy = loading) {
+                scope.launch { load(reset = false) }
+            }
+        }
+    }
+
+    pendingDelete?.let { recording ->
+        ConfirmDialog(
+            title = "Delete recording?",
+            message = "The clip is deleted from this device for every user.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                scope.launch {
+                    error = null
+                    notice = null
+                    if (viewModel.attempt({ error = it }) { api.deleteRecording(recording.id) } != null) {
+                        items = items?.filter { it.id != recording.id }
+                        if (selected?.id == recording.id) selected = null
+                    }
+                }
+            },
+            onDismiss = { pendingDelete = null },
+        )
+    }
+}
+
+private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+
+private fun localTime(recording: Recording): String =
+    recording.started.atZone(ZoneId.systemDefault()).format(timeFormat)
+
+@Composable
+private fun ClipRow(recording: Recording, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(CamDimens.RadiusSm))
+            .background(if (selected) CamColors.Accent.copy(alpha = 0.1f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            localTime(recording),
+            color = if (selected) CamColors.AccentHover else CamColors.Text,
+            fontSize = 14.sp,
+            fontFamily = FontFamily.Monospace,
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(recording.cameraName, color = CamColors.Text, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (recording.classes.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    recording.classes.forEach { ClassChip(it) }
+                }
+            }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(formatClipDuration(recording.durationSeconds), color = CamColors.Muted, fontSize = 12.sp)
+            Text(formatClipSize(recording.sizeBytes), color = CamColors.Muted.copy(alpha = 0.7f), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun ClassChip(text: String) {
+    Text(
+        text,
+        color = CamColors.Text.copy(alpha = 0.85f),
+        fontSize = 11.sp,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(CamColors.Border)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun ClipDetails(
+    recording: Recording,
+    isAdmin: Boolean,
+    downloading: Boolean,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val day = recordingDays(listOf(recording)).first().label
+    val details = listOfNotNull(
+        "$day, ${localTime(recording)}",
+        formatClipDuration(recording.durationSeconds),
+        formatClipSize(recording.sizeBytes),
+        recording.classes.takeIf { it.isNotEmpty() }?.joinToString(", "),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(recording.cameraName, color = CamColors.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(details.joinToString(" · "), color = CamColors.Muted, fontSize = 12.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SecondaryButton("Download", busy = downloading, onClick = onDownload)
+            // Admins only; the server's `require_admin` enforces it either way.
+            if (isAdmin) SecondaryButton("Delete", danger = true, onClick = onDelete)
+        }
+    }
+}
+
+/**
+ * Media3 player for one clip. It reads through the app's OkHttp client with the same auth
+ * headers as every other request (ADR 0005), seeking with HTTP Range.
+ */
+@OptIn(UnstableApi::class)
+@Composable
+private fun ClipPlayer(viewModel: AppViewModel, api: MinicamApi, recording: Recording) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var playError by remember { mutableStateOf<String?>(null) }
+    val player = remember(api) {
+        val dataSource = OkHttpDataSource.Factory(api.client).setDefaultRequestProperties(api.authHeaders())
+        ExoPlayer.Builder(context).setMediaSourceFactory(DefaultMediaSourceFactory(dataSource)).build()
+    }
+
+    LaunchedEffect(recording.id) {
+        playError = null
+        player.setMediaItem(MediaItem.fromUri(api.recordingVideoUrl(recording.id).toString()))
+        player.prepare()
+        player.playWhenReady = true
+    }
+    DisposableEffect(player, lifecycleOwner) {
+        val listener = object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                val status = (error.cause as? HttpDataSource.InvalidResponseCodeException)?.responseCode ?: 0
+                playError = when (status) {
+                    // Same mapping as the JSON API: a lost session signs out.
+                    401 -> viewModel.describe(MinicamException.Unauthorized)
+                    in 300..399 -> viewModel.describe(MinicamException.AccessRequired)
+                    404 -> viewModel.describe(MinicamException.NotFound)
+                    else -> "Can't play this clip."
+                }
+            }
+        }
+        // Never keep playing (and downloading) in the background.
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) player.pause() }
+        player.addListener(listener)
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            player.removeListener(listener)
+            player.release()
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AndroidView(
+            factory = { PlayerView(it).apply { this.player = player } },
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(CamDimens.RadiusLg))
+                .background(Color.Black),
+        )
+        FormMessage(playError)
+    }
+}

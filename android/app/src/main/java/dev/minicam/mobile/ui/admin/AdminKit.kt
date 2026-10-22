@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -192,9 +193,18 @@ fun LabeledCheckbox(label: String, checked: Boolean, onChange: (Boolean) -> Unit
     }
 }
 
-/** A `<select>` look-alike: a bordered field that opens a dropdown of [options]. */
+/**
+ * A `<select>` look-alike: a bordered field that opens a dropdown of [options]. Options in
+ * [unavailable] stay listed, struck through with their reason, but can't be picked.
+ */
 @Composable
-fun <T> OptionPicker(label: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+fun <T> OptionPicker(
+    label: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    unavailable: Map<T, String> = emptyMap(),
+    onSelect: (T) -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, color = CamColors.Muted, fontSize = 12.sp)
@@ -220,8 +230,19 @@ fun <T> OptionPicker(label: String, options: List<Pair<T, String>>, selected: T,
             }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.background(CamColors.Surface)) {
                 options.forEach { (value, text) ->
+                    val reason = unavailable[value]
                     DropdownMenuItem(
-                        text = { Text(text, color = CamColors.Text) },
+                        text = {
+                            if (reason == null) {
+                                Text(text, color = CamColors.Text)
+                            } else {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Text(text, color = CamColors.Muted, textDecoration = TextDecoration.LineThrough)
+                                    Text(reason, color = CamColors.Danger, fontSize = 12.sp)
+                                }
+                            }
+                        },
+                        enabled = reason == null,
                         onClick = {
                             open = false
                             onSelect(value)
