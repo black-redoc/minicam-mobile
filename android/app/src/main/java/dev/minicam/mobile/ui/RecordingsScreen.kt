@@ -235,8 +235,9 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                         day.recordings.forEachIndexed { index, recording ->
                             if (index > 0) HorizontalDivider(color = CamColors.Border)
                             ClipRow(recording, selected = recording.id == selected?.id) {
-                                // From a closed player, scroll up to it while it opens, like the web.
-                                if (selected == null) scope.launch { scrollState.animateScrollTo(0, playerAnimation()) }
+                                // Scroll up to the player (top of the page) whenever a clip opens, so
+                                // it's never left hidden above the list, like the web.
+                                scope.launch { scrollState.animateScrollTo(0, playerAnimation()) }
                                 selected = recording
                                 shownRecording = recording
                             }

@@ -34,7 +34,8 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
   styled → test: `timeBar_fractionIsClamped` + manual
 - [ ] AC11: Opening the player from the list fades it in while everything below slides down,
   one 0.5 s ease-in-out curve for both so they start and end together (closing reverses it);
-  switching clips doesn't animate → manual
+  switching clips doesn't animate. Opening any clip scrolls up until the player (top of the
+  page) is visible → manual
 
 ## Design
 Data: `recordings`/`deleteRecording`/`recordingSettings`/`saveRecordingSettings`/

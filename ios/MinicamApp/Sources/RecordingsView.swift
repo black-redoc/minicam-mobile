@@ -191,16 +191,18 @@ struct RecordingsView: View {
         }
     }
 
-    /// Opens a clip. From a closed player this animates (AC11) and scrolls up to it, like the
-    /// web page; switching clips just swaps the video.
+    /// Opens a clip and scrolls up to the player (top of the page), so it's never left hidden
+    /// above the list, like the web. From a closed player the opening animates (AC11);
+    /// switching clips just swaps the video.
     private func open(_ recording: Recording, proxy: ScrollViewProxy) {
-        guard selected == nil else {
+        if selected == nil {
+            withAnimation(Self.playerAnimation) {
+                selected = recording
+                proxy.scrollTo("player", anchor: .top)
+            }
+        } else {
             selected = recording
-            return
-        }
-        withAnimation(Self.playerAnimation) {
-            selected = recording
-            proxy.scrollTo("player", anchor: .top)
+            withAnimation(Self.playerAnimation) { proxy.scrollTo("player", anchor: .top) }
         }
     }
 
