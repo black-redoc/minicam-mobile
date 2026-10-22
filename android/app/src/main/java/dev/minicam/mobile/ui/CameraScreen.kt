@@ -1,11 +1,21 @@
 package dev.minicam.mobile.ui
 
+import android.content.pm.ActivityInfo
 import android.graphics.BitmapFactory
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,17 +23,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,9 +46,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -81,6 +99,25 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
         }
     }
 
+    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    var showPtz by rememberSaveable { mutableStateOf(false) }
+    val ptzPad: @Composable (Boolean) -> Unit = { glass -> PtzPad(api, camera.name, onError = viewModel::handle, glass = glass) }
+
+    if (fullscreen) {
+        BackHandler { fullscreen = false }
+        ImmersiveLandscape()
+        FullscreenCamera(
+            frame = frame,
+            status = status,
+            canUsePtz = camera.canUsePtz,
+            showPtz = showPtz,
+            onShowPtz = { showPtz = it },
+            onExit = { fullscreen = false },
+            ptzPad = { ptzPad(true) },
+        )
+        return
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -112,25 +149,115 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                     .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(CamDimens.RadiusLg))
                     .background(Color.Black),
-                contentAlignment = Alignment.Center,
             ) {
-                frame?.let {
-                    Image(it, contentDescription = "Live camera feed", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-                }
-                if (status != StreamStatus.CONNECTED) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = CamColors.Accent, trackColor = CamColors.Border)
-                    }
-                }
+                VideoFeed(frame, status)
+                GlassIconButton(
+                    label = "Enter fullscreen",
+                    onClick = { fullscreen = true },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+                    size = 40.dp,
+                ) { FullscreenIcon(exit = false) }
             }
 
             if (camera.canUsePtz) {
                 Card(Modifier.fillMaxWidth()) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        PtzPad(api, camera.name, onError = viewModel::handle)
-                    }
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { ptzPad(false) }
                 }
             }
+        }
+    }
+}
+
+/** Frame fitted to the box (`object-fit: contain`) with a spinner while not live. */
+@Composable
+private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        frame?.let {
+            Image(it, contentDescription = "Live camera feed", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+        }
+        if (status != StreamStatus.CONNECTED) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = CamColors.Accent, trackColor = CamColors.Border)
+            }
+        }
+    }
+}
+
+/** Spec 004: the feed over the whole screen with floating glass controls. */
+@Composable
+private fun FullscreenCamera(
+    frame: ImageBitmap?,
+    status: StreamStatus,
+    canUsePtz: Boolean,
+    showPtz: Boolean,
+    onShowPtz: (Boolean) -> Unit,
+    onExit: () -> Unit,
+    ptzPad: @Composable () -> Unit,
+) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        VideoFeed(frame, status)
+
+        Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+            Row(
+                Modifier.align(Alignment.TopStart),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                GlassIconButton(label = "Exit fullscreen", onClick = onExit) { FullscreenIcon(exit = true) }
+                StatusBadge(status)
+            }
+
+            if (canUsePtz && !showPtz) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .height(44.dp)
+                        .glass(CircleShape)
+                        .clickable(onClickLabel = "Show PTZ controls", role = Role.Button) { onShowPtz(true) }
+                        .padding(horizontal = 18.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("PTZ", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                }
+            }
+
+            AnimatedVisibility(
+                visible = canUsePtz && showPtz,
+                modifier = Modifier.align(Alignment.CenterEnd),
+                enter = fadeIn() + slideInHorizontally { it / 2 },
+                exit = fadeOut() + slideOutHorizontally { it / 2 },
+            ) {
+                Column(
+                    Modifier.glass(RoundedCornerShape(20.dp)).padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(Modifier.width(IntrinsicSize.Max), verticalAlignment = Alignment.CenterVertically) {
+                        Text("PTZ", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f).padding(start = 4.dp))
+                        GlassIconButton(label = "Hide PTZ controls", onClick = { onShowPtz(false) }, size = 30.dp) { CloseIcon() }
+                    }
+                    ptzPad()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Hides the system bars (swipe to peek) and turns the screen to landscape while composed;
+ * restores both when fullscreen ends. The activity handles the rotation itself
+ * (`configChanges` in the manifest), so the stream is not torn down.
+ */
+@Composable
+private fun ImmersiveLandscape() {
+    val activity = LocalActivity.current ?: return
+    DisposableEffect(activity) {
+        val controller = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        onDispose {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 }

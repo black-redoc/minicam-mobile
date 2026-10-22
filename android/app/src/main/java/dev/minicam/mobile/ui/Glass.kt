@@ -1,0 +1,84 @@
+package dev.minicam.mobile.ui
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/**
+ * Translucent "glass" surface for controls floating over the video: a dark tint so they stay
+ * readable on bright frames, a light top-down sheen and a thin bright edge. Compose has no
+ * backdrop blur without extra dependencies, so the look comes from translucency alone.
+ */
+fun Modifier.glass(shape: Shape): Modifier = this
+    .clip(shape)
+    .background(Color.Black.copy(alpha = 0.28f))
+    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.06f))))
+    .border(
+        1.dp,
+        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.12f))),
+        shape,
+    )
+
+/** Round glass button floating over the video. */
+@Composable
+fun GlassIconButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier
+            .size(size)
+            .glass(CircleShape)
+            .clickable(onClickLabel = label, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+/** Four corner brackets: pointing outwards to enter fullscreen, inwards to exit it. */
+@Composable
+fun FullscreenIcon(exit: Boolean, modifier: Modifier = Modifier, color: Color = Color.White) {
+    Canvas(modifier.size(18.dp)) {
+        val stroke = 2.dp.toPx()
+        val arm = size.minDimension * 0.34f
+        val corners = listOf(Offset(0f, 0f), Offset(size.width, 0f), Offset(0f, size.height), Offset(size.width, size.height))
+        for (corner in corners) {
+            // Unit vectors from the corner towards the centre of the icon.
+            val dx = if (corner.x == 0f) 1f else -1f
+            val dy = if (corner.y == 0f) 1f else -1f
+            // Exiting: the bracket's elbow sits one arm inside the corner, arms pointing outwards.
+            val elbow = if (exit) Offset(corner.x + dx * arm, corner.y + dy * arm) else corner
+            val sign = if (exit) -1f else 1f
+            drawLine(color, elbow, Offset(elbow.x + sign * dx * arm, elbow.y), stroke, StrokeCap.Round)
+            drawLine(color, elbow, Offset(elbow.x, elbow.y + sign * dy * arm), stroke, StrokeCap.Round)
+        }
+    }
+}
+
+/** Thin "×" for close buttons, drawn so it does not depend on font glyph coverage. */
+@Composable
+fun CloseIcon(modifier: Modifier = Modifier, color: Color = Color.White) {
+    Canvas(modifier.size(12.dp)) {
+        val stroke = 2.dp.toPx()
+        drawLine(color, Offset(0f, 0f), Offset(size.width, size.height), stroke, StrokeCap.Round)
+        drawLine(color, Offset(size.width, 0f), Offset(0f, size.height), stroke, StrokeCap.Round)
+    }
+}

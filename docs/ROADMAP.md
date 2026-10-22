@@ -15,6 +15,7 @@ Cloudflare Access login for WAN hosts.
 - [ ] Android: all spec 001 acceptance criteria passing
 - [ ] iOS: all spec 001 acceptance criteria passing
 - [ ] Tested on a real device on LAN and through the tunnel
+- [ ] Fullscreen camera view with floating glass controls and PTZ panel (specs/004-fullscreen-camera.md)
 
 Non-goals for M1: admin (users, permissions), camera settings, AI detection settings,
 push notifications, recordings/playback, multi-server profiles, tablets-specific layouts.

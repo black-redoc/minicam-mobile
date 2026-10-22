@@ -69,6 +69,18 @@ struct PrimaryButtonStyle: ButtonStyle {
 extension View {
     func card() -> some View { modifier(CardModifier()) }
     func minicamInput() -> some View { modifier(InputModifier()) }
+
+    /// Translucent surface for controls floating over the video: Liquid Glass on iOS 26+,
+    /// a thin material with a light edge before that.
+    @ViewBuilder
+    func glassSurface(in shape: some Shape) -> some View {
+        if #available(iOS 26, *) {
+            glassEffect(.regular, in: shape)
+        } else {
+            background(.ultraThinMaterial, in: shape)
+                .overlay(shape.stroke(Color.white.opacity(0.25)))
+        }
+    }
 }
 
 /// Brand mark from the desktop header: glowing sky dot + "minicam".

@@ -26,6 +26,8 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: minicam
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
+        # Narrowed at runtime by OrientationLock (landscape only while fullscreen, spec 004).
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "minicam connects to your camera server on the local network."
     info:
       path: Info.plist
