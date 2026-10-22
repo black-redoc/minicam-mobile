@@ -57,3 +57,11 @@
 - Tests: Android 38/38 + lint 0 warnings + debug/release builds; iOS `swift test` 36/36,
   simulator build + UI test build with no Swift warnings
 - Next: visual check against a local minicam with an admin account (emulator/simulator)
+
+## 2026-10-22 — Spec 006 event recordings (ADR 0005)
+- Done: Recordings (clips by day, camera filter, paging, player, download, admin delete) and the
+  admin "Event recordings" card on Android (Media3 ExoPlayer) and iOS (AVPlayer)
+- Commit: e0fe58b (docs), 0dd821a (Android), 8b547f6 (iOS)
+- Tests: Android 48/48 + lint 0 warnings + debug/release builds; iOS `swift test` 46/46,
+  simulator build + UI test build with no Swift warnings
+- Next: manual check against a local minicam with recordings (emulator/simulator), WAN playback
