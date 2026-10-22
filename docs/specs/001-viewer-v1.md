@@ -33,11 +33,11 @@ ARCHITECTURE.md; ADR 0001, ADR 0002. Depends on spec 002 (backend) for AC5 and A
 SECURITY.md transport rules and checklist. Password never stored. `allowBackup=false`.
 
 ## Tasks
-- [x] Android skeleton, theme, screens, data layer, unit tests (written, not yet run: no JDK)
+- [x] Android skeleton, theme, screens, data layer, unit tests
 - [x] iOS MinicamKit + tests (`swift test` passing), SwiftUI app sources, project.yml
-- [ ] Run Android tests/lint/build once the toolchain is installed
+- [x] Android tests/lint/debug+release build passing (deps bumped to latest stable)
 - [ ] Build the iOS app in Xcode
-- [ ] Backend spec 002 merged in minicam
+- [ ] Backend spec 002 merged in minicam (implemented on `feat/mobile-endpoints`)
 - [ ] Manual device checks (LAN, WAN)
 
 ## Out of scope

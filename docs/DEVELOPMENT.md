@@ -1,18 +1,19 @@
 # Development
 
 ## Prerequisites
-- **Android:** JDK 17 and Android Studio (or the command-line SDK) with platform 35.
-  `brew install --cask temurin@17 android-studio`
-- **iOS:** full Xcode (not only Command Line Tools), then
-  `sudo xcode-select -s /Applications/Xcode.app` and `brew install xcodegen`.
+- **Android:** Android Studio with SDK platform 37. Gradle runs on Android Studio's bundled JDK:
+  `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
+  `android/local.properties` (gitignored) needs `sdk.dir=$HOME/Library/Android/sdk`.
+- **iOS:** full Xcode and `brew install xcodegen`. Either run
+  `sudo xcode-select -s /Applications/Xcode.app` once, or prefix commands with
+  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 - A running minicam instance (see the minicam README) with at least one user who has
   `can_view` on a camera.
 
 ## First-time setup
 ```bash
-# Android: the wrapper jar is not committed until it is generated with a trusted Gradle
-cd android && gradle wrapper --gradle-version 8.11.1 --distribution-type bin
-# then commit gradle/wrapper/gradle-wrapper.jar, gradlew, gradlew.bat
+# Android: the Gradle wrapper is committed; the first ./gradlew run downloads Gradle and
+# checks it against distributionSha256Sum.
 
 # iOS
 cd ios/MinicamApp && xcodegen generate && open MinicamApp.xcodeproj

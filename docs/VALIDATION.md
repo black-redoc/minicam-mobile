@@ -8,11 +8,12 @@
 - Manual device check per milestone: LAN and WAN (tunnel) login, stream, PTZ, logout.
 
 ## Commands
-Android (from `android/`, needs JDK 17 + Android SDK, see DEVELOPMENT.md):
+Android (from `android/`, with `JAVA_HOME` set as in DEVELOPMENT.md):
 ```bash
 ./gradlew testDebugUnitTest      # unit tests
-./gradlew lintDebug              # Android lint
-./gradlew assembleDebug          # build
+./gradlew lintDebug              # Android lint (0 warnings expected)
+./gradlew assembleDebug assembleRelease   # build (release runs R8)
+./gradlew :app:dependencies --write-locks # after changing dependencies
 ```
 
 iOS:

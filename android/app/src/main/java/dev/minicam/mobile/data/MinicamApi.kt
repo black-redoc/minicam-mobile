@@ -85,7 +85,7 @@ class MinicamApi(
                 .method(method, body),
         ).build()
         return client.newCall(request).await().use { response ->
-            val text = response.body?.string().orEmpty()
+            val text = response.body.string()
             check(response.code, text, isLogin)
             parse(response, text)
         }

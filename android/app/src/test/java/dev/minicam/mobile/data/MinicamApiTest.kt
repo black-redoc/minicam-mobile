@@ -1,8 +1,8 @@
 package dev.minicam.mobile.data
 
 import kotlinx.coroutines.test.runTest
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -21,15 +21,17 @@ class MinicamApiTest {
     }
 
     @After
-    fun tearDown() = server.shutdown()
+    fun tearDown() = server.close()
 
     /** MockWebServer listens on 127.0.0.1, a LAN host for ServerConfig. */
     private fun lanApi() = MinicamApi(ServerConfig.parse(server.url("/").toString()), store)
 
     private fun enqueue(code: Int, body: String = "", vararg headers: Pair<String, String>) {
-        server.enqueue(MockResponse().setResponseCode(code).setBody(body).apply {
-            headers.forEach { (name, value) -> addHeader(name, value) }
-        })
+        server.enqueue(
+            MockResponse.Builder().code(code).body(body).apply {
+                headers.forEach { (name, value) -> addHeader(name, value) }
+            }.build(),
+        )
     }
 
     @Test
@@ -42,8 +44,8 @@ class MinicamApiTest {
         assertEquals("jwt123", store.get(CredentialKey.SESSION_COOKIE))
         val request = server.takeRequest()
         assertEquals("POST", request.method)
-        assertEquals("/api/auth/login", request.path)
-        assertEquals("""{"email":"a@example.com","password":"secret123"}""", request.body.readUtf8())
+        assertEquals("/api/auth/login", request.target)
+        assertEquals("""{"email":"a@example.com","password":"secret123"}""", request.body?.utf8())
     }
 
     @Test
@@ -71,8 +73,8 @@ class MinicamApiTest {
 
         lanApi().cameras()
         val lanRequest = server.takeRequest()
-        assertEquals("minicam_session=jwt123", lanRequest.getHeader("Cookie"))
-        assertNull(lanRequest.getHeader("cf-access-token"))
+        assertEquals("minicam_session=jwt123", lanRequest.headers["Cookie"])
+        assertNull(lanRequest.headers["cf-access-token"])
     }
 
     @Test
@@ -94,7 +96,7 @@ class MinicamApiTest {
         val cameras = lanApi().cameras()
 
         assertEquals(listOf(CameraSummary("entrada", true), CameraSummary("patio", false)), cameras)
-        assertEquals("/api/me/cameras", server.takeRequest().path)
+        assertEquals("/api/me/cameras", server.takeRequest().target)
     }
 
     @Test
@@ -104,7 +106,7 @@ class MinicamApiTest {
 
         PtzAction.entries.forEach { api.ptz("front door", it) }
 
-        val paths = PtzAction.entries.map { server.takeRequest().let { r -> r.method to r.path } }
+        val paths = PtzAction.entries.map { server.takeRequest().let { r -> r.method to r.target } }
         assertEquals(
             listOf("up", "down", "left", "right", "stop").map { "POST" to "/api/ptz/front%20door/$it" },
             paths,
@@ -116,7 +118,7 @@ class MinicamApiTest {
         enqueue(200, """{"token": "st", "expires_in": 30}""")
 
         assertEquals("st", lanApi().streamToken("entrada"))
-        assertEquals("/api/stream/entrada/token", server.takeRequest().path)
+        assertEquals("/api/stream/entrada/token", server.takeRequest().target)
     }
 
     @Test

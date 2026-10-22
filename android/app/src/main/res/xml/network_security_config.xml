@@ -4,8 +4,8 @@
   configs can't express "private IPs only", so ServerConfig is the gate: it refuses
   http:// for anything that isn't a private IPv4, loopback or *.local host (docs/SECURITY.md).
 -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
