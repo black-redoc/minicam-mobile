@@ -1,15 +1,18 @@
 package dev.minicam.mobile.ui
 
 import android.provider.DocumentsContract
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,6 +93,23 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     var selected by remember { mutableStateOf<Recording?>(null) }
     var pendingDelete by remember { mutableStateOf<Recording?>(null) }
     var downloading by remember { mutableStateOf<Recording?>(null) }
+    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    var playError by remember { mutableStateOf<String?>(null) }
+    // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
+    val player = rememberClipPlayer(viewModel, api) { playError = it }
+
+    LaunchedEffect(player, selected?.id) {
+        playError = null
+        val recording = selected
+        if (recording == null) {
+            fullscreen = false
+            player.clearMediaItems()
+        } else {
+            player.setMediaItem(MediaItem.fromUri(api.recordingVideoUrl(recording.id).toString()))
+            player.prepare()
+            player.playWhenReady = true
+        }
+    }
 
     suspend fun load(reset: Boolean) {
         if (loading) return
@@ -123,9 +145,28 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         }
     }
 
+    if (fullscreen && selected != null) {
+        BackHandler { fullscreen = false }
+        ImmersiveLandscape()
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+            ClipVideo(player, fullscreen = true, onFullscreen = { fullscreen = it }, modifier = Modifier.fillMaxSize())
+        }
+        return
+    }
+
     AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }) {
         selected?.let { recording ->
-            ClipPlayer(viewModel, api, recording)
+            ClipVideo(
+                player,
+                fullscreen = false,
+                onFullscreen = { fullscreen = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(CamDimens.RadiusLg))
+                    .background(Color.Black),
+            )
+            FormMessage(playError)
             ClipDetails(
                 recording = recording,
                 isAdmin = viewModel.user?.isAdmin == true,
@@ -277,37 +318,33 @@ private fun ClipDetails(
 }
 
 /**
- * Media3 player for one clip. It reads through the app's OkHttp client with the same auth
- * headers as every other request (ADR 0005), seeking with HTTP Range.
+ * Media3 player for the clips. It reads through the app's OkHttp client with the same auth
+ * headers as every other request (ADR 0005), seeking with HTTP Range, and pauses when the app
+ * leaves the foreground. Playback failures go to [onError].
  */
 @OptIn(UnstableApi::class)
 @Composable
-private fun ClipPlayer(viewModel: AppViewModel, api: MinicamApi, recording: Recording) {
+private fun rememberClipPlayer(viewModel: AppViewModel, api: MinicamApi, onError: (String) -> Unit): ExoPlayer {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var playError by remember { mutableStateOf<String?>(null) }
     val player = remember(api) {
         val dataSource = OkHttpDataSource.Factory(api.client).setDefaultRequestProperties(api.authHeaders())
         ExoPlayer.Builder(context).setMediaSourceFactory(DefaultMediaSourceFactory(dataSource)).build()
     }
-
-    LaunchedEffect(recording.id) {
-        playError = null
-        player.setMediaItem(MediaItem.fromUri(api.recordingVideoUrl(recording.id).toString()))
-        player.prepare()
-        player.playWhenReady = true
-    }
+    val reportError by rememberUpdatedState(onError)
     DisposableEffect(player, lifecycleOwner) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
                 val status = (error.cause as? HttpDataSource.InvalidResponseCodeException)?.responseCode ?: 0
-                playError = when (status) {
-                    // Same mapping as the JSON API: a lost session signs out.
-                    401 -> viewModel.describe(MinicamException.Unauthorized)
-                    in 300..399 -> viewModel.describe(MinicamException.AccessRequired)
-                    404 -> viewModel.describe(MinicamException.NotFound)
-                    else -> "Can't play this clip."
-                }
+                reportError(
+                    when (status) {
+                        // Same mapping as the JSON API: a lost session signs out.
+                        401 -> viewModel.describe(MinicamException.Unauthorized)
+                        in 300..399 -> viewModel.describe(MinicamException.AccessRequired)
+                        404 -> viewModel.describe(MinicamException.NotFound)
+                        else -> "Can't play this clip."
+                    },
+                )
             }
         }
         // Never keep playing (and downloading) in the background.
@@ -320,16 +357,24 @@ private fun ClipPlayer(viewModel: AppViewModel, api: MinicamApi, recording: Reco
             player.release()
         }
     }
+    return player
+}
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AndroidView(
-            factory = { PlayerView(it).apply { this.player = player } },
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(CamDimens.RadiusLg))
-                .background(Color.Black),
-        )
-        FormMessage(playError)
-    }
+/** The player's video and controls; the controls' fullscreen button toggles [fullscreen] (AC9). */
+@OptIn(UnstableApi::class)
+@Composable
+private fun ClipVideo(player: Player, fullscreen: Boolean, onFullscreen: (Boolean) -> Unit, modifier: Modifier) {
+    val toggle by rememberUpdatedState(onFullscreen)
+    AndroidView(
+        factory = {
+            PlayerView(it).apply {
+                this.player = player
+                setFullscreenButtonClickListener { enter -> toggle(enter) }
+            }
+        },
+        update = { it.setFullscreenButtonState(fullscreen) },
+        // The other layout's view takes the player over; this one lets go of it.
+        onRelease = { it.player = null },
+        modifier = modifier,
+    )
 }
