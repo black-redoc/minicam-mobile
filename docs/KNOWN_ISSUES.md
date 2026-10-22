@@ -42,3 +42,11 @@ Fix: put the real team domain and AUD in `.env` (the server log line
 minicam PR #14) and restart minicam, re-exporting `.env` if it runs under `fastapi dev`.
 Prevention: minicam PR #15 refuses to start with any `.env.example` placeholder.
 Test: minicam `tests/unit/test_security_settings.py`, `tests/unit/test_cloudflare_access.py`.
+
+## KI-8 PTZ buttons never move the camera — Status: Resolved 2026-10-22
+Repro: open a camera with PTZ and tap a direction. Expected: `POST …/{dir}` then `POST …/stop`.
+Actual: only `stop` reaches minicam. Cause: the dispatcher cancelled the in-flight
+request on every new action, as desktop `ptz.js` does; a browser `fetch` is already on the wire,
+but OkHttp and URLSession drop a cancelled call before sending it, so release killed the press.
+Fix: `PtzDispatcher` / `PTZDispatcher` never cancel; one request in flight, latest action queued.
+Test: `PtzDispatcherTest` (Android), `PTZDispatcherTests` (iOS), `tap_sendsDirectionThenStop`.

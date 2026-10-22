@@ -29,44 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.PtzAction
+import dev.minicam.mobile.data.PtzDispatcher
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-
-/**
- * Sends PTZ commands with at most one request in flight: a newer action
- * cancels the pending one, like desktop `ptz.js`.
- */
-private class PtzDispatcher(
-    private val api: MinicamApi,
-    private val camera: String,
-    private val scope: CoroutineScope,
-    private val onError: (Throwable) -> Unit,
-) {
-    private var inFlight: Job? = null
-
-    fun dispatch(action: PtzAction) {
-        inFlight?.cancel()
-        inFlight = scope.launch {
-            try {
-                api.ptz(camera, action)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                onError(e)
-            }
-        }
-    }
-}
 
 /** Compass-style 3x3 PTZ grid (`.ptz-grid` in main.css). Hold to move, release to stop. */
 @Composable
 fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit) {
     val scope = rememberCoroutineScope()
-    val dispatcher = remember(api, camera) { PtzDispatcher(api, camera, scope, onError) }
+    val dispatcher = remember(api, camera) { PtzDispatcher(scope, { api.ptz(camera, it) }, onError) }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

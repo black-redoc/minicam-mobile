@@ -18,6 +18,10 @@ Test names are the same on both platforms (Android: JUnit method names; iOS: Swi
   scheme matching the server → test: `streamUrl_matchesSchemeAndEncodesName`
 - [ ] AC7: PTZ sends `POST /api/ptz/{name}/{action}` for up/down/left/right/stop only →
   test: `ptz_postsAction`
+- [ ] AC7b: A tap sends the direction then `stop`; at most one PTZ request is in flight and only
+  the latest pending action follows it; a failure is reported and later actions still go out →
+  test: `tap_sendsDirectionThenStop`, `whileARequestIsInFlight_onlyTheLatestActionIsQueued`,
+  `failure_isReportedAndLaterActionsAreStillSent` (KI-8)
 - [ ] AC8: Access handoff builds the handoff URL with a random `state`, accepts only a callback
   with the same `state`, and extracts the token from the fragment → test:
   `accessHandoff_buildsUrlWithState`, `accessHandoff_rejectsStateMismatch`,
