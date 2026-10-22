@@ -12,12 +12,28 @@ android {
         applicationId = "dev.minicam.mobile"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        // CI passes -PversionCode=<run number> so each published APK upgrades the previous one.
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = "0.1.0"
+    }
+
+    // Release key comes from the environment (CI secrets, docs/adr/0003). Without it, release
+    // builds are signed with the debug key so they stay installable for local testing.
+    val releaseKeystore = System.getenv("MINICAM_KEYSTORE_PATH")
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("MINICAM_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MINICAM_KEY_ALIAS")
+                keyPassword = System.getenv("MINICAM_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

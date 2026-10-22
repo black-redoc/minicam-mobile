@@ -51,6 +51,10 @@ New endpoints this app needs: [specs/002-backend-mobile-endpoints.md](specs/002-
 
 Dark theme only, like the desktop (`color-scheme: dark`). Video is 16:9, black, `contain`.
 
+## Build and delivery
+GitHub Actions: `ci.yml` on PRs, `release.yml` publishes installable builds on merge to `master`
+([ADR 0003](adr/0003-ci-cd-github-actions.md)).
+
 ## Invariants
 - No third-party analytics, crash reporting or ads. The app only talks to the configured host and
   its Cloudflare Access team domain.

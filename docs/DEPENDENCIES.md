@@ -41,11 +41,20 @@
 No third-party packages: URLSession (HTTP + WebSocket), Security (Keychain),
 AuthenticationServices, SwiftUI, Swift Testing.
 
+## CI (GitHub Actions, pinned by commit SHA)
+| Action | Version |
+|---|---|
+| actions/checkout | v7.0.1 |
+| actions/setup-java | v6.1.0 |
+| actions/upload-artifact | v7.0.2 |
+| actions/download-artifact | v8.0.2 |
+| gradle/actions/setup-gradle | v6.4.0 (Gradle cache + wrapper checksum validation) |
+
 ## Dev tools (not shipped)
 | Tool | Version | Why |
 |---|---|---|
 | Gradle | 9.8.2 | Android build (wrapper, `distributionSha256Sum` pinned) |
-| XcodeGen | 2.46.0 | Generates the Xcode project from `ios/MinicamApp/project.yml` so no `.pbxproj` is hand-edited |
+| XcodeGen | 2.46.0 | Generates the Xcode project from `ios/MinicamApp/project.yml` so no `.pbxproj` is hand-edited (CI checks the zip SHA-256) |
 
 Last bumped 2026-10-21 to the latest stable releases on Maven Central / Google Maven.
 Lockfiles: `android/app/gradle.lockfile`, `android/settings-gradle.lockfile`.
