@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,7 +68,12 @@ suspend fun <T> AppViewModel.attempt(onError: (String) -> Unit, work: suspend ()
 
 /** Admin page shell, like the desktop `minicam / Admin` header with its "← Dashboard" link. */
 @Composable
-fun AdminScaffold(title: String, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun AdminScaffold(
+    title: String,
+    onBack: () -> Unit,
+    scrollState: ScrollState = rememberScrollState(),
+    content: @Composable ColumnScope.() -> Unit,
+) {
     BackHandler(onBack = onBack)
     Column(Modifier.fillMaxSize().background(CamColors.Bg).safeDrawingPadding().imePadding()) {
         Row(
@@ -81,7 +87,7 @@ fun AdminScaffold(title: String, onBack: () -> Unit, content: @Composable Column
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(CamColors.Surface))
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content,
         )

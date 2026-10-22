@@ -6,6 +6,13 @@ import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +24,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -99,6 +107,8 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     var pendingDelete by remember { mutableStateOf<Recording?>(null) }
     var downloading by remember { mutableStateOf<Recording?>(null) }
     var fullscreen by rememberSaveable { mutableStateOf(false) }
+    var shownRecording by remember { mutableStateOf<Recording?>(null) }
+    val scrollState = rememberScrollState()
     var playError by remember { mutableStateOf<String?>(null) }
     // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
     val player = rememberClipPlayer(viewModel, api) { playError = it }
@@ -159,39 +169,51 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         return
     }
 
-    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }) {
-        selected?.let { recording ->
-            ClipVideo(
-                player,
-                fullscreen = false,
-                onFullscreen = { fullscreen = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(CamDimens.RadiusLg))
-                    .background(Color.Black),
-            )
-            FormMessage(playError)
-            ClipDetails(
-                recording = recording,
-                isAdmin = viewModel.user?.isAdmin == true,
-                downloading = downloading != null,
-                onDownload = {
-                    downloading = recording
-                    saveAs.launch(recordingFileName(recording))
-                },
-                onDelete = { pendingDelete = recording },
-            )
-        }
+    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }, scrollState = scrollState) {
+        // One child with the header below it: the list's 16dp gap never pops in or out, so
+        // everything under the player slides smoothly while it fades in (AC11).
+        Column {
+            AnimatedVisibility(
+                visible = selected != null,
+                enter = fadeIn(playerAnimation()) + expandVertically(playerAnimation(), expandFrom = Alignment.Top),
+                exit = fadeOut(playerAnimation()) + shrinkVertically(playerAnimation(), shrinkTowards = Alignment.Top),
+            ) {
+                // Keeps showing the last clip while the player closes.
+                val recording = selected ?: shownRecording ?: return@AnimatedVisibility
+                Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    ClipVideo(
+                        player,
+                        fullscreen = false,
+                        onFullscreen = { fullscreen = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(CamDimens.RadiusLg))
+                            .background(Color.Black),
+                    )
+                    FormMessage(playError)
+                    ClipDetails(
+                        recording = recording,
+                        isAdmin = viewModel.user?.isAdmin == true,
+                        downloading = downloading != null,
+                        onDownload = {
+                            downloading = recording
+                            saveAs.launch(recordingFileName(recording))
+                        },
+                        onDelete = { pendingDelete = recording },
+                    )
+                }
+            }
 
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionTitle("Event recordings", Modifier.weight(1f).padding(bottom = 18.dp))
-            Column(Modifier.weight(1f)) {
-                OptionPicker(
-                    label = "Camera",
-                    options = listOf<Pair<String?, String>>(null to "All cameras") + viewModel.cameras.map { it.name to it.name },
-                    selected = camera,
-                ) { camera = it }
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionTitle("Event recordings", Modifier.weight(1f).padding(bottom = 18.dp))
+                Column(Modifier.weight(1f)) {
+                    OptionPicker(
+                        label = "Camera",
+                        options = listOf<Pair<String?, String>>(null to "All cameras") + viewModel.cameras.map { it.name to it.name },
+                        selected = camera,
+                    ) { camera = it }
+                }
             }
         }
         FormMessage(error, notice)
@@ -212,7 +234,12 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                     Card(Modifier.fillMaxWidth()) {
                         day.recordings.forEachIndexed { index, recording ->
                             if (index > 0) HorizontalDivider(color = CamColors.Border)
-                            ClipRow(recording, selected = recording.id == selected?.id) { selected = recording }
+                            ClipRow(recording, selected = recording.id == selected?.id) {
+                                // From a closed player, scroll up to it while it opens, like the web.
+                                if (selected == null) scope.launch { scrollState.animateScrollTo(0, playerAnimation()) }
+                                selected = recording
+                                shownRecording = recording
+                            }
                         }
                     }
                 }
@@ -244,6 +271,12 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         )
     }
 }
+
+/**
+ * AC11: opening or closing the player. The fade and the slide of everything below it share this
+ * curve, so they start and end together; slow enough to follow.
+ */
+private fun <T> playerAnimation() = tween<T>(durationMillis = 500, easing = FastOutSlowInEasing)
 
 private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
 
