@@ -48,3 +48,12 @@
 - Tests: Android 21/21 + lint 0 warnings + debug/release builds; iOS `swift test` 19/19,
   simulator build + UI test build with no Swift warnings
 - Next: visual check on emulator/simulator (`ScreenshotTests` now captures fullscreen) and device
+
+## 2026-10-22 — Spec 005 admin screens (ADR 0004)
+- Done: Camera settings (CRUD, ONVIF search, detection classes, notifications mode), AI detection
+  (catalog install, engine settings, fetch model from URL) and Admin (users, permissions, WAN
+  access, global notifications) on Android and iOS; minicam error `detail`s shown as-is
+- Commit: 298d640 (docs), 057b3ea (Android), 72ea795 (iOS)
+- Tests: Android 38/38 + lint 0 warnings + debug/release builds; iOS `swift test` 36/36,
+  simulator build + UI test build with no Swift warnings
+- Next: visual check against a local minicam with an admin account (emulator/simulator)

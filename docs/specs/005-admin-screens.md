@@ -48,13 +48,14 @@ confirmation dialog. Remote catalog text is rendered as plain text. Model fetch 
 `https` (server-enforced too). No new hosts contacted by the app.
 
 ## Tasks
-- [ ] Docs: ADR 0004, ROADMAP M2, ARCHITECTURE, SECURITY
-- [ ] Android: API + models + tests
-- [ ] Android: Camera settings, AI detection, Admin screens + menu
-- [ ] iOS: MinicamKit API + models + tests
-- [ ] iOS: Camera settings, AI detection, Admin views + menu
-- [ ] Builds, lint and tests pass on both platforms
-- [ ] Manual check against a local minicam (emulator/simulator)
+- [x] Docs: ADR 0004, ROADMAP M2, ARCHITECTURE, SECURITY
+- [x] Android: API + models + tests
+- [x] Android: Camera settings, AI detection, Admin screens + menu
+- [x] iOS: MinicamKit API + models + tests
+- [x] iOS: Camera settings, AI detection, Admin views + menu
+- [x] Builds, lint and tests pass on both platforms
+- [ ] Manual check against a local minicam (emulator/simulator); iOS `ScreenshotTests` attaches
+  `ios-camera-settings`, `ios-ai-detection`, `ios-admin` when the test account is an admin
 
 ## Out of scope
 Uploading `.onnx` files from the phone, push notifications, first-run setup
