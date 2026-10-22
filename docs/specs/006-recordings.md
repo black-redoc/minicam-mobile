@@ -28,6 +28,13 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
 - [ ] AC9: The player has a fullscreen mode like the live view (spec 004): landscape, system bars
   hidden, playback continues without restarting, back / exit button leaves it (Android: the
   Media3 controls' fullscreen button; iOS: a glass button over the video) → manual
+- [ ] AC10: The time bar's played part is the brand sky (`accentHover`), clearly apart from the
+  buffered (white 40%) and remaining (white 15%) track. iOS draws its own controls over an
+  `AVPlayerLayer` (play/pause, time, fullscreen, seekable bar) since the system ones can't be
+  styled → test: `timeBar_fractionIsClamped` + manual
+- [ ] AC11: Opening the player from the list fades it in while everything below slides down,
+  one 0.5 s ease-in-out curve for both so they start and end together (closing reverses it);
+  switching clips doesn't animate → manual
 
 ## Design
 Data: `recordings`/`deleteRecording`/`recordingSettings`/`saveRecordingSettings`/
@@ -49,6 +56,7 @@ and download use the app's own client). Downloaded files are written only where 
 - [x] iOS: Recordings view + menu, admin card
 - [x] Builds, lint and tests pass on both platforms
 - [x] Fullscreen player on Android and iOS (AC9)
+- [x] Styled time bar, iOS custom controls, open/close animation (AC10, AC11)
 - [ ] Manual check against a local minicam with recordings (emulator/simulator); iOS
   `ScreenshotTests` attaches `ios-recordings`
 
