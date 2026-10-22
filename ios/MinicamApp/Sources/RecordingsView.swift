@@ -17,13 +17,48 @@ struct RecordingsView: View {
     @State private var pendingDelete: Recording?
     @State private var downloading = false
     @State private var sharedFile: SharedFile?
+    // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
+    @State private var player = AVPlayer()
+    @State private var playError: String?
+    @State private var isFullscreen = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        ZStack {
+            if isFullscreen { fullscreenPlayer } else { list }
+        }
+        .navigationTitle("Recordings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
+        .statusBarHidden(isFullscreen)
+        .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
+        .onChange(of: isFullscreen) { _, on in OrientationLock.landscape(on) }
+        .task(id: selected?.id) { await play(selected) }
+        // Never keep playing (and downloading) in the background.
+        .onChange(of: scenePhase) { _, phase in if phase != .active { player.pause() } }
+        .onDisappear {
+            player.pause()
+            if isFullscreen { OrientationLock.landscape(false) }
+        }
+    }
+
+    private var list: some View {
         List {
-            if let selected, let api = model.api {
+            if let selected {
                 Section {
-                    ClipPlayer(api: api, recording: selected)
-                        .listRowInsets(EdgeInsets())
+                    VStack(alignment: .leading, spacing: 8) {
+                        VideoPlayer(player: player)
+                            .aspectRatio(16 / 9, contentMode: .fit)
+                            .background(Color.black)
+                            .overlay(alignment: .topTrailing) {
+                                GlassIconButton(
+                                    label: "Enter fullscreen", systemImage: "arrow.up.left.and.arrow.down.right", size: 40
+                                ) { isFullscreen = true }
+                                .padding(10)
+                            }
+                        if let playError { FormMessage(error: playError).padding(.horizontal) }
+                    }
+                    .listRowInsets(EdgeInsets())
                     clipDetails(selected)
                 }
                 .adminRow()
@@ -72,7 +107,6 @@ struct RecordingsView: View {
             }
         }
         .adminForm()
-        .navigationTitle("Recordings")
         .task(id: camera) { await load(reset: true) }
         .refreshable { await load(reset: true) }
         .confirmationDialog(
@@ -90,6 +124,18 @@ struct RecordingsView: View {
         .sheet(item: $sharedFile) { file in
             ShareSheet(url: file.url).onDisappear { file.remove() }
         }
+    }
+
+    /// AC9: the clip over the whole screen, landscape, like the live view (spec 004).
+    private var fullscreenPlayer: some View {
+        ZStack(alignment: .topLeading) {
+            VideoPlayer(player: player).ignoresSafeArea()
+            GlassIconButton(label: "Exit fullscreen", systemImage: "arrow.down.right.and.arrow.up.left") {
+                isFullscreen = false
+            }
+            .padding(16)
+        }
+        .background(Color.black.ignoresSafeArea())
     }
 
     private func clipDetails(_ recording: Recording) -> some View {
@@ -135,6 +181,27 @@ struct RecordingsView: View {
             items = reset ? page.items : (items ?? []) + page.items
             nextBefore = page.nextBefore
             error = nil
+        }
+    }
+
+    /// Streams the clip with the same auth headers as every other request (ADR 0005), seeking
+    /// with HTTP Range.
+    private func play(_ recording: Recording?) async {
+        playError = nil
+        guard let recording, let api = model.api else {
+            isFullscreen = false
+            player.replaceCurrentItem(with: nil)
+            return
+        }
+        let request = api.recordingVideoRequest(id: recording.id)
+        guard let url = request.url else { return }
+        // Not a documented key, but the only way to give AVURLAsset headers (ADR 0005).
+        let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": request.allHTTPHeaderFields ?? [:]])
+        let item = AVPlayerItem(asset: asset)
+        player.replaceCurrentItem(with: item)
+        player.play()
+        for await status in item.publisher(for: \.status).values where status == .failed {
+            playError = "Can't play this clip."
         }
     }
 
@@ -187,42 +254,6 @@ private struct ClipRow: View {
             }
             .font(.caption.monospacedDigit())
             .foregroundStyle(Theme.muted)
-        }
-    }
-}
-
-/// AVPlayer for one clip. It streams with the same auth headers as every other request
-/// (ADR 0005), seeking with HTTP Range, and pauses when the app leaves the foreground.
-private struct ClipPlayer: View {
-    let api: MinicamAPI
-    let recording: Recording
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var player = AVPlayer()
-    @State private var playError: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            VideoPlayer(player: player)
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .background(Color.black)
-            if let playError { FormMessage(error: playError).padding(.horizontal) }
-        }
-        .task(id: recording.id) { await play() }
-        .onChange(of: scenePhase) { _, phase in if phase != .active { player.pause() } }
-        .onDisappear { player.pause() }
-    }
-
-    private func play() async {
-        playError = nil
-        let request = api.recordingVideoRequest(id: recording.id)
-        guard let url = request.url else { return }
-        // Not a documented key, but the only way to give AVURLAsset headers (ADR 0005).
-        let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": request.allHTTPHeaderFields ?? [:]])
-        let item = AVPlayerItem(asset: asset)
-        player.replaceCurrentItem(with: item)
-        player.play()
-        for await status in item.publisher(for: \.status).values where status == .failed {
-            playError = "Can't play this clip."
         }
     }
 }
