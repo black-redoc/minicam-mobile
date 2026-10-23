@@ -39,7 +39,7 @@ struct CameraSettingsView: View {
                         }
                     }
                 } else if error == nil {
-                    ProgressView("Loading cameras…")
+                    ForEach(0..<3, id: \.self) { SkeletonRow(index: $0) }
                 }
             } footer: {
                 if cameras?.isEmpty == false { Text("Swipe left on a camera to delete it.") }
@@ -203,7 +203,7 @@ struct CameraFormView: View {
                 ))
             }
         } else {
-            ProgressView("Loading detection classes…")
+            ForEach(0..<3, id: \.self) { ToggleSkeletonRow(index: $0) }
         }
     }
 

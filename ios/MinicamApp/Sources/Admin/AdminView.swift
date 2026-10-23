@@ -54,7 +54,7 @@ struct AdminView: View {
                 if let users {
                     if users.isEmpty { Text("No users yet.").foregroundStyle(Theme.muted) }
                 } else if usersError == nil {
-                    ProgressView("Loading…")
+                    ForEach(0..<3, id: \.self) { SkeletonRow(index: $0) }
                 }
             }
             .adminRow()
@@ -106,7 +106,8 @@ struct AdminView: View {
             } else if let notificationsError {
                 FormMessage(error: notificationsError)
             } else {
-                ProgressView("Loading…")
+                ToggleSkeletonRow()
+                FieldSkeletonRow(index: 1)
             }
         } header: {
             Text("Detection notifications")
@@ -161,7 +162,8 @@ struct AdminView: View {
             } else if let recordingsError {
                 FormMessage(error: recordingsError)
             } else {
-                ProgressView("Loading…")
+                ToggleSkeletonRow()
+                FieldSkeletonRow(index: 1)
             }
         } header: {
             Text("Event recordings")

@@ -24,6 +24,54 @@ extension View {
     func adminRow() -> some View { listRowBackground(Theme.surface) }
 }
 
+private let skeletonWidths: [CGFloat] = [140, 104, 124, 88]
+
+/// Form row placeholder: title and subtitle lines, with an optional button-sized block
+/// (spec 007 AC3).
+struct SkeletonRow: View {
+    var index = 0
+    var trailing = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                SkeletonBlock(width: skeletonWidths[index % skeletonWidths.count], height: 15)
+                SkeletonBlock(width: 160, height: 11)
+            }
+            Spacer()
+            if trailing { SkeletonBlock(width: 64, height: 30, cornerRadius: Theme.radius) }
+        }
+        .skeletonGroup()
+    }
+}
+
+/// Placeholder for a `Toggle` row (spec 007 AC3).
+struct ToggleSkeletonRow: View {
+    var index = 0
+
+    var body: some View {
+        HStack {
+            SkeletonBlock(width: skeletonWidths[index % skeletonWidths.count] + 40, height: 14)
+            Spacer()
+            SkeletonBlock(width: 51, height: 31, cornerRadius: 16)
+        }
+        .skeletonGroup()
+    }
+}
+
+/// Placeholder for a `LabeledField` row (spec 007 AC3).
+struct FieldSkeletonRow: View {
+    var index = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SkeletonBlock(width: skeletonWidths[index % skeletonWidths.count], height: 11)
+            SkeletonBlock(width: nil, height: 36, cornerRadius: Theme.radius)
+        }
+        .skeletonGroup()
+    }
+}
+
 /// Error (red) or success (green) line under a form, like the desktop's `role=alert` paragraphs.
 struct FormMessage: View {
     var error: String?
