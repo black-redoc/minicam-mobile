@@ -85,7 +85,7 @@ struct RecordingsView: View {
                             .font(.callout)
                             .foregroundStyle(Theme.muted)
                     } else if items == nil, error == nil {
-                        ProgressView("Loading…").frame(maxWidth: .infinity)
+                        ClipListSkeleton()
                     }
 
                     ForEach(recordingDays(items ?? [])) { day in
@@ -309,4 +309,34 @@ private struct ShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+/// Placeholder day label and clip rows shaped like `ClipRow` (spec 007 AC2).
+private struct ClipListSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SkeletonBlock(width: 64, height: 12)
+            VStack(spacing: 0) {
+                ForEach(Array([110, 80, 96, 72].enumerated()), id: \.offset) { index, width in
+                    if index > 0 { Divider().overlay(Theme.border) }
+                    HStack(spacing: 12) {
+                        SkeletonBlock(width: 44, height: 16)
+                        VStack(alignment: .leading, spacing: 6) {
+                            SkeletonBlock(width: CGFloat(width), height: 14)
+                            SkeletonBlock(width: 48, height: 16, cornerRadius: 4)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 6) {
+                            SkeletonBlock(width: 32, height: 12)
+                            SkeletonBlock(width: 44, height: 12)
+                        }
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 4)
+                }
+            }
+            .card()
+        }
+        .skeletonGroup()
+    }
 }

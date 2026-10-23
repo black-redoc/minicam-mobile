@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +28,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -48,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.BrandTitle
 import dev.minicam.mobile.ui.Card
+import dev.minicam.mobile.ui.Skeleton
+import dev.minicam.mobile.ui.SkeletonBlock
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 import kotlinx.coroutines.CancellationException
@@ -136,6 +140,74 @@ fun Spinner(label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CircularProgressIndicator(Modifier.size(16.dp), color = CamColors.AccentHover, strokeWidth = 2.dp)
         Text(label, color = CamColors.Muted, fontSize = 13.sp)
+    }
+}
+
+private val skeletonWidths = listOf(140.dp, 104.dp, 124.dp, 88.dp)
+
+/** Two placeholder lines (title, subtitle) with an optional button-sized block on the right. */
+@Composable
+private fun SkeletonRow(index: Int, trailing: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SkeletonBlock(Modifier.width(skeletonWidths[index % skeletonWidths.size]).height(15.dp))
+            SkeletonBlock(Modifier.width(160.dp).height(12.dp))
+        }
+        if (trailing) SkeletonBlock(Modifier.width(64.dp).height(32.dp), RoundedCornerShape(CamDimens.Radius))
+    }
+}
+
+/** Placeholder rows inside a section, e.g. the model catalog (spec 007 AC3). */
+@Composable
+fun RowsSkeleton(rows: Int = 3, trailing: Boolean = true) {
+    Skeleton(spacing = 12.dp) {
+        repeat(rows) { index ->
+            if (index > 0) HorizontalDivider(color = CamColors.Border)
+            SkeletonRow(index, trailing)
+        }
+    }
+}
+
+/** Placeholder cards for a list of cameras or users (spec 007 AC3). */
+@Composable
+fun ListSkeleton(cards: Int = 3) {
+    Skeleton {
+        repeat(cards) { index ->
+            Card(Modifier.fillMaxWidth()) { SkeletonRow(index, trailing = true) }
+        }
+    }
+}
+
+/** Placeholder form: an optional switch row, labeled fields and a Save button (spec 007 AC3). */
+@Composable
+fun FormSkeleton(fields: Int, toggle: Boolean = false) {
+    Skeleton(spacing = 12.dp) {
+        if (toggle) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SkeletonBlock(Modifier.weight(1f).padding(end = 48.dp).height(14.dp))
+                SkeletonBlock(Modifier.width(48.dp).height(28.dp), CircleShape)
+            }
+        }
+        repeat(fields) { index ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                SkeletonBlock(Modifier.width(skeletonWidths[index % skeletonWidths.size]).height(12.dp))
+                SkeletonBlock(Modifier.fillMaxWidth().height(48.dp), RoundedCornerShape(CamDimens.Radius))
+            }
+        }
+        SkeletonBlock(Modifier.fillMaxWidth().height(44.dp), RoundedCornerShape(CamDimens.Radius))
+    }
+}
+
+/** Placeholder checkbox rows, e.g. the detection classes (spec 007 AC3). */
+@Composable
+fun ChecklistSkeleton(rows: Int = 3) {
+    Skeleton(spacing = 12.dp) {
+        repeat(rows) { index ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SkeletonBlock(Modifier.size(20.dp), RoundedCornerShape(4.dp))
+                SkeletonBlock(Modifier.width(skeletonWidths[index % skeletonWidths.size] / 2).height(14.dp))
+            }
+        }
     }
 }
 

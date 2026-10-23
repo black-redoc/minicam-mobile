@@ -26,7 +26,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -85,7 +87,6 @@ import dev.minicam.mobile.ui.admin.ConfirmDialog
 import dev.minicam.mobile.ui.admin.FormMessage
 import dev.minicam.mobile.ui.admin.Hint
 import dev.minicam.mobile.ui.admin.SectionTitle
-import dev.minicam.mobile.ui.admin.Spinner
 import dev.minicam.mobile.ui.admin.attempt
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
@@ -223,7 +224,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
 
         val list = items
         when {
-            list == null -> if (error == null) Spinner("Loading…")
+            list == null -> if (error == null) ClipListSkeleton()
             list.isEmpty() -> Hint(
                 if (camera != null) {
                     "No recordings for this camera yet."
@@ -313,6 +314,34 @@ private fun ClipRow(recording: Recording, selected: Boolean, onClick: () -> Unit
         Column(horizontalAlignment = Alignment.End) {
             Text(formatClipDuration(recording.durationSeconds), color = CamColors.Muted, fontSize = 12.sp)
             Text(formatClipSize(recording.sizeBytes), color = CamColors.Muted.copy(alpha = 0.7f), fontSize = 12.sp)
+        }
+    }
+}
+
+/** Placeholder day label and clip rows shaped like [ClipRow] (spec 007 AC2). */
+@Composable
+private fun ClipListSkeleton() {
+    Skeleton {
+        SkeletonBlock(Modifier.width(64.dp).height(12.dp))
+        Card(Modifier.fillMaxWidth()) {
+            listOf(110.dp, 80.dp, 96.dp, 72.dp).forEachIndexed { index, width ->
+                if (index > 0) HorizontalDivider(color = CamColors.Border)
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SkeletonBlock(Modifier.width(44.dp).height(16.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SkeletonBlock(Modifier.width(width).height(14.dp))
+                        SkeletonBlock(Modifier.width(48.dp).height(16.dp), RoundedCornerShape(4.dp))
+                    }
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SkeletonBlock(Modifier.width(32.dp).height(12.dp))
+                        SkeletonBlock(Modifier.width(44.dp).height(12.dp))
+                    }
+                }
+            }
         }
     }
 }

@@ -106,7 +106,7 @@ fun AdminScreen(viewModel: AppViewModel) {
         FormMessage(usersError)
         val list = users
         when {
-            list == null -> if (usersError == null) Spinner("Loading…")
+            list == null -> if (usersError == null) ListSkeleton()
             list.isEmpty() -> Hint("No users yet.")
             else -> list.forEach { access ->
                 UserCard(
@@ -187,7 +187,7 @@ private fun NotificationsSection(viewModel: AppViewModel, api: MinicamApi) {
     Section("Detection notifications") {
         val current = settings
         if (current == null) {
-            if (error == null) Spinner("Loading…")
+            if (error == null) FormSkeleton(fields = 1, toggle = true)
         } else {
             LabeledSwitch("Notify on detections for all cameras", current.enabled) {
                 settings = current.copy(enabled = it)
@@ -240,7 +240,7 @@ private fun RecordingSettingsSection(viewModel: AppViewModel, api: MinicamApi) {
     Section("Event recordings") {
         val current = settings
         if (current == null) {
-            if (error == null) Spinner("Loading…")
+            if (error == null) FormSkeleton(fields = 1, toggle = true)
         } else {
             LabeledSwitch("Record a clip while a camera detects one of its classes", current.enabled) {
                 settings = current.copy(enabled = it)

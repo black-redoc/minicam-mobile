@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -166,14 +167,19 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     }
 }
 
-/** Frame fitted to the box (`object-fit: contain`) with a spinner while not live. */
+/**
+ * Frame fitted to the box (`object-fit: contain`): a placeholder until the first frame, then the
+ * dimmed last frame with a spinner while reconnecting (spec 007 AC4).
+ */
 @Composable
 private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         frame?.let {
             Image(it, contentDescription = "Live camera feed", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
         }
-        if (status != StreamStatus.CONNECTED) {
+        if (frame == null) {
+            Skeleton(Modifier.fillMaxSize()) { SkeletonBlock(Modifier.fillMaxSize(), RectangleShape) }
+        } else if (status != StreamStatus.CONNECTED) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = CamColors.Accent, trackColor = CamColors.Border)
             }

@@ -81,3 +81,11 @@
 - Tests: Android 48/48 + lint 0 warnings + debug/release builds; iOS `swift test` 47/47,
   simulator + UI test builds with no Swift warnings
 - Next: visual check of controls and animation on emulator/simulator
+
+## 2026-10-23 — Spec 007 skeleton loaders
+- Done: shimmering placeholders shaped like the content on first load (camera list, recordings,
+  admin screens, live view before the first frame) on Android and iOS; action spinners kept
+- Commit: db91b3d (docs), 3477461 (Android), 066929c (iOS)
+- Tests: Android unit tests + lint 0 warnings + debug/release builds; iOS `swift test` 47/47,
+  simulator + UI test builds with no Swift warnings
+- Next: visual check on emulator/simulator against a local minicam (slow network helps)

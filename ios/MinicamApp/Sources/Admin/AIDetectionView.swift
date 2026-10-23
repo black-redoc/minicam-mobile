@@ -6,7 +6,7 @@ import SwiftUI
 struct AIDetectionView: View {
     @Environment(AppModel.self) private var model
     @State private var catalog: ModelCatalog?
-    @State private var catalogStatus: String? = "Loading catalog…"
+    @State private var catalogStatus: String?
     @State private var catalogError: String?
     @State private var installing: String?
 
@@ -31,6 +31,9 @@ struct AIDetectionView: View {
                     .font(.caption).foregroundStyle(Theme.muted)
                 if let catalogStatus {
                     Text(catalogStatus).font(.caption).foregroundStyle(Theme.muted)
+                }
+                if catalog == nil, catalogStatus == nil {
+                    ForEach(0..<3, id: \.self) { SkeletonRow(index: $0, trailing: true) }
                 }
                 ForEach(catalog?.assets ?? []) { asset in catalogRow(asset) }
                 if let catalogError { FormMessage(error: catalogError) }
@@ -69,7 +72,7 @@ struct AIDetectionView: View {
                     Text("1. Install a catalog model, or fetch one from a URL. 2. Set it as the active backend and save.")
                         .font(.caption).foregroundStyle(Theme.muted)
                 } else if error == nil {
-                    ProgressView("Loading settings…")
+                    ForEach(0..<4, id: \.self) { FieldSkeletonRow(index: $0) }
                 }
             }
             .adminRow()

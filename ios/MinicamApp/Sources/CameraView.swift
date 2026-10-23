@@ -112,7 +112,8 @@ struct CameraView: View {
         GlassIconButton(label: label, systemImage: systemImage, size: size, action: action)
     }
 
-    /// Frame fitted to the container (`object-fit: contain`) with a spinner while not live.
+    /// Frame fitted to the container (`object-fit: contain`): a placeholder until the first
+    /// frame, then the dimmed last frame with a spinner while reconnecting (spec 007 AC4).
     private var videoFeed: some View {
         ZStack {
             Color.black
@@ -121,7 +122,9 @@ struct CameraView: View {
                     .resizable()
                     .scaledToFit()
             }
-            if status != .connected {
+            if frame == nil {
+                SkeletonBlock(width: nil, height: nil, cornerRadius: 0).skeletonGroup()
+            } else if status != .connected {
                 ZStack {
                     Color.black.opacity(0.72)
                     ProgressView().tint(Theme.accent)

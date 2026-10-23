@@ -13,6 +13,8 @@ final class AppModel {
 
     private(set) var phase: Phase = .signedOut
     private(set) var cameras: [CameraSummary] = []
+    /// False until the first camera request of this session succeeds (skeleton rows, spec 007).
+    private(set) var camerasLoaded = false
     /// The signed-in account; nil until login or the first `GET /api/auth/me`.
     private(set) var user: User?
     private(set) var api: MinicamAPI?
@@ -78,6 +80,7 @@ final class AppModel {
         guard let api else { return }
         if user == nil { user = try await api.me() }
         cameras = try await api.cameras()
+        camerasLoaded = true
     }
 
     func refresh() async {
@@ -87,6 +90,7 @@ final class AppModel {
     func logout() async {
         await api?.logout()
         cameras = []
+        camerasLoaded = false
         user = nil
         phase = .signedOut
     }
@@ -136,6 +140,7 @@ final class AppModel {
     }
 
     private func signOutLocally() {
+        camerasLoaded = false
         user = nil
         phase = .signedOut
     }

@@ -1,6 +1,7 @@
 package dev.minicam.mobile.ui
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -11,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -32,12 +34,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.StreamStatus
@@ -76,6 +83,51 @@ fun BrandTitle() {
         )
         Text("minicam", color = CamColors.AccentHover, fontWeight = FontWeight.Bold, fontSize = 16.sp)
     }
+}
+
+/**
+ * Placeholder shape for content that is still loading (spec 007): `surface2` with a `border`
+ * highlight sweeping left to right every 1.2 s. With animations off it stays still.
+ */
+@Composable
+fun SkeletonBlock(modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(CamDimens.RadiusSm)) {
+    // Read only while drawing, so the sweep redraws the block without recomposing it.
+    val progress = rememberInfiniteTransition(label = "skeleton").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing)),
+        label = "skeletonSweep",
+    )
+    Box(
+        modifier
+            .clip(shape)
+            .background(CamColors.Surface2)
+            .drawBehind {
+                val band = size.width.coerceAtMost(240.dp.toPx()).coerceAtLeast(size.height)
+                val x = -band + progress.value * (size.width + band)
+                drawRect(
+                    Brush.linearGradient(
+                        listOf(CamColors.Surface2, CamColors.Border, CamColors.Surface2),
+                        start = Offset(x, 0f),
+                        end = Offset(x + band, 0f),
+                    ),
+                )
+            },
+    )
+}
+
+/** Groups placeholders so TalkBack announces them once as "Loading". */
+@Composable
+fun Skeleton(
+    modifier: Modifier = Modifier,
+    spacing: Dp = 8.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier.clearAndSetSemantics { contentDescription = "Loading" },
+        verticalArrangement = Arrangement.spacedBy(spacing),
+        content = content,
+    )
 }
 
 /** `.card` from main.css. */
