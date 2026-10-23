@@ -35,9 +35,9 @@ UI only: no new requests, data or logging.
 
 ## Tasks
 - [x] Docs: spec, ROADMAP, PLAN
-- [ ] Android: skeleton components + all screens (AC1-AC6)
-- [ ] iOS: skeleton components + all screens (AC1-AC6)
-- [ ] Builds, lint and tests pass on both platforms
+- [x] Android: skeleton components + all screens (AC1-AC6)
+- [x] iOS: skeleton components + all screens (AC1-AC6)
+- [x] Builds, lint and tests pass on both platforms
 - [ ] Visual check on emulator/simulator against a local minicam
 
 ## Out of scope
