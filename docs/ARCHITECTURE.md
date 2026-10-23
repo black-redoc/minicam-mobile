@@ -11,12 +11,14 @@ android/   Kotlin + Jetpack Compose, single :app module
            PtzPad, Glass (floating glass controls)
   ui/admin/ CameraSettingsScreen, AiDetectionScreen, AdminScreen, form controls (ADR 0004)
   ui/       RecordingsScreen (Media3 ExoPlayer over the app's OkHttp client, ADR 0005)
+  data/ + ui/ Fmp4, LiveStream (format choice, catch-up, detections), LivePlayer (ADR 0006)
 ios/
   MinicamKit/   Swift package, Foundation only (builds + tests with `swift test` on macOS):
                 ServerConfig, MinicamAPI, StreamClient, AccessHandoff, CredentialStore protocol
   MinicamApp/   SwiftUI app target (XcodeGen project.yml): views, theme, Keychain store,
                 OrientationLock (landscape only while fullscreen), Admin/ (ADR 0004),
-                RecordingsView (AVPlayer, ADR 0005)
+                RecordingsView (AVPlayer, ADR 0005), LivePlayer (AVSampleBuffer*, ADR 0006);
+                Fmp4 + LiveStream live in MinicamKit
 ```
 
 ## Data flow

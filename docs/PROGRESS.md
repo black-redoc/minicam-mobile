@@ -103,3 +103,11 @@
 - Tests: Android 51/51 + lint 0 warnings + debug/release builds; iOS `swift test` 50/50,
   simulator build with no Swift warnings
 - Next: visual check on emulator/simulator (zoom, pan, next/back) against a local minicam
+
+## 2026-10-23 — Spec 009 live fMP4 video and audio
+- Done: live view plays the camera's own H.264/HEVC as fMP4 (MJPEG fallback), detection boxes
+  drawn by the app, speaker button gated by `can_listen`, Listen column in Admin (KI-9 fixed)
+- Commit: d1f00a5 (docs), a81420f (Android), 66a734e (iOS)
+- Tests: Android 63/63 + lint 0 warnings + debug/release builds; iOS `swift test` 61/61,
+  simulator + UI test builds with no Swift warnings
+- Next: manual check against a minicam with an HEVC camera on LAN and WAN, audio on/off

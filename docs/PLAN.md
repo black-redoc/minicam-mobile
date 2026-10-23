@@ -7,7 +7,8 @@ minicam host and their Cloudflare Access login page.
 
 ## Current focus
 Milestone: M2.8 - Live fMP4 and audio · Spec: specs/009-live-fmp4-audio.md
-· Next step: Android implementation. Still open: M1 device checks (specs/001, 004), M2-M2.7
+· Next step: manual check with an
+HEVC camera (LAN + WAN, audio on/off). Still open: M1 device checks (specs/001, 004), M2-M2.7
 manual checks (005, 006, 007, 008).
 
 ## Docs
