@@ -34,6 +34,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var cameras by mutableStateOf(emptyList<CameraSummary>())
         private set
+
+    /** False until the first camera request of this session succeeds (skeleton rows, spec 007). */
+    var camerasLoaded by mutableStateOf(false)
+        private set
     var selectedCamera by mutableStateOf<CameraSummary?>(null)
     var screen by mutableStateOf(Screen.CAMERAS)
 
@@ -108,6 +112,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             user = api.login(email, password)
             signedIn = true
             cameras = api.cameras()
+            camerasLoaded = true
         }
     }
 
@@ -116,6 +121,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         launchBusy {
             if (user == null) user = api.me()
             cameras = api.cameras()
+            camerasLoaded = true
         }
     }
 
@@ -124,6 +130,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             api?.logout()
             cameras = emptyList()
+            camerasLoaded = false
             selectedCamera = null
             screen = Screen.CAMERAS
             user = null
@@ -162,6 +169,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun signOutLocally() {
         signedIn = false
+        camerasLoaded = false
         selectedCamera = null
         screen = Screen.CAMERAS
         user = null

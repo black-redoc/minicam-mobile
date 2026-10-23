@@ -76,7 +76,7 @@ private fun CameraList(viewModel: AppViewModel, api: MinicamApi, onEdit: (Camera
         FormMessage(error)
         val list = cameras
         when {
-            list == null -> if (error == null) Spinner("Loading cameras…")
+            list == null -> if (error == null) ListSkeleton()
             list.isEmpty() -> Hint("No cameras configured yet.")
             else -> list.forEach { camera ->
                 Card(Modifier.fillMaxWidth()) {
@@ -213,7 +213,7 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
                 val classes = availableClasses
                 when {
                     classesError != null -> Text(classesError!!, color = CamColors.Danger, fontSize = 12.sp)
-                    classes == null -> Spinner("Loading detection classes…")
+                    classes == null -> ChecklistSkeleton()
                     classes.isEmpty() -> Hint("No detection backend configured on this device.")
                     else -> classes.forEach { cls ->
                         LabeledCheckbox(cls, cls in selectedClasses) { checked ->

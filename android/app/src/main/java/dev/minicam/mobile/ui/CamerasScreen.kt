@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
@@ -42,7 +43,9 @@ fun CamerasScreen(viewModel: AppViewModel) {
             onLogout = viewModel::logout,
         )
 
-        if (viewModel.cameras.isEmpty()) {
+        if (viewModel.cameras.isEmpty() && !viewModel.camerasLoaded && viewModel.errorMessage == null) {
+            CameraListSkeleton()
+        } else if (viewModel.cameras.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                 Text(
                     viewModel.errorMessage ?: "No cameras yet. Ask an admin to grant you one.",
@@ -66,6 +69,18 @@ fun CamerasScreen(viewModel: AppViewModel) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Placeholder camera rows, same padding and spacing as the real list (spec 007 AC1). */
+@Composable
+private fun CameraListSkeleton() {
+    Skeleton(Modifier.fillMaxSize().padding(16.dp)) {
+        listOf(140.dp, 96.dp, 120.dp, 80.dp).forEach { width ->
+            Card(Modifier.fillMaxWidth()) {
+                SkeletonBlock(Modifier.width(width).height(18.dp))
             }
         }
     }

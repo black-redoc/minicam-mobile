@@ -48,7 +48,7 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
     val scope = rememberCoroutineScope()
 
     var catalog by remember { mutableStateOf<ModelCatalog?>(null) }
-    var catalogStatus by remember { mutableStateOf<String?>("Loading catalog…") }
+    var catalogStatus by remember { mutableStateOf<String?>(null) }
     var installing by remember { mutableStateOf<String?>(null) }
     var catalogError by remember { mutableStateOf<String?>(null) }
 
@@ -146,6 +146,7 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
                     "(int8 is fastest). x86 PC: an s model. Installing verifies the file's checksum and activates it.",
             )
             catalogStatus?.let { Text(it, color = CamColors.Muted, fontSize = 12.sp) }
+            if (catalog == null && catalogStatus == null) RowsSkeleton()
             catalog?.assets?.forEachIndexed { index, asset ->
                 if (index > 0) HorizontalDivider(color = CamColors.Border)
                 CatalogRow(asset, installing = installing == asset.name, enabled = installing == null) { install(asset) }
@@ -155,7 +156,7 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
 
         Section("AI detection") {
             if (!loaded && error == null) {
-                Spinner("Loading settings…")
+                FormSkeleton(fields = 4)
             } else {
                 OptionPicker(
                     "Backend",
