@@ -181,4 +181,13 @@ class RecordingsApiTest {
         assertEquals(listOf("Today", "Yesterday", "Monday, October 19, 2026"), days.map { it.label })
         assertEquals(listOf(listOf(4), listOf(3, 2), listOf(1)), days.map { day -> day.recordings.map { it.id } })
     }
+
+    @Test
+    fun nextRecording_isTheOneBelow() {
+        val items = listOf(recording(3, "2026-10-22T14:00:00+00:00"), recording(2, "2026-10-22T13:00:00+00:00"))
+
+        assertEquals(2, nextRecording(items, items[0])?.id)
+        assertNull(nextRecording(items, items[1]))
+        assertNull(nextRecording(items, recording(9, "2026-10-22T12:00:00+00:00")))
+    }
 }

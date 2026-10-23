@@ -59,6 +59,7 @@ import dev.minicam.mobile.data.CameraSummary
 import dev.minicam.mobile.data.StreamClient
 import dev.minicam.mobile.data.StreamEvent
 import dev.minicam.mobile.data.StreamStatus
+import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 import kotlinx.coroutines.Dispatchers
@@ -100,6 +101,9 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
 
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     var showPtz by rememberSaveable { mutableStateOf(false) }
+    // Shared by both layouts, so entering or leaving fullscreen keeps the zoom (spec 008 AC3).
+    var zoom by remember { mutableStateOf(VideoZoom()) }
+    val onPan: (Float, Float) -> Unit = { dx, dy -> zoom = zoom.panBy(dx, dy) }
     val ptzPad: @Composable (Boolean) -> Unit = { glass -> PtzPad(api, camera.name, onError = viewModel::handle, glass = glass) }
 
     if (fullscreen) {
@@ -108,6 +112,9 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
         FullscreenCamera(
             frame = frame,
             status = status,
+            zoom = zoom,
+            onZoom = { zoom = it },
+            onPan = onPan,
             canUsePtz = camera.canUsePtz,
             showPtz = showPtz,
             onShowPtz = { showPtz = it },
@@ -147,9 +154,11 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(CamDimens.RadiusLg))
-                    .background(Color.Black),
+                    .background(Color.Black)
+                    .zoomPan(zoom, onPan),
             ) {
-                VideoFeed(frame, status)
+                VideoFeed(frame, status, zoom)
+                ZoomButtons(zoom, onZoom = { zoom = it }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
                 GlassIconButton(
                     label = "Enter fullscreen",
                     onClick = { fullscreen = true },
@@ -172,10 +181,15 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
  * dimmed last frame with a spinner while reconnecting (spec 007 AC4).
  */
 @Composable
-private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus) {
+private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus, zoom: VideoZoom) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         frame?.let {
-            Image(it, contentDescription = "Live camera feed", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+            Image(
+                it,
+                contentDescription = "Live camera feed",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize().zoomed(zoom),
+            )
         }
         if (frame == null) {
             Skeleton(Modifier.fillMaxSize()) { SkeletonBlock(Modifier.fillMaxSize(), RectangleShape) }
@@ -192,14 +206,17 @@ private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus) {
 private fun FullscreenCamera(
     frame: ImageBitmap?,
     status: StreamStatus,
+    zoom: VideoZoom,
+    onZoom: (VideoZoom) -> Unit,
+    onPan: (Float, Float) -> Unit,
     canUsePtz: Boolean,
     showPtz: Boolean,
     onShowPtz: (Boolean) -> Unit,
     onExit: () -> Unit,
     ptzPad: @Composable () -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-        VideoFeed(frame, status)
+    Box(Modifier.fillMaxSize().background(Color.Black).zoomPan(zoom, onPan)) {
+        VideoFeed(frame, status, zoom)
 
         Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
             Row(
@@ -218,6 +235,8 @@ private fun FullscreenCamera(
                     modifier = Modifier.align(Alignment.TopEnd),
                 ) { GamepadIcon() }
             }
+
+            ZoomButtons(zoom, onZoom = onZoom, modifier = Modifier.align(Alignment.BottomEnd), size = 44.dp)
 
             AnimatedVisibility(
                 visible = canUsePtz && showPtz,

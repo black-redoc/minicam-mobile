@@ -1,8 +1,13 @@
 package dev.minicam.mobile.ui
 
+import android.annotation.SuppressLint
 import android.provider.DocumentsContract
+import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +65,7 @@ import androidx.core.view.children
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -71,13 +77,16 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.PlayerView
 import dev.minicam.mobile.data.MinicamApi
+import dev.minicam.mobile.R
 import dev.minicam.mobile.data.MinicamException
 import dev.minicam.mobile.data.Recording
 import dev.minicam.mobile.data.RecordingPage
+import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.data.deleteRecording
 import dev.minicam.mobile.data.downloadRecording
 import dev.minicam.mobile.data.formatClipDuration
 import dev.minicam.mobile.data.formatClipSize
+import dev.minicam.mobile.data.nextRecording
 import dev.minicam.mobile.data.recordingDays
 import dev.minicam.mobile.data.recordingFileName
 import dev.minicam.mobile.data.recordingVideoUrl
@@ -93,6 +102,7 @@ import dev.minicam.mobile.ui.theme.CamDimens
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.math.hypot
 import kotlinx.coroutines.launch
 
 /** The desktop Recordings page (minicam `recordings.html`): clips by day, player, download, delete. */
@@ -113,11 +123,14 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     var shownRecording by remember { mutableStateOf<Recording?>(null) }
     var playError by remember { mutableStateOf<String?>(null) }
+    // Shared by both layouts like the player; every clip starts unzoomed (spec 008 AC4).
+    var zoom by remember { mutableStateOf(VideoZoom()) }
     // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
     val player = rememberClipPlayer(viewModel, api) { playError = it }
 
     LaunchedEffect(player, selected?.id) {
         playError = null
+        zoom = VideoZoom()
         val recording = selected
         if (recording == null) {
             fullscreen = false
@@ -141,6 +154,23 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         loading = false
     }
     LaunchedEffect(api, camera) { load(reset = true) }
+
+    // Spec 008 AC5: "next" plays the clip below, loading the next page from the last one.
+    val hasNext = selected?.let { nextRecording(items.orEmpty(), it) != null || nextBefore != null } == true
+    val currentHasNext by rememberUpdatedState(hasNext)
+    val controlsPlayer = remember(player) {
+        ClipNavigationPlayer(player, hasNext = { currentHasNext }) {
+            scope.launch {
+                val current = selected ?: return@launch
+                if (nextRecording(items.orEmpty(), current) == null && nextBefore != null) load(reset = false)
+                nextRecording(items.orEmpty(), current)?.let {
+                    selected = it
+                    shownRecording = it
+                }
+            }
+        }
+    }
+    val onPan: (Float, Float) -> Unit = { dx, dy -> zoom = zoom.panBy(dx, dy) }
 
     // The user picks where the MP4 goes (Storage Access Framework): no storage permission, and
     // the session cookie never leaves this app (SECURITY.md "Recordings").
@@ -167,7 +197,16 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         BackHandler { fullscreen = false }
         ImmersiveLandscape()
         Box(Modifier.fillMaxSize().background(Color.Black)) {
-            ClipVideo(player, fullscreen = true, onFullscreen = { fullscreen = it }, modifier = Modifier.fillMaxSize())
+            ClipVideo(
+                controlsPlayer,
+                fullscreen = true,
+                onFullscreen = { fullscreen = it },
+                hasNext = hasNext,
+                zoom = zoom,
+                onZoom = { zoom = it },
+                onPan = onPan,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
         return
     }
@@ -184,9 +223,13 @@ fun RecordingsScreen(viewModel: AppViewModel) {
             val recording = selected ?: shownRecording ?: return@AnimatedVisibility
             Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ClipVideo(
-                    player,
+                    controlsPlayer,
                     fullscreen = false,
                     onFullscreen = { fullscreen = it },
+                    hasNext = hasNext,
+                    zoom = zoom,
+                    onZoom = { zoom = it },
+                    onPan = onPan,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
@@ -454,22 +497,134 @@ private fun DefaultTimeBar.styleProgress() {
     setUnplayedColor(Color.White.copy(alpha = 0.15f).toArgb())
 }
 
-/** The player's video and controls; the controls' fullscreen button toggles [fullscreen] (AC9). */
+/**
+ * Spec 008 AC5/AC6: the controls' "previous" button starts the clip over instead of going to
+ * another clip, and "next" asks for the clip below in the list through [onNext].
+ */
+@OptIn(UnstableApi::class)
+private class ClipNavigationPlayer(
+    player: Player,
+    private val hasNext: () -> Boolean,
+    private val onNext: () -> Unit,
+) : ForwardingPlayer(player) {
+    override fun isCommandAvailable(command: Int): Boolean = when (command) {
+        COMMAND_SEEK_TO_PREVIOUS -> super.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+        COMMAND_SEEK_TO_NEXT -> hasNext()
+        else -> super.isCommandAvailable(command)
+    }
+
+    override fun getAvailableCommands(): Player.Commands = super.getAvailableCommands().buildUpon()
+        .addIf(COMMAND_SEEK_TO_PREVIOUS, isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS))
+        .removeIf(COMMAND_SEEK_TO_PREVIOUS, !isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS))
+        .addIf(COMMAND_SEEK_TO_NEXT, hasNext())
+        .removeIf(COMMAND_SEEK_TO_NEXT, !hasNext())
+        .build()
+
+    override fun seekToPrevious() = seekTo(0)
+
+    override fun seekToNext() {
+        if (hasNext()) onNext()
+    }
+}
+
+/** Scales and moves the video surface by [zoom]; the content frame clips it to the picture. */
+@OptIn(UnstableApi::class)
+private fun PlayerView.applyZoom(zoom: VideoZoom) {
+    val surface = videoSurfaceView ?: return
+    surface.scaleX = zoom.scale
+    surface.scaleY = zoom.scale
+    surface.translationX = zoom.panX * surface.width
+    surface.translationY = zoom.panY * surface.height
+}
+
+/**
+ * While zoomed, a drag past the touch slop pans the video (spec 008 AC2) and is kept from the
+ * player view; taps still reach it and show or hide the controls.
+ */
+@OptIn(UnstableApi::class)
+@SuppressLint("ClickableViewAccessibility") // Clicks are left to PlayerView, which handles them.
+private fun PlayerView.panWhenZoomed(zoom: () -> VideoZoom, onPan: (dx: Float, dy: Float) -> Unit) {
+    val slop = ViewConfiguration.get(context).scaledTouchSlop
+    var downX = 0f
+    var downY = 0f
+    var lastX = 0f
+    var lastY = 0f
+    var panning = false
+    setOnTouchListener { _, event ->
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downY = event.y
+                panning = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!panning && zoom().isZoomed && hypot(event.x - downX, event.y - downY) > slop) {
+                    panning = true
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                val surface = videoSurfaceView ?: this
+                if (panning && surface.width > 0) onPan((event.x - lastX) / surface.width, (event.y - lastY) / surface.height)
+            }
+        }
+        lastX = event.x
+        lastY = event.y
+        val consumed = panning
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) panning = false
+        consumed
+    }
+}
+
+/**
+ * The player's video and controls; the controls' fullscreen button toggles [fullscreen] (AC9).
+ * The zoom buttons show and hide with the controls (spec 008 AC4).
+ */
 @OptIn(UnstableApi::class)
 @Composable
-private fun ClipVideo(player: Player, fullscreen: Boolean, onFullscreen: (Boolean) -> Unit, modifier: Modifier) {
+private fun ClipVideo(
+    player: Player,
+    fullscreen: Boolean,
+    onFullscreen: (Boolean) -> Unit,
+    hasNext: Boolean,
+    zoom: VideoZoom,
+    onZoom: (VideoZoom) -> Unit,
+    onPan: (Float, Float) -> Unit,
+    modifier: Modifier,
+) {
     val toggle by rememberUpdatedState(onFullscreen)
-    AndroidView(
-        factory = {
-            PlayerView(it).apply {
-                this.player = player
-                setFullscreenButtonClickListener { enter -> toggle(enter) }
-                findTimeBar()?.styleProgress()
-            }
-        },
-        update = { it.setFullscreenButtonState(fullscreen) },
-        // The other layout's view takes the player over; this one lets go of it.
-        onRelease = { it.player = null },
-        modifier = modifier,
-    )
+    val currentZoom by rememberUpdatedState(zoom)
+    val pan by rememberUpdatedState(onPan)
+    var controlsVisible by remember { mutableStateOf(true) }
+    Box(modifier) {
+        AndroidView(
+            factory = {
+                // AndroidView sets the layout params; the throwaway parent only resolves the XML's.
+                (LayoutInflater.from(it).inflate(R.layout.clip_player_view, FrameLayout(it), false) as PlayerView).apply {
+                    this.player = player
+                    setFullscreenButtonClickListener { enter -> toggle(enter) }
+                    setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility -> controlsVisible = visibility == View.VISIBLE })
+                    findTimeBar()?.styleProgress()
+                    videoSurfaceView?.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> applyZoom(currentZoom) }
+                    panWhenZoomed({ currentZoom }) { dx, dy -> pan(dx, dy) }
+                }
+            },
+            update = {
+                it.setFullscreenButtonState(fullscreen)
+                // The controls only re-read "next" on player events; nudge them when it changes.
+                if (it.tag != hasNext) {
+                    it.tag = hasNext
+                    it.setShowNextButton(true)
+                }
+                it.applyZoom(zoom)
+            },
+            // The other layout's view takes the player over; this one lets go of it.
+            onRelease = { it.player = null },
+            modifier = Modifier.fillMaxSize(),
+        )
+        AnimatedVisibility(
+            visible = controlsVisible,
+            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) { ZoomButtons(zoom, onZoom) }
+    }
 }
