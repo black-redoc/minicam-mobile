@@ -11,6 +11,8 @@ struct CameraView: View {
     @State private var status: StreamStatus = .connecting
     @State private var isFullscreen = false
     @State private var showPTZ = false
+    // Shared by both layouts, so entering or leaving fullscreen keeps the zoom (spec 008 AC3).
+    @State private var zoom = VideoZoom()
 
     var body: some View {
         // One container for both layouts: the stream task below lives on it, so toggling
@@ -38,8 +40,10 @@ struct CameraView: View {
         ScrollView {
             VStack(spacing: 16) {
                 videoFeed
+                    .zoomPan($zoom)
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
+                    .overlay(alignment: .topTrailing) { ZoomButtons(zoom: $zoom, size: 40).padding(10) }
                     .overlay(alignment: .bottomTrailing) {
                         glassButton("Enter fullscreen", systemImage: "arrow.up.left.and.arrow.down.right", size: 40) {
                             isFullscreen = true
@@ -60,7 +64,7 @@ struct CameraView: View {
     /// Spec 004: the feed over the whole screen with floating glass controls.
     private var fullscreen: some View {
         ZStack {
-            videoFeed.ignoresSafeArea()
+            videoFeed.zoomPan($zoom).ignoresSafeArea()
             VStack {
                 HStack(spacing: 12) {
                     glassButton("Exit fullscreen", systemImage: "arrow.down.right.and.arrow.up.left") {
@@ -75,6 +79,10 @@ struct CameraView: View {
                     }
                 }
                 Spacer()
+                HStack {
+                    Spacer()
+                    ZoomButtons(zoom: $zoom)
+                }
             }
             .padding(16)
             if camera.canUsePTZ, showPTZ, let api = model.api {
@@ -192,6 +200,7 @@ struct GlassIconButton: View {
     let systemImage: String
     var size: CGFloat = 44
     let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
@@ -200,7 +209,60 @@ struct GlassIconButton: View {
                 .foregroundStyle(.white)
                 .frame(width: size, height: size)
                 .glassSurface(in: Circle())
+                .opacity(isEnabled ? 1 : 0.4)
         }
         .accessibilityLabel(label)
+    }
+}
+
+/// Glass "Zoom in" / "Zoom out" buttons for digital zoom over the video (spec 008).
+struct ZoomButtons: View {
+    @Binding var zoom: VideoZoom
+    var size: CGFloat = 44
+
+    var body: some View {
+        VStack(spacing: 8) {
+            GlassIconButton(label: "Zoom in", systemImage: "plus", size: size) { zoom = zoom.zoomedIn() }
+                .disabled(!zoom.canZoomIn)
+            GlassIconButton(label: "Zoom out", systemImage: "minus", size: size) { zoom = zoom.zoomedOut() }
+                .disabled(!zoom.canZoomOut)
+        }
+    }
+}
+
+extension View {
+    /// Scales and pans the content by `zoom`, clipped to its frame; while zoomed, dragging the
+    /// content pans it (spec 008 AC2).
+    func zoomPan(_ zoom: Binding<VideoZoom>) -> some View {
+        modifier(ZoomPan(zoom: zoom))
+    }
+}
+
+private struct ZoomPan: ViewModifier {
+    @Binding var zoom: VideoZoom
+    @State private var lastTranslation: CGSize = .zero
+
+    func body(content: Content) -> some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            content
+                .frame(width: size.width, height: size.height)
+                .scaleEffect(zoom.scale)
+                .offset(x: zoom.panX * size.width, y: zoom.panY * size.height)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { drag in
+                            guard size.width > 0, size.height > 0 else { return }
+                            let dx = drag.translation.width - lastTranslation.width
+                            let dy = drag.translation.height - lastTranslation.height
+                            lastTranslation = drag.translation
+                            zoom = zoom.panned(dx: dx / size.width, dy: dy / size.height)
+                        }
+                        .onEnded { _ in lastTranslation = .zero },
+                    including: zoom.isZoomed ? .all : .subviews
+                )
+        }
+        .clipped()
     }
 }

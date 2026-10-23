@@ -22,6 +22,8 @@ struct RecordingsView: View {
     @State private var playback = ClipPlayback()
     @State private var playError: String?
     @State private var isFullscreen = false
+    // Shared by both layouts like the player; every clip starts unzoomed (spec 008 AC4).
+    @State private var zoom = VideoZoom()
 
     /// AC11: opening or closing the player. The player fades while everything below it slides,
     /// both on this one curve, so they start and end together.
@@ -140,7 +142,7 @@ struct RecordingsView: View {
 
     private func playerCard(_ recording: Recording) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            ClipPlayerView(playback: playback, isFullscreen: false) { isFullscreen = $0 }
+            clipPlayer(isFullscreen: false)
                 .aspectRatio(16 / 9, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
             if let playError { FormMessage(error: playError) }
@@ -150,8 +152,25 @@ struct RecordingsView: View {
 
     /// AC9: the clip over the whole screen, landscape, like the live view (spec 004).
     private var fullscreenPlayer: some View {
-        ClipPlayerView(playback: playback, isFullscreen: true) { isFullscreen = $0 }
+        clipPlayer(isFullscreen: true)
             .background(Color.black.ignoresSafeArea())
+    }
+
+    private func clipPlayer(isFullscreen: Bool) -> some View {
+        ClipPlayerView(
+            playback: playback,
+            isFullscreen: isFullscreen,
+            zoom: $zoom,
+            hasNext: hasNext,
+            onNext: { Task { await playNext() } },
+            onFullscreen: { self.isFullscreen = $0 }
+        )
+    }
+
+    /// Spec 008 AC5: there is a clip below the open one, or a page that may hold one.
+    private var hasNext: Bool {
+        guard let selected else { return false }
+        return nextRecording(items ?? [], after: selected) != nil || nextBefore != nil
     }
 
     private func clipDetails(_ recording: Recording) -> some View {
@@ -213,10 +232,18 @@ struct RecordingsView: View {
         }
     }
 
+    /// Plays the clip below the open one, loading the next page when the open one is the last.
+    private func playNext() async {
+        guard let current = selected else { return }
+        if nextRecording(items ?? [], after: current) == nil, nextBefore != nil { await load(reset: false) }
+        if let next = nextRecording(items ?? [], after: current) { selected = next }
+    }
+
     /// Streams the clip with the same auth headers as every other request (ADR 0005), seeking
     /// with HTTP Range.
     private func play(_ recording: Recording?) async {
         playError = nil
+        zoom = VideoZoom()
         guard let recording, let api = model.api else {
             isFullscreen = false
             playback.load(nil)

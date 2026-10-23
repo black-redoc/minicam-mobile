@@ -164,4 +164,12 @@ import Testing
         #expect(days.map(\.label) == ["Today", "Yesterday", "Monday, October 19, 2026"])
         #expect(days.map { $0.recordings.map(\.id) } == [[4], [3, 2], [1]])
     }
+
+    @Test func nextRecording_isTheOneBelow() {
+        let items = [recording(3, "2026-10-22T14:00:00+00:00"), recording(2, "2026-10-22T13:00:00+00:00")]
+
+        #expect(nextRecording(items, after: items[0])?.id == 2)
+        #expect(nextRecording(items, after: items[1]) == nil)
+        #expect(nextRecording(items, after: recording(9, "2026-10-22T12:00:00+00:00")) == nil)
+    }
 }
