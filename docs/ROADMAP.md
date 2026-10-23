@@ -38,6 +38,12 @@ admin "Event recordings" settings card, mirroring the minicam web Recordings pag
 
 Non-goals for M2.5: thumbnails, offline clip cache, trimming/exporting.
 
+## M2.6 - Skeleton loaders (specs/007-skeleton-loaders.md)
+Scope: layout-shaped placeholders instead of spinners while dynamic content first loads
+(camera list, recordings, admin screens, live view).
+- [ ] Android: all spec 007 acceptance criteria passing
+- [ ] iOS: all spec 007 acceptance criteria passing
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid
 - [ ] Data-saver mode (lower FPS / pause when on cellular), see SECURITY.md bandwidth note
