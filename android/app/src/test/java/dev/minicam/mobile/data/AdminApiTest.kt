@@ -234,8 +234,21 @@ class AdminApiTest {
         val request = server.takeRequest()
         assertEquals("POST" to "/api/auth/permissions", request.method to request.target)
         assertEquals(
-            json("""{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": true}"""),
+            json("""{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": true, "can_listen": false}"""),
             request.json(),
+        )
+    }
+
+    /** KI-9: a missing can_listen is reset to false by the server, so it is always sent. */
+    @Test
+    fun setPermission_sendsCanListen() = runTest {
+        enqueue(200, """{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": false, "can_listen": true}""")
+
+        api().setPermission(CameraPermission(2, "patio", canView = true, canUsePtz = false, canListen = true))
+
+        assertEquals(
+            json("""{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": false, "can_listen": true}"""),
+            server.takeRequest().json(),
         )
     }
 

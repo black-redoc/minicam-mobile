@@ -105,6 +105,8 @@ data class CameraPermission(
     @SerialName("camera_name") val cameraName: String,
     @SerialName("can_view") val canView: Boolean,
     @SerialName("can_use_ptz") val canUsePtz: Boolean,
+    // Always sent: the server resets a missing can_listen to false (KI-9).
+    @SerialName("can_listen") val canListen: Boolean = false,
 )
 
 @Serializable

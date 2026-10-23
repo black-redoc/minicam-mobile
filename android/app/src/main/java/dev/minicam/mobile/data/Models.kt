@@ -15,12 +15,20 @@ data class User(
 data class CameraSummary(
     val name: String,
     @SerialName("can_use_ptz") val canUsePtz: Boolean,
+    /** Absent on servers older than minicam PR #21, which have no live audio. */
+    @SerialName("can_listen") val canListen: Boolean = false,
 )
 
+/**
+ * `POST /api/stream/{camera}/token`. The MIME types (with RFC 6381 codecs) are the camera's own
+ * stream for `format=fmp4`, `null` while unknown (ADR 0006); [audioMime] also needs `can_listen`.
+ */
 @Serializable
-internal data class StreamTokenResponse(
+data class StreamToken(
     val token: String,
     @SerialName("expires_in") val expiresIn: Int,
+    @SerialName("video_mime") val videoMime: String? = null,
+    @SerialName("audio_mime") val audioMime: String? = null,
 )
 
 @Serializable

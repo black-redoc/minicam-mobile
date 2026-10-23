@@ -26,11 +26,19 @@ data class ServerConfig(val baseUrl: HttpUrl) {
 
     fun url(path: String): HttpUrl = "${origin()}$path".toHttpUrlOrNull()!!
 
-    /** `ws(s)://host/ws/stream/{camera}?token=…`, scheme matching the server. */
-    fun streamUrl(camera: String, token: String): String {
+    /**
+     * `ws(s)://host/ws/stream/{camera}?token=…[&format=fmp4[&audio=true]]`, scheme matching the
+     * server. The server only sends audio with fMP4.
+     */
+    fun streamUrl(camera: String, token: String, format: StreamFormat = StreamFormat.MJPEG, audio: Boolean = false): String {
         val scheme = if (isWan) "wss" else "ws"
         val tokenParam = URLEncoder.encode(token, Charsets.UTF_8.name())
-        return "$scheme://${hostPort()}/ws/stream/${encodePathSegment(camera)}?token=$tokenParam"
+        val formatParams = when {
+            format != StreamFormat.FMP4 -> ""
+            audio -> "&format=fmp4&audio=true"
+            else -> "&format=fmp4"
+        }
+        return "$scheme://${hostPort()}/ws/stream/${encodePathSegment(camera)}?token=$tokenParam$formatParams"
     }
 
     fun origin(): String = "${baseUrl.scheme}://${hostPort()}"

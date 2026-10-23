@@ -308,6 +308,7 @@ private fun UserCard(
         }
         LabeledSwitch("WAN access", access.wanAccess, onChange = onWanAccess)
         Hint("Viewing streams and PTZ from outside the local network, through Cloudflare Access.")
+        Hint("Listen: hearing the camera's microphone in the live view. It needs View too.")
 
         if (cameras.isEmpty()) {
             Hint("No cameras configured yet.")
@@ -317,6 +318,7 @@ private fun UserCard(
                     Text("Camera", color = CamColors.Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                     Text("View", color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
                     Text("PTZ", color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
+                    Text("Listen", color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
                 }
                 cameras.forEach { camera ->
                     val permission = byCamera[camera] ?: CameraPermission(access.user.id, camera, canView = false, canUsePtz = false)
@@ -328,6 +330,9 @@ private fun UserCard(
                         }
                         Row(Modifier.width(56.dp), horizontalArrangement = Arrangement.Center) {
                             CamCheckbox(permission.canUsePtz) { onPermission(permission.copy(canUsePtz = it)) }
+                        }
+                        Row(Modifier.width(56.dp), horizontalArrangement = Arrangement.Center) {
+                            CamCheckbox(permission.canListen) { onPermission(permission.copy(canListen = it)) }
                         }
                     }
                 }

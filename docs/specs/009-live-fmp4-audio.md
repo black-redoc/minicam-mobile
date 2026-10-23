@@ -44,9 +44,9 @@ never caches audio or video.
 
 ## Tasks
 - [x] Docs: ADR 0006, spec, ROADMAP M2.8, KI-9
-- [ ] Android: models, token/URL, `can_listen` admin column + tests
-- [ ] Android: fMP4 parser/rebase, catch-up, detections + tests
-- [ ] Android: live player, fallback, boxes, speaker button
+- [x] Android: models, token/URL, `can_listen` admin column + tests
+- [x] Android: fMP4 parser/rebase, catch-up, detections + tests
+- [x] Android: live player, fallback, boxes, speaker button
 - [ ] iOS: models, token/URL, `can_listen` admin column + tests
 - [ ] iOS: fMP4 parser, catch-up, detections + tests
 - [ ] iOS: live player, fallback, boxes, speaker button

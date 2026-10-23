@@ -163,3 +163,39 @@ fun CloseIcon(modifier: Modifier = Modifier, color: Color = Color.White) {
         drawLine(color, Offset(size.width, 0f), Offset(0f, size.height), stroke, StrokeCap.Round)
     }
 }
+
+/** Speaker with sound waves ([on]) or a slash (muted), for the live audio button (spec 009). */
+@Composable
+fun SpeakerIcon(on: Boolean, modifier: Modifier = Modifier, color: Color = Color.White) {
+    Canvas(modifier.size(20.dp)) {
+        val stroke = 1.8.dp.toPx()
+        val w = size.width
+        val h = size.height
+        val body = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.08f, h * 0.36f)
+            lineTo(w * 0.28f, h * 0.36f)
+            lineTo(w * 0.52f, h * 0.14f)
+            lineTo(w * 0.52f, h * 0.86f)
+            lineTo(w * 0.28f, h * 0.64f)
+            lineTo(w * 0.08f, h * 0.64f)
+            close()
+        }
+        drawPath(body, color, style = Stroke(stroke, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        if (on) {
+            listOf(0.18f, 0.32f).forEach { radius ->
+                drawArc(
+                    color,
+                    startAngle = -45f,
+                    sweepAngle = 90f,
+                    useCenter = false,
+                    topLeft = Offset(w * (0.52f - radius), h * (0.5f - radius)),
+                    size = Size(w * radius * 2, h * radius * 2),
+                    style = Stroke(stroke, cap = StrokeCap.Round),
+                )
+            }
+        } else {
+            drawLine(color, Offset(w * 0.66f, h * 0.36f), Offset(w * 0.94f, h * 0.64f), stroke, StrokeCap.Round)
+            drawLine(color, Offset(w * 0.94f, h * 0.36f), Offset(w * 0.66f, h * 0.64f), stroke, StrokeCap.Round)
+        }
+    }
+}

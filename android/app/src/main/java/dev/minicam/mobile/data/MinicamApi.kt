@@ -60,18 +60,21 @@ class MinicamApi(
         decode(kotlinx.serialization.builtins.ListSerializer(CameraSummary.serializer()), text)
     }
 
-    suspend fun streamToken(camera: String): String =
-        send("POST", "/api/stream/${ServerConfig.encodePathSegment(camera)}/token", EMPTY) { _, text ->
-            decode(StreamTokenResponse.serializer(), text).token
+    /** [audio] also authorizes the camera's audio; the server answers 403 without `can_listen`. */
+    suspend fun streamToken(camera: String, audio: Boolean = false): StreamToken {
+        val query = if (audio) "?audio=true" else ""
+        return send("POST", "/api/stream/${ServerConfig.encodePathSegment(camera)}/token$query", EMPTY) { _, text ->
+            decode(StreamToken.serializer(), text)
         }
+    }
 
     suspend fun ptz(camera: String, action: PtzAction) {
         send("POST", "/api/ptz/${ServerConfig.encodePathSegment(camera)}/${action.path}", EMPTY) { _, _ -> }
     }
 
     /** Request for the stream WebSocket handshake, carrying the same auth headers. */
-    fun streamRequest(camera: String, token: String): Request =
-        authorized(Request.Builder().url(config.streamUrl(camera, token))).build()
+    fun streamRequest(camera: String, token: String, format: StreamFormat = StreamFormat.MJPEG, audio: Boolean = false): Request =
+        authorized(Request.Builder().url(config.streamUrl(camera, token, format, audio))).build()
 
     /**
      * Headers every request to the server carries: the session cookie and, on WAN hosts, the
