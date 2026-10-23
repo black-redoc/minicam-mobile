@@ -52,6 +52,15 @@ player; player "next" plays the clip below, "back" restarts the clip.
 
 Non-goals for M2.7: optical PTZ zoom, pinch to zoom, auto-play of the next clip.
 
+## M2.8 - Live fMP4 and audio (specs/009-live-fmp4-audio.md, ADR 0006)
+Scope: camera's own H.264/HEVC video as fMP4 with MJPEG fallback, detection boxes drawn by the
+app, on-demand live audio gated by `can_listen`, Listen column in Admin permissions.
+- [ ] Android: all spec 009 acceptance criteria passing
+- [ ] iOS: all spec 009 acceptance criteria passing
+- [ ] Checked against a minicam with an HEVC camera on LAN and WAN
+
+Non-goals for M2.8: audio in event recordings (server phase 3), codec/FPS indicator.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid
 - [ ] Data-saver mode (lower FPS / pause when on cellular), see SECURITY.md bandwidth note

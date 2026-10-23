@@ -29,10 +29,14 @@ ios/
    it as the `cf-access-token` header on every request and WebSocket handshake.
 3. `POST /api/auth/login` → the app keeps the `minicam_session` cookie (secure storage) and sends it
    as `Cookie` on later requests.
-4. `GET /api/me/cameras` → cameras the user can view, with `can_use_ptz`.
-5. Stream: `POST /api/stream/{name}/token` → `WS /ws/stream/{name}?token=…`; each binary message is
-   one JPEG frame, decoded and shown. On close/error: fetch a fresh token and reconnect after 3 s
-   (same as desktop `stream.js`). The socket closes when the screen leaves the foreground.
+4. `GET /api/me/cameras` → cameras the user can view, with `can_use_ptz` and `can_listen`.
+5. Stream: `POST /api/stream/{name}/token[?audio=true]` (returns `video_mime`/`audio_mime`) →
+   `WS /ws/stream/{name}?token=…[&format=fmp4[&audio=true]]` ([ADR 0006](adr/0006-live-fmp4-and-audio-in-the-apps.md)).
+   fMP4 when the device decodes `video_mime` (ExoPlayer via a pipe `DataSource` / iOS
+   `AVSampleBufferDisplayLayer`), detection boxes drawn by the app from JSON messages; MJPEG
+   (one JPEG per message) otherwise or after a playback failure. On close/error: fetch a fresh
+   token and reconnect after 3 s (same as desktop `stream.js`). The socket closes when the screen
+   leaves the foreground. Audio only after the speaker button, never remembered.
 6. PTZ: press a direction → `POST /api/ptz/{name}/{dir}`; release → `POST …/stop`. Only one PTZ
    request in flight; actions pressed meanwhile wait in a one-slot queue (latest wins) and a
    started request is never cancelled, so a quick tap still reaches the server (KI-8).

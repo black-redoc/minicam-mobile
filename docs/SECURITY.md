@@ -40,8 +40,16 @@ password session, and the server pins the redirect target (no open redirect).
 - Downloads go only where the user picks (Android SAF) or to the app's temp dir, removed after
   the share sheet closes (iOS).
 
+## Live fMP4 and audio (ADR 0006)
+- fMP4 parsers treat server bytes as untrusted: every box and sample size is checked against the
+  message; a bad message is dropped (fallback to MJPEG), never a crash or an out-of-bounds read.
+- Audio is never requested unless the user taps the speaker button in this view; the server
+  enforces `can_listen`. Nothing is cached or recorded on the device.
+- Admin upserts always send `can_listen`, so editing other flags never changes it (KI-9).
+
 ## Bandwidth / cost note
-MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer). The app must close streams when not
+MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer); fMP4 is the camera's own bitrate
+(~150 kbit/s for a sub stream). The app must close streams when not
 visible. A data-saver mode is planned (ROADMAP M2).
 
 ## Per-feature checklist

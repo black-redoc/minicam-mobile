@@ -50,3 +50,9 @@ request on every new action, as desktop `ptz.js` does; a browser `fetch` is alre
 but OkHttp and URLSession drop a cancelled call before sending it, so release killed the press.
 Fix: `PtzDispatcher` / `PTZDispatcher` never cancel; one request in flight, latest action queued.
 Test: `PtzDispatcherTest` (Android), `PTZDispatcherTests` (iOS), `tap_sendsDirectionThenStop`.
+
+## KI-9 Editing permissions in the app revokes "Listen" — Status: Open
+Repro: minicam with `can_listen` (PR #21); an admin grants Listen on `/admin`, then toggles View
+or PTZ for that user/camera in the app. Expected: Listen stays on. Actual: the app's upsert has no
+`can_listen`, the server defaults it to false and revokes it. Test:
+`setPermission_sendsCanListen` (both platforms). Fix: spec 009 AC9.
