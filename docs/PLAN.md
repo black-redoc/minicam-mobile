@@ -6,9 +6,9 @@ allowed to see and drives PTZ. The apps never talk to any service other than the
 minicam host and their Cloudflare Access login page.
 
 ## Current focus
-Milestone: M2.6 - Skeleton loaders · Spec: specs/007-skeleton-loaders.md · Next step: visual
-check on emulator/simulator. Still open: M1 device checks (specs/001, 004), M2 and M2.5 manual
-checks (005, 006).
+Milestone: M2.7 - Digital zoom and clip navigation · Spec: specs/008-video-zoom-clip-navigation.md
+· Next step: implement on Android and iOS. Still open: M1 device checks (specs/001, 004), M2,
+M2.5 and M2.6 manual checks (005, 006, 007).
 
 ## Docs
 [ROADMAP](ROADMAP.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) ·

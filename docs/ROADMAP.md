@@ -44,12 +44,21 @@ Scope: layout-shaped placeholders instead of spinners while dynamic content firs
 - [ ] Android: all spec 007 acceptance criteria passing
 - [ ] iOS: all spec 007 acceptance criteria passing
 
+## M2.7 - Digital zoom and clip navigation (specs/008-video-zoom-clip-navigation.md)
+Scope: zoom in / zoom out buttons (digital, with drag to pan) on the live view and the recordings
+player; player "next" plays the clip below, "back" restarts the clip.
+- [ ] Android: all spec 008 acceptance criteria passing
+- [ ] iOS: all spec 008 acceptance criteria passing
+
+Non-goals for M2.7: optical PTZ zoom, pinch to zoom, auto-play of the next clip.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid
 - [ ] Data-saver mode (lower FPS / pause when on cellular), see SECURITY.md bandwidth note
 - [ ] Biometric unlock before showing streams
 
 ## Backlog
+- Optical PTZ zoom buttons (needs `zoom_in`/`zoom_out` ONVIF actions in the minicam server first)
 - Push notifications on detections (needs a backend push design + ADR)
 - Store distribution (Play Store / App Store / TestFlight)
 - Kotlin Multiplatform for shared networking logic (would supersede part of ADR 0001)
