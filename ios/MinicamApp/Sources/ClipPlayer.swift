@@ -55,6 +55,13 @@ final class ClipPlayback {
         isPlaying ? pause() : play()
     }
 
+    /// Spec 008 AC6: back to 0:00. A clip that had ended plays again; a paused one stays paused.
+    func restart() {
+        let ended = duration > 0 && currentTime >= duration - 0.25
+        seek(to: 0)
+        if ended { play() }
+    }
+
     func seek(to seconds: Double) {
         let target = min(max(0, seconds), duration)
         currentTime = target
@@ -98,9 +105,14 @@ struct PlayerLayerView: UIViewRepresentable {
 /// The video with minicam-styled controls: play/pause, time, fullscreen and a time bar whose
 /// played part is the brand sky, clearly apart from the buffered and remaining track (AC10).
 /// Tapping the video shows or hides the controls; they hide by themselves while playing.
+/// "Back" starts the clip over and "next" asks for the clip below; zoom buttons show with the
+/// controls (spec 008).
 struct ClipPlayerView: View {
     let playback: ClipPlayback
     let isFullscreen: Bool
+    @Binding var zoom: VideoZoom
+    let hasNext: Bool
+    let onNext: () -> Void
     let onFullscreen: (Bool) -> Void
     @State private var controlsVisible = true
     @State private var hideTask: Task<Void, Never>?
@@ -108,9 +120,11 @@ struct ClipPlayerView: View {
     var body: some View {
         ZStack {
             PlayerLayerView(player: playback.player)
-            Color.black.opacity(controlsVisible ? 0.3 : 0)
+                .zoomPan($zoom)
                 .contentShape(Rectangle())
                 .onTapGesture { controlsVisible ? hideControls() : showControls() }
+            Color.black.opacity(controlsVisible ? 0.3 : 0)
+                .allowsHitTesting(false)
             controls
                 .opacity(controlsVisible ? 1 : 0)
                 .allowsHitTesting(controlsVisible)
@@ -124,14 +138,28 @@ struct ClipPlayerView: View {
 
     private var controls: some View {
         ZStack {
-            GlassIconButton(
-                label: playback.isPlaying ? "Pause" : "Play",
-                systemImage: playback.isPlaying ? "pause.fill" : "play.fill",
-                size: 52
-            ) {
-                playback.togglePlay()
-                scheduleHide()
+            HStack(spacing: 28) {
+                GlassIconButton(label: "Back to start", systemImage: "backward.end.fill", size: 40) {
+                    playback.restart()
+                    scheduleHide()
+                }
+                GlassIconButton(
+                    label: playback.isPlaying ? "Pause" : "Play",
+                    systemImage: playback.isPlaying ? "pause.fill" : "play.fill",
+                    size: 52
+                ) {
+                    playback.togglePlay()
+                    scheduleHide()
+                }
+                GlassIconButton(label: "Next clip", systemImage: "forward.end.fill", size: 40) {
+                    onNext()
+                    scheduleHide()
+                }
+                .disabled(!hasNext)
             }
+            ZoomButtons(zoom: $zoom, size: 36)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(10)
             VStack(spacing: 4) {
                 Spacer()
                 HStack {

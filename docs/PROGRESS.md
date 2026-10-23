@@ -95,3 +95,11 @@
 - Commit: be76066 (Android), a1d415e (iOS)
 - Tests: Android `compileDebugKotlin`; iOS simulator build with no Swift warnings
 - Next: visual check with a detection backend exposing more than 6 classes
+
+## 2026-10-23 — Spec 008 digital zoom and clip navigation
+- Done: zoom in/out glass buttons (1×-4×, drag to pan) on the live view and the recordings
+  player; player "next" plays the clip below (loads the next page), "back" restarts the clip
+- Commit: bc61e36 (docs), edd7ffe (Android), 61c12b1 (iOS)
+- Tests: Android 51/51 + lint 0 warnings + debug/release builds; iOS `swift test` 50/50,
+  simulator build with no Swift warnings
+- Next: visual check on emulator/simulator (zoom, pan, next/back) against a local minicam

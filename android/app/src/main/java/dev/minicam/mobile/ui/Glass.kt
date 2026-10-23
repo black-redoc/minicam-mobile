@@ -4,13 +4,18 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -19,9 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.ui.theme.CamColors
 
 /**
@@ -46,15 +54,59 @@ fun GlassIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 44.dp,
+    enabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier
             .size(size)
             .glass(CircleShape)
-            .clickable(onClickLabel = label, role = Role.Button, onClick = onClick),
+            .clickable(enabled = enabled, onClickLabel = label, role = Role.Button, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.4f),
         contentAlignment = Alignment.Center,
     ) { content() }
+}
+
+/** Glass "Zoom in" / "Zoom out" buttons for digital zoom over the video (spec 008). */
+@Composable
+fun ZoomButtons(zoom: VideoZoom, onZoom: (VideoZoom) -> Unit, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        GlassIconButton("Zoom in", onClick = { onZoom(zoom.zoomIn()) }, size = size, enabled = zoom.canZoomIn) { ZoomIcon(plus = true) }
+        GlassIconButton("Zoom out", onClick = { onZoom(zoom.zoomOut()) }, size = size, enabled = zoom.canZoomOut) { ZoomIcon(plus = false) }
+    }
+}
+
+/**
+ * Clips the content to its bounds and, while [zoom] is zoomed, turns drags into pans given as
+ * fractions of the size (spec 008 AC2). [onPan] must read the current zoom when it runs.
+ */
+fun Modifier.zoomPan(zoom: VideoZoom, onPan: (dx: Float, dy: Float) -> Unit): Modifier = this
+    .clipToBounds()
+    .pointerInput(zoom.isZoomed) {
+        if (!zoom.isZoomed) return@pointerInput
+        detectDragGestures { change, drag ->
+            change.consume()
+            onPan(drag.x / size.width, drag.y / size.height)
+        }
+    }
+
+/** Scales the content around its centre and moves it by [zoom]'s pan. */
+fun Modifier.zoomed(zoom: VideoZoom): Modifier = graphicsLayer {
+    scaleX = zoom.scale
+    scaleY = zoom.scale
+    translationX = zoom.panX * size.width
+    translationY = zoom.panY * size.height
+}
+
+/** "+" / "−" for the zoom buttons, drawn so it does not depend on font glyph coverage. */
+@Composable
+fun ZoomIcon(plus: Boolean, modifier: Modifier = Modifier, color: Color = Color.White) {
+    Canvas(modifier.size(14.dp)) {
+        val stroke = 2.dp.toPx()
+        val mid = size.height / 2
+        drawLine(color, Offset(0f, mid), Offset(size.width, mid), stroke, StrokeCap.Round)
+        if (plus) drawLine(color, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), stroke, StrokeCap.Round)
+    }
 }
 
 /** Four corner brackets: pointing outwards to enter fullscreen, inwards to exit it. */

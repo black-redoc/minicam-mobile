@@ -153,3 +153,9 @@ fun recordingDays(
 
 private const val MIB = 1024L * 1024
 private const val GIB = MIB * 1024
+
+/** The clip below [current] in the newest-first list, i.e. the next older one (spec 008 AC5). */
+fun nextRecording(items: List<Recording>, current: Recording): Recording? {
+    val index = items.indexOfFirst { it.id == current.id }
+    return if (index < 0) null else items.getOrNull(index + 1)
+}

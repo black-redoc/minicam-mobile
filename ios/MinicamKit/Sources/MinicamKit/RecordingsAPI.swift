@@ -221,3 +221,9 @@ public func recordingDays(
         return RecordingDay(label: label, recordings: items)
     }
 }
+
+/// The clip below `current` in the newest-first list, i.e. the next older one (spec 008 AC5).
+public func nextRecording(_ items: [Recording], after current: Recording) -> Recording? {
+    guard let index = items.firstIndex(where: { $0.id == current.id }), index + 1 < items.count else { return nil }
+    return items[index + 1]
+}
