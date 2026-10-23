@@ -7,7 +7,8 @@ minicam host and their Cloudflare Access login page.
 
 ## Current focus
 Milestone: M2.7 - Digital zoom and clip navigation · Spec: specs/008-video-zoom-clip-navigation.md
-· Next step: implement on Android and iOS. Still open: M1 device checks (specs/001, 004), M2,
+· Next step: visual check on
+emulator/simulator. Still open: M1 device checks (specs/001, 004), M2,
 M2.5 and M2.6 manual checks (005, 006, 007).
 
 ## Docs

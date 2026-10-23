@@ -37,11 +37,11 @@ No new requests: zoom is local; "next" uses the existing recordings list / pagin
 
 ## Tasks
 - [x] Docs: spec, ROADMAP M2.7, Backlog entry for optical PTZ zoom
-- [ ] Android: `VideoZoom` + `nextRecording` + tests
-- [ ] Android: live view zoom, player zoom, previous/next
-- [ ] iOS: `VideoZoom` + `nextRecording` + tests
-- [ ] iOS: live view zoom, player zoom, previous/next
-- [ ] Builds, lint and tests pass on both platforms
+- [x] Android: `VideoZoom` + `nextRecording` + tests
+- [x] Android: live view zoom, player zoom, previous/next
+- [x] iOS: `VideoZoom` + `nextRecording` + tests
+- [x] iOS: live view zoom, player zoom, previous/next
+- [x] Builds, lint and tests pass on both platforms
 - [ ] Manual check on emulator/simulator
 
 ## Out of scope
