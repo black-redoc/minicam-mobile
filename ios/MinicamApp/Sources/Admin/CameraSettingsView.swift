@@ -193,18 +193,37 @@ struct CameraFormView: View {
             if availableClasses.isEmpty {
                 Text("No detection backend configured on this device.").foregroundStyle(Theme.muted)
             }
-            ForEach(availableClasses, id: \.self) { cls in
-                Toggle(cls, isOn: Binding(
-                    get: { form.detectionClasses.contains(cls) },
-                    set: { on in
-                        form.detectionClasses.removeAll { $0 == cls }
-                        if on { form.detectionClasses.append(cls) }
+            if availableClasses.count > Self.maxVisibleClasses {
+                // Show at most maxVisibleClasses rows; the rest scroll inside this one row.
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(availableClasses.enumerated()), id: \.element) { index, cls in
+                            if index > 0 { Divider() }
+                            classToggle(cls).frame(minHeight: Self.classRowHeight)
+                        }
                     }
-                ))
+                }
+                .frame(height: Self.classRowHeight * CGFloat(Self.maxVisibleClasses))
+            } else {
+                ForEach(availableClasses, id: \.self) { classToggle($0) }
             }
         } else {
             ForEach(0..<3, id: \.self) { ToggleSkeletonRow(index: $0) }
         }
+    }
+
+    private static let maxVisibleClasses = 6
+    /// Height of a default inset-grouped form row.
+    private static let classRowHeight: CGFloat = 44
+
+    private func classToggle(_ cls: String) -> some View {
+        Toggle(cls, isOn: Binding(
+            get: { form.detectionClasses.contains(cls) },
+            set: { on in
+                form.detectionClasses.removeAll { $0 == cls }
+                if on { form.detectionClasses.append(cls) }
+            }
+        ))
     }
 
     private func load() async {
