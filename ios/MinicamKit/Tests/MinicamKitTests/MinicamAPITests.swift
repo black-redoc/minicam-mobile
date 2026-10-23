@@ -104,8 +104,31 @@ import Testing
         let transport = FakeTransport([.init(status: 200, body: #"{"token": "st", "expires_in": 30}"#)])
         let api = MinicamAPI(config: lan, transport: transport, store: InMemoryCredentialStore())
 
-        #expect(try await api.streamToken(camera: "entrada") == "st")
+        #expect(try await api.streamToken(camera: "entrada") == StreamToken(token: "st", expiresIn: 30))
         #expect(transport.requests.first?.url?.path == "/api/stream/entrada/token")
+    }
+
+    @Test func streamToken_readsMimes() async throws {
+        let body = #"{"token": "st", "expires_in": 30, "video_mime": "video/mp4; codecs=\"hvc1.1.6.L90\"", "audio_mime": "video/mp4; codecs=\"hvc1.1.6.L90,mp4a.40.2\""}"#
+        let transport = FakeTransport([.init(status: 200, body: body)])
+        let api = MinicamAPI(config: lan, transport: transport, store: InMemoryCredentialStore())
+
+        let token = try await api.streamToken(camera: "front door", audio: true)
+
+        #expect(token.videoMime == #"video/mp4; codecs="hvc1.1.6.L90""#)
+        #expect(token.audioMime == #"video/mp4; codecs="hvc1.1.6.L90,mp4a.40.2""#)
+        #expect(transport.requests.first?.url?.absoluteString == "http://192.168.1.20:8080/api/stream/front%20door/token?audio=true")
+    }
+
+    @Test func cameras_readsCanListen() async throws {
+        let transport = FakeTransport([.init(
+            status: 200,
+            body: #"[{"name": "entrada", "can_use_ptz": false, "can_listen": true}, {"name": "patio", "can_use_ptz": false}]"#
+        )])
+        let api = MinicamAPI(config: lan, transport: transport, store: InMemoryCredentialStore())
+
+        // Servers without live audio leave it out: no speaker button.
+        #expect(try await api.cameras().map(\.canListen) == [true, false])
     }
 
     @Test func wanRedirectOrHtml403_meansAccessRequired() async {

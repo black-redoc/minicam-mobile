@@ -47,10 +47,10 @@ never caches audio or video.
 - [x] Android: models, token/URL, `can_listen` admin column + tests
 - [x] Android: fMP4 parser/rebase, catch-up, detections + tests
 - [x] Android: live player, fallback, boxes, speaker button
-- [ ] iOS: models, token/URL, `can_listen` admin column + tests
-- [ ] iOS: fMP4 parser, catch-up, detections + tests
-- [ ] iOS: live player, fallback, boxes, speaker button
-- [ ] Builds, lint and tests pass on both platforms
+- [x] iOS: models, token/URL, `can_listen` admin column + tests
+- [x] iOS: fMP4 parser, catch-up, detections + tests
+- [x] iOS: live player, fallback, boxes, speaker button
+- [x] Builds, lint and tests pass on both platforms
 - [ ] Manual check against a minicam with an HEVC camera (LAN + WAN), audio on/off
 
 ## Out of scope

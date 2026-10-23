@@ -41,9 +41,10 @@ public final class MinicamAPI: Sendable {
         try decode([CameraSummary].self, try await send("GET", "/api/me/cameras").0)
     }
 
-    public func streamToken(camera: String) async throws -> String {
-        let path = "/api/stream/\(ServerConfig.encodePathSegment(camera))/token"
-        return try decode(StreamTokenResponse.self, try await send("POST", path).0).token
+    /// `audio` also authorizes the camera's audio; the server answers 403 without `can_listen`.
+    public func streamToken(camera: String, audio: Bool = false) async throws -> StreamToken {
+        let path = "/api/stream/\(ServerConfig.encodePathSegment(camera))/token" + (audio ? "?audio=true" : "")
+        return try decode(StreamToken.self, try await send("POST", path).0)
     }
 
     public func ptz(camera: String, action: PTZAction) async throws {
@@ -52,8 +53,10 @@ public final class MinicamAPI: Sendable {
     }
 
     /// Request for the stream WebSocket handshake, carrying the same auth headers.
-    public func streamRequest(camera: String, token: String) -> URLRequest {
-        authorized(URLRequest(url: config.streamURL(camera: camera, token: token)))
+    public func streamRequest(
+        camera: String, token: String, format: StreamFormat = .mjpeg, audio: Bool = false
+    ) -> URLRequest {
+        authorized(URLRequest(url: config.streamURL(camera: camera, token: token, format: format, audio: audio)))
     }
 
     // MARK: - Plumbing

@@ -201,13 +201,14 @@ struct AdminView: View {
                     Spacer()
                     Text("View").frame(width: 56)
                     Text("PTZ").frame(width: 56)
+                    Text("Listen").frame(width: 56)
                 }
                 .font(.caption)
                 .foregroundStyle(Theme.muted)
                 ForEach(cameras, id: \.self) { camera in permissionRow(access, camera) }
             }
         } footer: {
-            Text("WAN access: viewing streams and PTZ from outside the local network, through Cloudflare Access.")
+            Text("WAN access: viewing streams and PTZ from outside the local network, through Cloudflare Access. Listen: hearing the camera's microphone in the live view; it needs View too.")
         }
         .adminRow()
     }
@@ -226,6 +227,11 @@ struct AdminView: View {
             checkbox(permission.canUsePTZ) { on in
                 var updated = permission
                 updated.canUsePTZ = on
+                Task { await setPermission(access, updated) }
+            }
+            checkbox(permission.canListen) { on in
+                var updated = permission
+                updated.canListen = on
                 Task { await setPermission(access, updated) }
             }
         }

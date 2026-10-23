@@ -13,6 +13,20 @@ struct CameraView: View {
     @State private var showPTZ = false
     // Shared by both layouts, so entering or leaving fullscreen keeps the zoom (spec 008 AC3).
     @State private var zoom = VideoZoom()
+    // Spec 009: audio is off every time the camera opens; fMP4 until it fails once (then MJPEG).
+    @State private var audioOn = false
+    @State private var fmp4Failed = false
+    @State private var choice: StreamChoice?
+    @State private var audioAvailable = false
+    @State private var detections: Detections?
+    @State private var player = LivePlayer()
+
+    /// Restarts the stream when it changes: foreground, audio toggled, fallback to MJPEG.
+    private struct StreamKey: Hashable {
+        let active: Bool
+        let audio: Bool
+        let fmp4Failed: Bool
+    }
 
     var body: some View {
         // One container for both layouts: the stream task below lives on it, so toggling
@@ -27,12 +41,33 @@ struct CameraView: View {
         .statusBarHidden(isFullscreen)
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
         .onChange(of: isFullscreen) { _, on in OrientationLock.landscape(on) }
-        .onDisappear { if isFullscreen { OrientationLock.landscape(false) } }
+        .onDisappear {
+            if isFullscreen { OrientationLock.landscape(false) }
+            player.stop()
+        }
         // Streaming only while visible and in the foreground, like the desktop's
         // visibilitychange handling: a background app costs the Pi nothing.
-        .task(id: scenePhase == .active) {
+        .task(id: StreamKey(active: scenePhase == .active, audio: audioOn, fmp4Failed: fmp4Failed)) {
             guard scenePhase == .active, let api = model.api else { return }
             await stream(api: api)
+        }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                player.catchUp()
+            }
+        }
+        .onChange(of: player.failed) { _, failed in if failed { fmp4Failed = true } }
+    }
+
+    /// Only offered when the server says this user may listen and the device can play it.
+    @ViewBuilder
+    private func speakerButton(size: CGFloat) -> some View {
+        if camera.canListen, audioAvailable {
+            glassButton(
+                audioOn ? "Turn audio off" : "Turn audio on",
+                systemImage: audioOn ? "speaker.wave.2.fill" : "speaker.slash.fill", size: size
+            ) { audioOn.toggle() }
         }
     }
 
@@ -44,6 +79,7 @@ struct CameraView: View {
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
                     .overlay(alignment: .topTrailing) { ZoomButtons(zoom: $zoom, size: 40).padding(10) }
+                    .overlay(alignment: .bottomLeading) { speakerButton(size: 40).padding(10) }
                     .overlay(alignment: .bottomTrailing) {
                         glassButton("Enter fullscreen", systemImage: "arrow.up.left.and.arrow.down.right", size: 40) {
                             isFullscreen = true
@@ -79,7 +115,8 @@ struct CameraView: View {
                     }
                 }
                 Spacer()
-                HStack {
+                HStack(alignment: .bottom) {
+                    speakerButton(size: 44)
                     Spacer()
                     ZoomButtons(zoom: $zoom)
                 }
@@ -120,17 +157,23 @@ struct CameraView: View {
         GlassIconButton(label: label, systemImage: systemImage, size: size, action: action)
     }
 
+    private var isFMP4: Bool { choice?.format == .fmp4 }
+
     /// Frame fitted to the container (`object-fit: contain`): a placeholder until the first
-    /// frame, then the dimmed last frame with a spinner while reconnecting (spec 007 AC4).
+    /// frame, then the dimmed last frame with a spinner while reconnecting (spec 007 AC4). With
+    /// fMP4, the live player instead of the JPEG frame, with the detection boxes over it.
     private var videoFeed: some View {
         ZStack {
             Color.black
-            if let frame {
+            if isFMP4 {
+                LiveVideoView(player: player)
+                if let detections { DetectionOverlay(detections: detections) }
+            } else if let frame {
                 Image(uiImage: frame)
                     .resizable()
                     .scaledToFit()
             }
-            if frame == nil {
+            if !(isFMP4 ? player.hasPicture : frame != nil) {
                 SkeletonBlock(width: nil, height: nil, cornerRadius: 0).skeletonGroup()
             } else if status != .connected {
                 ZStack {
@@ -143,14 +186,32 @@ struct CameraView: View {
     }
 
     private func stream(api: MinicamAPI) async {
-        let client = StreamClient(api: api, transport: model.transport, camera: camera.name)
+        let client = StreamClient(
+            api: api, transport: model.transport, camera: camera.name,
+            preferFMP4: !fmp4Failed, audio: audioOn, canPlay: canDecode
+        )
+        defer { player.stop() }
         do {
             for try await event in client.events() {
                 switch event {
                 case let .status(newStatus):
                     status = newStatus
+                case let .session(newChoice, available):
+                    choice = newChoice
+                    audioAvailable = available
+                    if newChoice.format == .mjpeg { player.stop() }
                 case let .frame(jpeg):
                     if let image = UIImage(data: jpeg) { frame = image }
+                case let .initSegment(_, data):
+                    do {
+                        try player.start(initSegment: data, audio: choice?.audio == true)
+                    } catch {
+                        fmp4Failed = true
+                    }
+                case let .fragment(data):
+                    player.append(data)
+                case let .detections(newDetections):
+                    detections = newDetections
                 }
             }
         } catch {

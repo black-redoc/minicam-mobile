@@ -144,12 +144,24 @@ public struct CameraPermission: Codable, Equatable, Sendable {
     public let cameraName: String
     public var canView: Bool
     public var canUsePTZ: Bool
+    // Always sent: the server resets a missing can_listen to false (KI-9).
+    public var canListen: Bool
 
-    public init(userID: Int, cameraName: String, canView: Bool, canUsePTZ: Bool) {
+    public init(userID: Int, cameraName: String, canView: Bool, canUsePTZ: Bool, canListen: Bool = false) {
         self.userID = userID
         self.cameraName = cameraName
         self.canView = canView
         self.canUsePTZ = canUsePTZ
+        self.canListen = canListen
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userID = try container.decode(Int.self, forKey: .userID)
+        cameraName = try container.decode(String.self, forKey: .cameraName)
+        canView = try container.decode(Bool.self, forKey: .canView)
+        canUsePTZ = try container.decode(Bool.self, forKey: .canUsePTZ)
+        canListen = try container.decodeIfPresent(Bool.self, forKey: .canListen) ?? false
     }
 
     enum CodingKeys: String, CodingKey {
@@ -157,6 +169,7 @@ public struct CameraPermission: Codable, Equatable, Sendable {
         case cameraName = "camera_name"
         case canView = "can_view"
         case canUsePTZ = "can_use_ptz"
+        case canListen = "can_listen"
     }
 }
 

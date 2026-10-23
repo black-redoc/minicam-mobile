@@ -59,12 +59,17 @@ public struct ServerConfig: Equatable, Sendable {
         URL(string: baseURL.absoluteString + path)!
     }
 
-    /// `ws(s)://host/ws/stream/{camera}?token=…`, scheme matching the server.
-    public func streamURL(camera: String, token: String) -> URL {
+    /// `ws(s)://host/ws/stream/{camera}?token=…[&format=fmp4[&audio=true]]`, scheme matching the
+    /// server. The server only sends audio with fMP4.
+    public func streamURL(camera: String, token: String, format: StreamFormat = .mjpeg, audio: Bool = false) -> URL {
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
         components.scheme = isWAN ? "wss" : "ws"
         components.percentEncodedPath = "/ws/stream/" + Self.encodePathSegment(camera)
         components.queryItems = [URLQueryItem(name: "token", value: token)]
+        if format == .fmp4 {
+            components.queryItems?.append(URLQueryItem(name: "format", value: "fmp4"))
+            if audio { components.queryItems?.append(URLQueryItem(name: "audio", value: "true")) }
+        }
         return components.url!
     }
 
