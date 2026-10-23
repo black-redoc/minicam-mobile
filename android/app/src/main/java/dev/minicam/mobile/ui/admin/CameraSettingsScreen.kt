@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +61,11 @@ fun CameraSettingsScreen(viewModel: AppViewModel) {
 }
 
 private data class Editing(val camera: CameraConfig?)
+
+private const val MaxVisibleClasses = 6
+
+// A LabeledCheckbox row is as tall as the checkbox's minimum touch target.
+private val ClassRowHeight = 48.dp
 
 @Composable
 private fun CameraList(viewModel: AppViewModel, api: MinicamApi, onEdit: (CameraConfig?) -> Unit) {
@@ -215,9 +223,12 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
                     classesError != null -> Text(classesError!!, color = CamColors.Danger, fontSize = 12.sp)
                     classes == null -> ChecklistSkeleton()
                     classes.isEmpty() -> Hint("No detection backend configured on this device.")
-                    else -> classes.forEach { cls ->
-                        LabeledCheckbox(cls, cls in selectedClasses) { checked ->
-                            if (checked) selectedClasses += cls else selectedClasses -= cls
+                    // Show at most MaxVisibleClasses rows; the rest scroll inside the list.
+                    else -> Column(Modifier.heightIn(max = ClassRowHeight * MaxVisibleClasses).verticalScroll(rememberScrollState())) {
+                        classes.forEach { cls ->
+                            LabeledCheckbox(cls, cls in selectedClasses) { checked ->
+                                if (checked) selectedClasses += cls else selectedClasses -= cls
+                            }
                         }
                     }
                 }

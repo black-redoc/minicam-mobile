@@ -89,3 +89,9 @@
 - Tests: Android unit tests + lint 0 warnings + debug/release builds; iOS `swift test` 47/47,
   simulator + UI test builds with no Swift warnings
 - Next: visual check on emulator/simulator against a local minicam (slow network helps)
+
+## 2026-10-23 — Scrollable detection classes
+- Done: camera add/edit form shows at most 6 detection classes; the rest scroll inside the list
+- Commit: be76066 (Android), a1d415e (iOS)
+- Tests: Android `compileDebugKotlin`; iOS simulator build with no Swift warnings
+- Next: visual check with a detection backend exposing more than 6 classes
