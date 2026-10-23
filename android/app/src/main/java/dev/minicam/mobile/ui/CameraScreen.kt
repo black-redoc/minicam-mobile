@@ -2,6 +2,8 @@ package dev.minicam.mobile.ui
 
 import android.content.pm.ActivityInfo
 import android.graphics.BitmapFactory
+import android.view.LayoutInflater
+import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
@@ -9,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,12 +44,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -55,39 +67,85 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.ui.PlayerView
+import dev.minicam.mobile.R
 import dev.minicam.mobile.data.CameraSummary
+import dev.minicam.mobile.data.Detections
+import dev.minicam.mobile.data.Fmp4Exception
 import dev.minicam.mobile.data.StreamClient
 import dev.minicam.mobile.data.StreamEvent
+import dev.minicam.mobile.data.StreamFormat
 import dev.minicam.mobile.data.StreamStatus
 import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.withContext
 
 @Composable
 fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     val api = viewModel.api ?: return
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var frame by remember { mutableStateOf<ImageBitmap?>(null) }
     var status by remember { mutableStateOf(StreamStatus.CONNECTING) }
+    // Spec 009: audio is off every time the camera opens; fMP4 until it fails once (then MJPEG).
+    var audioOn by remember { mutableStateOf(false) }
+    var fmp4Failed by remember { mutableStateOf(false) }
+    var session by remember { mutableStateOf<StreamEvent.Session?>(null) }
+    var detections by remember { mutableStateOf<Detections?>(null) }
+    var hasPicture by remember { mutableStateOf(false) }
+    // The newest JPEG only: if decoding falls behind, older frames are skipped, as the server does.
+    val jpegs = remember { MutableStateFlow<ByteArray?>(null) }
+    val livePlayer = remember { LivePlayer(context) }
+    DisposableEffect(livePlayer) {
+        val listener = object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                fmp4Failed = true
+            }
+
+            override fun onRenderedFirstFrame() {
+                hasPicture = true
+            }
+        }
+        livePlayer.player.addListener(listener)
+        onDispose {
+            livePlayer.player.removeListener(listener)
+            livePlayer.release()
+        }
+    }
 
     // Streaming only while STARTED, like the desktop's visibilitychange
-    // handling: a backgrounded app costs the Pi nothing. conflate() keeps
-    // only the newest frame if decoding falls behind, as the server does.
-    LaunchedEffect(api, camera.name) {
+    // handling: a backgrounded app costs the Pi nothing. Toggling audio or
+    // falling back to MJPEG starts a new stream.
+    LaunchedEffect(api, camera.name, audioOn, fmp4Failed) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            val client = StreamClient(api, camera.name, preferFmp4 = !fmp4Failed, audio = audioOn, canPlay = ::canDecode)
             try {
-                StreamClient(api, camera.name).events().conflate().collect { event ->
+                client.events().collect { event ->
                     when (event) {
                         is StreamEvent.Status -> status = event.status
+                        is StreamEvent.Session -> {
+                            session = event
+                            if (event.choice.format == StreamFormat.MJPEG) livePlayer.stop()
+                        }
                         is StreamEvent.Frame -> {
                             status = StreamStatus.CONNECTED
-                            withContext(Dispatchers.Default) {
-                                BitmapFactory.decodeByteArray(event.jpeg, 0, event.jpeg.size)
-                            }?.let { frame = it.asImageBitmap() }
+                            jpegs.value = event.jpeg
                         }
+                        is StreamEvent.Init -> try {
+                            livePlayer.start(event.data, audio = session?.choice?.audio == true)
+                        } catch (_: Fmp4Exception) {
+                            fmp4Failed = true
+                        }
+                        is StreamEvent.Fragment -> livePlayer.append(event.data)
+                        is StreamEvent.Boxes -> detections = event.detections
                     }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -95,7 +153,34 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             } catch (e: Exception) {
                 status = StreamStatus.DISCONNECTED
                 viewModel.handle(e)
+            } finally {
+                livePlayer.stop()
             }
+        }
+    }
+    LaunchedEffect(jpegs) {
+        jpegs.filterNotNull().collect { jpeg ->
+            withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) }
+                ?.let { frame = it.asImageBitmap() }
+        }
+    }
+    LaunchedEffect(livePlayer) {
+        while (true) {
+            delay(CATCH_UP_CHECK_MS)
+            livePlayer.catchUp()
+        }
+    }
+    val live = if (session?.choice?.format == StreamFormat.FMP4) LiveVideo(livePlayer.player, hasPicture, detections) else null
+    // Only offered when the server says this user may listen and the device can play it.
+    val canHear = camera.canListen && session?.audioAvailable == true
+    val speaker: @Composable (Modifier, Dp) -> Unit = { modifier, size ->
+        if (canHear) {
+            GlassIconButton(
+                label = if (audioOn) "Turn audio off" else "Turn audio on",
+                onClick = { audioOn = !audioOn },
+                modifier = modifier,
+                size = size,
+            ) { SpeakerIcon(on = audioOn) }
         }
     }
 
@@ -111,6 +196,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
         ImmersiveLandscape()
         FullscreenCamera(
             frame = frame,
+            live = live,
             status = status,
             zoom = zoom,
             onZoom = { zoom = it },
@@ -120,6 +206,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             onShowPtz = { showPtz = it },
             onExit = { fullscreen = false },
             ptzPad = { ptzPad(true) },
+            speaker = { speaker(it, 44.dp) },
         )
         return
     }
@@ -157,8 +244,9 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                     .background(Color.Black)
                     .zoomPan(zoom, onPan),
             ) {
-                VideoFeed(frame, status, zoom)
+                VideoFeed(frame, live, status, zoom)
                 ZoomButtons(zoom, onZoom = { zoom = it }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
+                speaker(Modifier.align(Alignment.BottomStart).padding(10.dp), 40.dp)
                 GlassIconButton(
                     label = "Enter fullscreen",
                     onClick = { fullscreen = true },
@@ -176,22 +264,47 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     }
 }
 
+private const val CATCH_UP_CHECK_MS = 500L
+
+/** fMP4 playback for [VideoFeed] (spec 009): the player, whether it has shown a frame, boxes. */
+private class LiveVideo(val player: Player, val hasPicture: Boolean, val detections: Detections?)
+
 /**
  * Frame fitted to the box (`object-fit: contain`): a placeholder until the first frame, then the
- * dimmed last frame with a spinner while reconnecting (spec 007 AC4).
+ * dimmed last frame with a spinner while reconnecting (spec 007 AC4). With [live], the fMP4
+ * player instead of the JPEG frame, with the detection boxes drawn over it.
  */
 @Composable
-private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus, zoom: VideoZoom) {
+private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatus, zoom: VideoZoom) {
+    val hasPicture = live?.hasPicture ?: (frame != null)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        frame?.let {
-            Image(
-                it,
-                contentDescription = "Live camera feed",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().zoomed(zoom),
-            )
+        if (live != null) {
+            Box(Modifier.fillMaxSize().zoomed(zoom)) {
+                AndroidView(
+                    factory = {
+                        // AndroidView sets the layout params; the throwaway parent only resolves the XML's.
+                        (LayoutInflater.from(it).inflate(R.layout.live_player_view, FrameLayout(it), false) as PlayerView).apply {
+                            contentDescription = "Live camera feed"
+                        }
+                    },
+                    update = { it.player = live.player },
+                    // The other layout's view takes the player over; this one lets go of it.
+                    onRelease = { it.player = null },
+                    modifier = Modifier.fillMaxSize(),
+                )
+                live.detections?.let { DetectionOverlay(it) }
+            }
+        } else {
+            frame?.let {
+                Image(
+                    it,
+                    contentDescription = "Live camera feed",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().zoomed(zoom),
+                )
+            }
         }
-        if (frame == null) {
+        if (!hasPicture) {
             Skeleton(Modifier.fillMaxSize()) { SkeletonBlock(Modifier.fillMaxSize(), RectangleShape) }
         } else if (status != StreamStatus.CONNECTED) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)), contentAlignment = Alignment.Center) {
@@ -201,10 +314,37 @@ private fun VideoFeed(frame: ImageBitmap?, status: StreamStatus, zoom: VideoZoom
     }
 }
 
+/**
+ * Detection boxes of an fMP4 stream, which can't be drawn into the video (spec 009 AC7): the
+ * class colour, the label and confidence on a tab above the box, like the server's MJPEG boxes.
+ */
+@Composable
+private fun DetectionOverlay(detections: Detections) {
+    val measurer = rememberTextMeasurer()
+    Canvas(Modifier.fillMaxSize()) {
+        val stroke = 2.dp.toPx()
+        val padding = 3.dp.toPx()
+        detections.boxes.forEach { box ->
+            val rect = box.fit(detections.width, detections.height, size.width, size.height)
+            val color = runCatching { Color(android.graphics.Color.parseColor(box.color)) }.getOrDefault(CamColors.Accent)
+            drawRect(color, Offset(rect.left, rect.top), Size(rect.width, rect.height), style = Stroke(stroke))
+            val text = measurer.measure(
+                "${box.label} ${(box.confidence * 100).roundToInt()}%",
+                TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+            )
+            val tab = Size(text.size.width + padding * 2, text.size.height.toFloat())
+            val tabTop = (rect.top - tab.height).coerceAtLeast(0f)
+            drawRect(color, Offset(rect.left, tabTop), tab)
+            drawText(text, topLeft = Offset(rect.left + padding, tabTop))
+        }
+    }
+}
+
 /** Spec 004: the feed over the whole screen with floating glass controls. */
 @Composable
 private fun FullscreenCamera(
     frame: ImageBitmap?,
+    live: LiveVideo?,
     status: StreamStatus,
     zoom: VideoZoom,
     onZoom: (VideoZoom) -> Unit,
@@ -214,9 +354,10 @@ private fun FullscreenCamera(
     onShowPtz: (Boolean) -> Unit,
     onExit: () -> Unit,
     ptzPad: @Composable () -> Unit,
+    speaker: @Composable (Modifier) -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(Color.Black).zoomPan(zoom, onPan)) {
-        VideoFeed(frame, status, zoom)
+        VideoFeed(frame, live, status, zoom)
 
         Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
             Row(
@@ -237,6 +378,7 @@ private fun FullscreenCamera(
             }
 
             ZoomButtons(zoom, onZoom = onZoom, modifier = Modifier.align(Alignment.BottomEnd), size = 44.dp)
+            speaker(Modifier.align(Alignment.BottomStart))
 
             AnimatedVisibility(
                 visible = canUsePtz && showPtz,

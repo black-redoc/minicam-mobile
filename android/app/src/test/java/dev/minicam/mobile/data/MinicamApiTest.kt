@@ -107,6 +107,16 @@ class MinicamApiTest {
     }
 
     @Test
+    fun cameras_readsCanListen() = runTest {
+        enqueue(200, """[{"name": "entrada", "can_use_ptz": false, "can_listen": true}, {"name": "patio", "can_use_ptz": false}]""")
+
+        val cameras = lanApi().cameras()
+
+        // Servers without live audio leave it out: no speaker button.
+        assertEquals(listOf(true, false), cameras.map { it.canListen })
+    }
+
+    @Test
     fun ptz_postsAction() = runTest {
         val api = lanApi()
         PtzAction.entries.forEach { enqueue(200, "{}") }
@@ -124,8 +134,20 @@ class MinicamApiTest {
     fun streamToken_returnsToken() = runTest {
         enqueue(200, """{"token": "st", "expires_in": 30}""")
 
-        assertEquals("st", lanApi().streamToken("entrada"))
+        assertEquals(StreamToken("st", 30), lanApi().streamToken("entrada"))
         assertEquals("/api/stream/entrada/token", server.takeRequest().target)
+    }
+
+    @Test
+    fun streamToken_readsMimes() = runTest {
+        val mimes = """"video_mime": "video/mp4; codecs=\"hvc1.1.6.L90\"", "audio_mime": "video/mp4; codecs=\"hvc1.1.6.L90,mp4a.40.2\"""""
+        enqueue(200, """{"token": "st", "expires_in": 30, $mimes}""")
+
+        val token = lanApi().streamToken("front door", audio = true)
+
+        assertEquals("video/mp4; codecs=\"hvc1.1.6.L90\"", token.videoMime)
+        assertEquals("video/mp4; codecs=\"hvc1.1.6.L90,mp4a.40.2\"", token.audioMime)
+        assertEquals("/api/stream/front%20door/token?audio=true", server.takeRequest().target)
     }
 
     @Test

@@ -197,7 +197,21 @@ import Testing
 
         #expect(target(transport.requests.first) == "POST /api/auth/permissions")
         #expect(try json(transport.requests.first)
-            == json(#"{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": true}"#))
+            == json(#"{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": true, "can_listen": false}"#))
+    }
+
+    /// KI-9: a missing can_listen is reset to false by the server, so it is always sent.
+    @Test func setPermission_sendsCanListen() async throws {
+        let transport = FakeTransport([.init(
+            status: 200, body: #"{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": false, "can_listen": true}"#
+        )])
+
+        try await api(transport).setPermission(
+            CameraPermission(userID: 2, cameraName: "patio", canView: true, canUsePTZ: false, canListen: true)
+        )
+
+        #expect(try json(transport.requests.first)
+            == json(#"{"user_id": 2, "camera_name": "patio", "can_view": true, "can_use_ptz": false, "can_listen": true}"#))
     }
 
     @Test func setWanAccess_postsBody() async throws {

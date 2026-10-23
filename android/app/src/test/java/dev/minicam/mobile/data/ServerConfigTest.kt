@@ -44,4 +44,16 @@ class ServerConfigTest {
             ServerConfig.parse("http://192.168.1.20:8080").streamUrl("a/b", "t"),
         )
     }
+
+    @Test
+    fun streamURL_addsFormatAndAudio() {
+        val config = ServerConfig.parse("https://cam.example.com")
+        assertEquals("wss://cam.example.com/ws/stream/a?token=t&format=fmp4", config.streamUrl("a", "t", StreamFormat.FMP4))
+        assertEquals(
+            "wss://cam.example.com/ws/stream/a?token=t&format=fmp4&audio=true",
+            config.streamUrl("a", "t", StreamFormat.FMP4, audio = true),
+        )
+        // The server never sends audio with MJPEG.
+        assertEquals("wss://cam.example.com/ws/stream/a?token=t", config.streamUrl("a", "t", StreamFormat.MJPEG, audio = true))
+    }
 }

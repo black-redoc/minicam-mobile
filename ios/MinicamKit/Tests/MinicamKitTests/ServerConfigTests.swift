@@ -43,4 +43,15 @@ import Testing
         #expect(lan.streamURL(camera: "a/b", token: "t").absoluteString
             == "ws://192.168.1.20:8080/ws/stream/a%2Fb?token=t")
     }
+
+    @Test func streamURL_addsFormatAndAudio() throws {
+        let config = try ServerConfig(parsing: "https://cam.example.com")
+        #expect(config.streamURL(camera: "a", token: "t", format: .fmp4).absoluteString
+            == "wss://cam.example.com/ws/stream/a?token=t&format=fmp4")
+        #expect(config.streamURL(camera: "a", token: "t", format: .fmp4, audio: true).absoluteString
+            == "wss://cam.example.com/ws/stream/a?token=t&format=fmp4&audio=true")
+        // The server never sends audio with MJPEG.
+        #expect(config.streamURL(camera: "a", token: "t", format: .mjpeg, audio: true).absoluteString
+            == "wss://cam.example.com/ws/stream/a?token=t")
+    }
 }
