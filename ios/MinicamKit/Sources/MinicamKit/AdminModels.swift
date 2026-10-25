@@ -2,10 +2,6 @@ import Foundation
 
 // Admin API payloads (docs/specs/005, minicam `app/models/config.py` and `app/models/auth.py`).
 
-public enum StreamQuality: String, Codable, CaseIterable, Sendable {
-    case main, sub
-}
-
 /// Per-camera notification override: `inherit` follows the global switch.
 public enum NotificationMode: String, Codable, CaseIterable, Sendable {
     case inherit, on, off
@@ -21,7 +17,6 @@ public struct CameraConfig: Codable, Equatable, Hashable, Sendable, Identifiable
     public var user: String
     public var password: String
     public var channel: Int
-    public var stream: StreamQuality
     public var detectionClasses: [String]
     public var notifications: NotificationMode
 
@@ -30,7 +25,7 @@ public struct CameraConfig: Codable, Equatable, Hashable, Sendable, Identifiable
     public init(
         name: String = "", host: String = "", rtspPort: Int = 554, onvifPort: Int = 80,
         user: String = "admin", password: String = "", channel: Int = 1,
-        stream: StreamQuality = .main, detectionClasses: [String] = [],
+        detectionClasses: [String] = [],
         notifications: NotificationMode = .inherit
     ) {
         self.name = name
@@ -40,13 +35,12 @@ public struct CameraConfig: Codable, Equatable, Hashable, Sendable, Identifiable
         self.user = user
         self.password = password
         self.channel = channel
-        self.stream = stream
         self.detectionClasses = detectionClasses
         self.notifications = notifications
     }
 
     enum CodingKeys: String, CodingKey {
-        case name, host, user, password, channel, stream, notifications
+        case name, host, user, password, channel, notifications
         case rtspPort = "rtsp_port"
         case onvifPort = "onvif_port"
         case detectionClasses = "detection_classes"

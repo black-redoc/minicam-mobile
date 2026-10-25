@@ -5,12 +5,6 @@ import kotlinx.serialization.Serializable
 
 // Admin API payloads (docs/specs/005, minicam `app/models/config.py` and `app/models/auth.py`).
 
-@Serializable
-enum class StreamQuality {
-    @SerialName("main") MAIN,
-    @SerialName("sub") SUB,
-}
-
 /** Per-camera notification override: `INHERIT` follows the global switch. */
 @Serializable
 enum class NotificationMode {
@@ -32,7 +26,6 @@ data class CameraConfig(
     val user: String = "admin",
     val password: String = "",
     val channel: Int = 1,
-    val stream: StreamQuality = StreamQuality.MAIN,
     @SerialName("detection_classes") val detectionClasses: List<String> = emptyList(),
     val notifications: NotificationMode = NotificationMode.INHERIT,
 )

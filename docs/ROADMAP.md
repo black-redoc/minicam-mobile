@@ -61,8 +61,14 @@ app, on-demand live audio gated by `can_listen`, Listen column in Admin permissi
 
 Non-goals for M2.8: audio in event recordings (server phase 3), codec/FPS indicator.
 
+## M2.9 - Sub-stream only (specs/010-substream-only.md)
+Scope: drop the camera config `stream` field and the Main/Sub picker, as minicam now always
+reads the sub-stream.
+- [x] Android and iOS: all spec 010 acceptance criteria passing
+
 ## M3 - Comfort
-- [ ] Grid view (several cameras at once), mirroring the desktop grid
+- [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
+  top-left of each cell, in the FPS label style, minicam 1177ff3)
 - [ ] Data-saver mode (lower FPS / pause when on cellular), see SECURITY.md bandwidth note
 - [ ] Biometric unlock before showing streams
 
