@@ -7,7 +7,7 @@ import Testing
     let lan = try! ServerConfig(parsing: "http://192.168.1.20:8080")
     let cameraJSON = """
         {"name": "front door", "host": "192.168.1.100", "rtsp_port": 554, "onvif_port": 8000,
-         "user": "admin", "password": "", "channel": 1, "stream": "sub",
+         "user": "admin", "password": "", "channel": 1,
          "detection_classes": ["person"], "notifications": "on"}
         """
 
@@ -43,10 +43,17 @@ import Testing
         let cameras = try await api(transport).adminCameras()
 
         #expect(cameras == [CameraConfig(
-            name: "front door", host: "192.168.1.100", onvifPort: 8000, stream: .sub,
+            name: "front door", host: "192.168.1.100", onvifPort: 8000,
             detectionClasses: ["person"], notifications: .on
         )])
         #expect(target(transport.requests.first) == "GET /api/cameras")
+    }
+
+    @Test func adminCameras_ignoresLegacyStream() async throws {
+        let legacy = cameraJSON.replacingOccurrences(of: #""channel": 1,"#, with: #""channel": 1, "stream": "main","#)
+        let transport = FakeTransport([.init(status: 200, body: "[\(legacy)]")])
+
+        #expect(try await api(transport).adminCameras().map(\.name) == ["front door"])
     }
 
     @Test func saveCamera_postsNewAndPutsExisting() async throws {
@@ -62,7 +69,7 @@ import Testing
         #expect(target(transport.requests[0]) == "POST /api/cameras")
         #expect(try json(transport.requests[0]) == json("""
             {"name": "patio", "host": "192.168.1.101", "rtsp_port": 554, "onvif_port": 80,
-             "user": "admin", "password": "secret", "channel": 1, "stream": "main",
+             "user": "admin", "password": "secret", "channel": 1,
              "detection_classes": [], "notifications": "inherit"}
             """))
         #expect(target(transport.requests[1]) == "PUT /api/cameras/front%20door")

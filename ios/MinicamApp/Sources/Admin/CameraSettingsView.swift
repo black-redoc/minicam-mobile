@@ -131,10 +131,6 @@ struct CameraFormView: View {
                     SecureField("Leave blank to keep current", text: $form.password)
                 }
                 LabeledField(label: "Channel") { TextField("1", text: $channel).keyboardType(.numberPad) }
-                Picker("Stream", selection: $form.stream) {
-                    Text("Main").tag(StreamQuality.main)
-                    Text("Sub").tag(StreamQuality.sub)
-                }
             } footer: {
                 Text("Leave the password blank to keep the existing one.")
             }
