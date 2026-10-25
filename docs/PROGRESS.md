@@ -111,3 +111,10 @@
 - Tests: Android 63/63 + lint 0 warnings + debug/release builds; iOS `swift test` 61/61,
   simulator + UI test builds with no Swift warnings
 - Next: manual check against a minicam with an HEVC camera on LAN and WAN, audio on/off
+
+## 2026-10-24 — Spec 010 sub-stream only
+- Done: removed the camera config `stream` field and the Main/Sub picker (minicam now always
+  reads the sub-stream); older servers that still send the key keep working
+- Commit: b6322ca (docs), 4af1bdb (Android), 88bef3d (iOS)
+- Tests: Android 64/64 + lint 0 issues + debug build; iOS `swift test` 62/62, simulator build OK
+- Next: manual check of the camera form; spec 009 manual checks still open
