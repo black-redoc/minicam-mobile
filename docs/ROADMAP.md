@@ -66,6 +66,11 @@ Scope: drop the camera config `stream` field and the Main/Sub picker, as minicam
 reads the sub-stream.
 - [x] Android and iOS: all spec 010 acceptance criteria passing
 
+## M2.10 - Live view time limit (specs/011-live-view-time-limit.md)
+Scope: each camera open streams for at most 30 s, then the connection closes; reopen the camera
+to watch again. Saves data transfer.
+- [ ] Android and iOS: all spec 011 acceptance criteria passing
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)

@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -79,6 +80,7 @@ import dev.minicam.mobile.data.StreamEvent
 import dev.minicam.mobile.data.StreamFormat
 import dev.minicam.mobile.data.StreamStatus
 import dev.minicam.mobile.data.VideoZoom
+import dev.minicam.mobile.data.ViewingBudget
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 import kotlin.math.roundToInt
@@ -104,6 +106,9 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     // The newest JPEG only: if decoding falls behind, older frames are skipped, as the server does.
     val jpegs = remember { MutableStateFlow<ByteArray?>(null) }
     val livePlayer = remember { LivePlayer(context) }
+    // Spec 011: at most 30 s of streaming per open; then back to the camera list.
+    val budget = remember { ViewingBudget() }
+    var secondsLeft by remember { mutableIntStateOf(budget.remainingSeconds) }
     DisposableEffect(livePlayer) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
@@ -158,6 +163,23 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             }
         }
     }
+    // The viewing time runs under the same lifecycle rule as the stream, across its restarts.
+    // Leaving the screen closes the stream connection.
+    LaunchedEffect(budget) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            budget.start()
+            try {
+                while (!budget.expired) {
+                    secondsLeft = budget.remainingSeconds
+                    // Wake on the next whole second, so the countdown ticks on time.
+                    delay((budget.remainingMs - 1) % 1000 + 1)
+                }
+                viewModel.selectedCamera = null
+            } finally {
+                budget.stop()
+            }
+        }
+    }
     LaunchedEffect(jpegs) {
         jpegs.filterNotNull().collect { jpeg ->
             withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) }
@@ -198,6 +220,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             frame = frame,
             live = live,
             status = status,
+            secondsLeft = secondsLeft,
             zoom = zoom,
             onZoom = { zoom = it },
             onPan = onPan,
@@ -245,6 +268,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                     .zoomPan(zoom, onPan),
             ) {
                 VideoFeed(frame, live, status, zoom)
+                ViewingCountdown(secondsLeft, Modifier.align(Alignment.TopStart).padding(10.dp))
                 ZoomButtons(zoom, onZoom = { zoom = it }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
                 speaker(Modifier.align(Alignment.BottomStart).padding(10.dp), 40.dp)
                 GlassIconButton(
@@ -315,6 +339,22 @@ private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatu
 }
 
 /**
+ * Spec 011 AC6: seconds left before the live view closes, so going back to the list reads as the
+ * time running out rather than a failure; red for the last 10 s.
+ */
+@Composable
+private fun ViewingCountdown(seconds: Int, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(50)
+    Text(
+        "Closes in $seconds s",
+        color = if (seconds <= 10) CamColors.Danger else Color.White,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier.glass(shape).padding(horizontal = 10.dp, vertical = 5.dp),
+    )
+}
+
+/**
  * Detection boxes of an fMP4 stream, which can't be drawn into the video (spec 009 AC7): the
  * class colour, the label and confidence on a tab above the box, like the server's MJPEG boxes.
  */
@@ -346,6 +386,7 @@ private fun FullscreenCamera(
     frame: ImageBitmap?,
     live: LiveVideo?,
     status: StreamStatus,
+    secondsLeft: Int,
     zoom: VideoZoom,
     onZoom: (VideoZoom) -> Unit,
     onPan: (Float, Float) -> Unit,
@@ -367,6 +408,7 @@ private fun FullscreenCamera(
             ) {
                 GlassIconButton(label = "Exit fullscreen", onClick = onExit) { FullscreenIcon(exit = true) }
                 StatusBadge(status)
+                ViewingCountdown(secondsLeft)
             }
 
             if (canUsePtz && !showPtz) {
