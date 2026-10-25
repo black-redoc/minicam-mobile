@@ -26,6 +26,9 @@ public struct ViewingBudget: Sendable {
 
     public var expired: Bool { remaining == 0 }
 
+    /// Whole seconds left for the countdown, rounded up so it reads 30 … 1 and 0 only once expired.
+    public var remainingSeconds: Int { Int(remaining.rounded(.up)) }
+
     public mutating func start() {
         if runningSince == nil { runningSince = clock() }
     }

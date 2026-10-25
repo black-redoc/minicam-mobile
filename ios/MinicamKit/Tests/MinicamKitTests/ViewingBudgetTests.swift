@@ -41,6 +41,19 @@ private final class ManualClock: @unchecked Sendable {
         #expect(budget.remaining == 15)
     }
 
+    @Test mutating func viewingBudget_roundsSecondsUp() {
+        #expect(budget.remainingSeconds == 30)
+        budget.start()
+        clock.now += 0.25
+        #expect(budget.remainingSeconds == 30)
+        clock.now += 0.75
+        #expect(budget.remainingSeconds == 29)
+        clock.now += 28.5
+        #expect(budget.remainingSeconds == 1)
+        clock.now += 0.5
+        #expect(budget.remainingSeconds == 0)
+    }
+
     @Test mutating func viewingBudget_expiresAtLimit() {
         budget.start()
         clock.now += 29.5
