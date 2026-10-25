@@ -50,7 +50,8 @@ password session, and the server pins the redirect target (no open redirect).
 ## Bandwidth / cost note
 MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer); fMP4 is the camera's own bitrate
 (~150 kbit/s for a sub stream). The app must close streams when not
-visible. A data-saver mode is planned (ROADMAP M2).
+visible, and each camera open streams for at most 30 s (spec 011). A data-saver mode is planned
+(ROADMAP M3).
 
 ## Per-feature checklist
 - [ ] Input validation: server URL, camera names URL-encoded in paths
