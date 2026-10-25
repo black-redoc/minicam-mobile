@@ -29,7 +29,7 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["signIn"].tap()
         dismissSavePasswordPrompt()
 
-        // The row's label combines the name and the "PTZ" tag, e.g. "entrada, PTZ".
+        // The row's label starts with the camera name.
         let cameraRow = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", camera)).firstMatch
         XCTAssertTrue(cameraRow.waitForExistence(timeout: 15))
         attach(app, name: "ios-cameras")

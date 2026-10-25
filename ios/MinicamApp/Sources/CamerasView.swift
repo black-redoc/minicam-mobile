@@ -25,11 +25,6 @@ struct CamerasView: View {
                             Text(camera.name)
                                 .foregroundStyle(Theme.text)
                             Spacer()
-                            if camera.canUsePTZ {
-                                Text("PTZ")
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(Theme.muted)
-                            }
                         }
                     }
                     .listRowBackground(Theme.surface)
