@@ -17,6 +17,9 @@ class ViewingBudget(
 
     val expired: Boolean get() = remainingMs == 0L
 
+    /** Whole seconds left for the countdown, rounded up so it reads 30 … 1 and 0 only once expired. */
+    val remainingSeconds: Int get() = ((remainingMs + 999) / 1000).toInt()
+
     fun start() {
         if (runningSince == null) runningSince = clock()
     }

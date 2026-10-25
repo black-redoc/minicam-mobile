@@ -36,6 +36,20 @@ class ViewingBudgetTest {
     }
 
     @Test
+    fun viewingBudget_roundsSecondsUp() {
+        assertEquals(30, budget.remainingSeconds)
+        budget.start()
+        now += 1
+        assertEquals(30, budget.remainingSeconds)
+        now += 999
+        assertEquals(29, budget.remainingSeconds)
+        now += 28_999
+        assertEquals(1, budget.remainingSeconds)
+        now += 1
+        assertEquals(0, budget.remainingSeconds)
+    }
+
+    @Test
     fun viewingBudget_expiresAtLimit() {
         budget.start()
         now += 29_999
