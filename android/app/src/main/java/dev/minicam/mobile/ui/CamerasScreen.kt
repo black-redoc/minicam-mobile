@@ -64,7 +64,6 @@ fun CamerasScreen(viewModel: AppViewModel) {
                         Card(Modifier.fillMaxWidth()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(camera.name, color = CamColors.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                                if (camera.canUsePtz) Text("PTZ", color = CamColors.Muted, fontSize = 11.sp)
                             }
                         }
                     }
