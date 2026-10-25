@@ -118,3 +118,10 @@
 - Commit: b6322ca (docs), 4af1bdb (Android), 88bef3d (iOS)
 - Tests: Android 64/64 + lint 0 issues + debug build; iOS `swift test` 62/62, simulator build OK
 - Next: manual check of the camera form; spec 009 manual checks still open
+
+## 2026-10-24 — Spec 011 live view time limit
+- Done: each camera open streams for at most 30 s (paused while in background), then the
+  connection closes and "Viewing ended" shows; reopen the camera to watch again
+- Commit: 814b974 (docs), 3ba92af (Android), a186ee1 (iOS)
+- Tests: Android 67/67 + lint 0 issues + debug build; iOS `swift test` 65/65, simulator build OK
+- Next: manual check of AC4/AC5 on emulator/simulator (MJPEG and fMP4, audio on)

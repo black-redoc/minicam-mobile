@@ -6,11 +6,11 @@ again the user goes back and opens the camera again.
 
 ## Acceptance criteria
 Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in MinicamKit).
-- [ ] AC1: A new budget has 30 s left and counts down only while running → test:
+- [x] AC1: A new budget has 30 s left and counts down only while running → test:
   `viewingBudget_countsOnlyWhileRunning`
-- [ ] AC2: Time already used is kept across pauses (app in background, audio toggled, MJPEG
+- [x] AC2: Time already used is kept across pauses (app in background, audio toggled, MJPEG
   fallback), so reconnecting never resets the 30 s → test: `viewingBudget_keepsUsedTimeAcrossPauses`
-- [ ] AC3: Once the 30 s are used the budget is expired and stays at 0 → test:
+- [x] AC3: Once the 30 s are used the budget is expired and stays at 0 → test:
   `viewingBudget_expiresAtLimit`
 - [ ] AC4: When the budget expires the live view closes the stream connection (MJPEG or fMP4,
   with or without audio), hides the speaker button and shows "Viewing ended" over the video with
@@ -28,9 +28,9 @@ when the stream starts connecting, so slow connects are counted too. PTZ stays u
 No new input, endpoint or host. Lowers the bandwidth cost noted in SECURITY.md.
 
 ## Tasks
-- [ ] Android: `ViewingBudget` + tests, camera screen
-- [ ] iOS: `ViewingBudget` + tests, camera view
-- [ ] Docs: PROGRESS, ROADMAP, PLAN, SECURITY note
+- [x] Android: `ViewingBudget` + tests, camera screen
+- [x] iOS: `ViewingBudget` + tests, camera view
+- [x] Docs: PROGRESS, ROADMAP, PLAN, SECURITY note
 
 ## Out of scope
 - A configurable limit or a setting to turn it off
