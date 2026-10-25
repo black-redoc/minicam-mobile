@@ -132,3 +132,9 @@
 - Commit: see `git log feat/stream-time-limit`
 - Tests: Android 67/67 + lint 0 issues + debug build; iOS simulator build OK
 - Next: manual check of AC4/AC5 on emulator/simulator
+
+## 2026-10-24 — Spec 011: countdown
+- Done: "Closes in N s" pill over the live view (regular and fullscreen), red for the last 10 s
+- Commit: see `git log feat/stream-time-limit`
+- Tests: Android 68/68 + lint 0 issues + debug build; iOS `swift test` 66/66, simulator build OK
+- Next: manual check of AC4/AC5/AC7 on emulator/simulator

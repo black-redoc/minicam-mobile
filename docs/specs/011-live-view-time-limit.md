@@ -16,6 +16,11 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
   fullscreen, restoring portrait) and the stream connection is closed (MJPEG or fMP4, with or
   without audio) (Android + iOS) → manual
 - [ ] AC5: Going back to the camera list and opening the camera again starts a new 30 s → manual
+- [x] AC6: The countdown reads whole seconds rounded up (30 … 1) → test:
+  `viewingBudget_roundsSecondsUp`
+- [ ] AC7: A "Closes in N s" glass pill shows the countdown over the video (top-left in the
+  regular layout, next to the status badge in fullscreen), red for the last 10 s, so returning
+  to the list reads as the time running out, not a UI failure (Android + iOS) → manual
 
 ## Design
 A small `ViewingBudget` (Android `data/`, iOS `MinicamKit`) with an injectable monotonic clock:
@@ -35,5 +40,5 @@ No new input, endpoint or host. Lowers the bandwidth cost noted in SECURITY.md.
 
 ## Out of scope
 - A configurable limit or a setting to turn it off
-- A "watch again" button or a notice explaining why the view closed
+- A "watch again" button or a notice on the camera list explaining why the view closed
 - Limits for the recordings player
