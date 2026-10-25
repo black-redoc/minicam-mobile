@@ -7,7 +7,6 @@ struct CameraView: View {
 
     @Environment(AppModel.self) private var model
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.dismiss) private var dismiss
     @State private var frame: UIImage?
     @State private var status: StreamStatus = .connecting
     @State private var isFullscreen = false
@@ -21,9 +20,6 @@ struct CameraView: View {
     @State private var audioAvailable = false
     @State private var detections: Detections?
     @State private var player = LivePlayer()
-    // Spec 011: at most 30 s of streaming per open; then back to the camera list.
-    @State private var budget = ViewingBudget()
-    @State private var secondsLeft = Int(ViewingBudget.limit)
 
     /// Restarts the stream when it changes: foreground, audio toggled, fallback to MJPEG.
     private struct StreamKey: Hashable {
@@ -55,21 +51,6 @@ struct CameraView: View {
             guard scenePhase == .active, let api = model.api else { return }
             await stream(api: api)
         }
-        // The viewing time runs under the same rule as the stream, across its restarts.
-        // Leaving the screen closes the stream connection.
-        .task(id: scenePhase == .active) {
-            guard scenePhase == .active else { return }
-            budget.start()
-            defer { budget.stop() }
-            while !budget.expired {
-                secondsLeft = budget.remainingSeconds
-                // Wake on the next whole second, so the countdown ticks on time.
-                let untilNextSecond = budget.remaining - Double(budget.remainingSeconds - 1)
-                try? await Task.sleep(for: .seconds(untilNextSecond))
-                if Task.isCancelled { return }
-            }
-            dismiss()
-        }
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
@@ -97,7 +78,6 @@ struct CameraView: View {
                     .zoomPan($zoom)
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
-                    .overlay(alignment: .topLeading) { ViewingCountdown(seconds: secondsLeft).padding(10) }
                     .overlay(alignment: .topTrailing) { ZoomButtons(zoom: $zoom, size: 40).padding(10) }
                     .overlay(alignment: .bottomLeading) { speakerButton(size: 40).padding(10) }
                     .overlay(alignment: .bottomTrailing) {
@@ -127,7 +107,6 @@ struct CameraView: View {
                         isFullscreen = false
                     }
                     StatusBadge(status: status)
-                    ViewingCountdown(seconds: secondsLeft)
                     Spacer()
                     if camera.canUsePTZ, !showPTZ {
                         glassButton("Show PTZ controls", systemImage: "gamecontroller") {
@@ -273,21 +252,6 @@ struct StatusBadge: View {
         case .disconnected: "Disconnected"
         case .connecting: "Connecting…"
         }
-    }
-}
-
-/// Spec 011 AC6: seconds left before the live view closes, so going back to the list reads as
-/// the time running out rather than a failure; red for the last 10 s.
-struct ViewingCountdown: View {
-    let seconds: Int
-
-    var body: some View {
-        Text("Closes in \(seconds) s")
-            .font(.caption.weight(.semibold).monospacedDigit())
-            .foregroundStyle(seconds <= 10 ? Theme.danger : .white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .glassSurface(in: Capsule())
     }
 }
 
