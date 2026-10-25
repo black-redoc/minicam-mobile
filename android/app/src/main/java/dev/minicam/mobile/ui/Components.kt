@@ -145,15 +145,11 @@ fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
 
 /** `.badge--connected/disconnected/connecting` from main.css. */
 @Composable
-fun StatusBadge(status: StreamStatus, ended: Boolean = false) {
-    val (color, label) = when {
-        // Spec 011: the viewing time is up and the stream was closed on purpose.
-        ended -> CamColors.Muted to "Ended"
-        else -> when (status) {
-            StreamStatus.CONNECTED -> CamColors.Success to "Live"
-            StreamStatus.DISCONNECTED -> CamColors.Danger to "Disconnected"
-            StreamStatus.CONNECTING -> CamColors.Muted to "Connecting…"
-        }
+fun StatusBadge(status: StreamStatus) {
+    val (color, label) = when (status) {
+        StreamStatus.CONNECTED -> CamColors.Success to "Live"
+        StreamStatus.DISCONNECTED -> CamColors.Danger to "Disconnected"
+        StreamStatus.CONNECTING -> CamColors.Muted to "Connecting…"
     }
     Row(
         Modifier

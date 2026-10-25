@@ -125,3 +125,10 @@
 - Commit: 814b974 (docs), 3ba92af (Android), a186ee1 (iOS)
 - Tests: Android 67/67 + lint 0 issues + debug build; iOS `swift test` 65/65, simulator build OK
 - Next: manual check of AC4/AC5 on emulator/simulator (MJPEG and fMP4, audio on)
+
+## 2026-10-24 — Spec 011: return to the list
+- Done: when the 30 s are up the app goes back to the camera list on its own (replaces the
+  "Viewing ended" notice and the "Ended" badge)
+- Commit: see `git log feat/stream-time-limit`
+- Tests: Android 67/67 + lint 0 issues + debug build; iOS simulator build OK
+- Next: manual check of AC4/AC5 on emulator/simulator

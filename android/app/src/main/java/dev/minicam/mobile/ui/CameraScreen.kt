@@ -57,7 +57,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -106,9 +105,8 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     // The newest JPEG only: if decoding falls behind, older frames are skipped, as the server does.
     val jpegs = remember { MutableStateFlow<ByteArray?>(null) }
     val livePlayer = remember { LivePlayer(context) }
-    // Spec 011: at most 30 s of streaming per open; then the connection closes for good.
+    // Spec 011: at most 30 s of streaming per open; then back to the camera list.
     val budget = remember { ViewingBudget() }
-    var viewingEnded by remember { mutableStateOf(false) }
     DisposableEffect(livePlayer) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
@@ -128,9 +126,8 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
 
     // Streaming only while STARTED, like the desktop's visibilitychange
     // handling: a backgrounded app costs the Pi nothing. Toggling audio or
-    // falling back to MJPEG starts a new stream; the viewing time ending cancels it for good.
-    LaunchedEffect(api, camera.name, audioOn, fmp4Failed, viewingEnded) {
-        if (viewingEnded) return@LaunchedEffect
+    // falling back to MJPEG starts a new stream.
+    LaunchedEffect(api, camera.name, audioOn, fmp4Failed) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             val client = StreamClient(api, camera.name, preferFmp4 = !fmp4Failed, audio = audioOn, canPlay = ::canDecode)
             try {
@@ -165,13 +162,13 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
         }
     }
     // The viewing time runs under the same lifecycle rule as the stream, across its restarts.
-    LaunchedEffect(budget, viewingEnded) {
-        if (viewingEnded) return@LaunchedEffect
+    // Leaving the screen closes the stream connection.
+    LaunchedEffect(budget) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             budget.start()
             try {
                 delay(budget.remainingMs)
-                viewingEnded = true
+                viewModel.selectedCamera = null
             } finally {
                 budget.stop()
             }
@@ -191,7 +188,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     }
     val live = if (session?.choice?.format == StreamFormat.FMP4) LiveVideo(livePlayer.player, hasPicture, detections) else null
     // Only offered when the server says this user may listen and the device can play it.
-    val canHear = camera.canListen && session?.audioAvailable == true && !viewingEnded
+    val canHear = camera.canListen && session?.audioAvailable == true
     val speaker: @Composable (Modifier, Dp) -> Unit = { modifier, size ->
         if (canHear) {
             GlassIconButton(
@@ -217,7 +214,6 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             frame = frame,
             live = live,
             status = status,
-            ended = viewingEnded,
             zoom = zoom,
             onZoom = { zoom = it },
             onPan = onPan,
@@ -250,7 +246,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                 fontSize = 15.sp,
                 modifier = Modifier.weight(1f),
             )
-            StatusBadge(status, ended = viewingEnded)
+            StatusBadge(status)
             Box(Modifier.padding(end = 8.dp))
         }
 
@@ -264,7 +260,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                     .background(Color.Black)
                     .zoomPan(zoom, onPan),
             ) {
-                VideoFeed(frame, live, status, viewingEnded, zoom)
+                VideoFeed(frame, live, status, zoom)
                 ZoomButtons(zoom, onZoom = { zoom = it }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
                 speaker(Modifier.align(Alignment.BottomStart).padding(10.dp), 40.dp)
                 GlassIconButton(
@@ -292,11 +288,10 @@ private class LiveVideo(val player: Player, val hasPicture: Boolean, val detecti
 /**
  * Frame fitted to the box (`object-fit: contain`): a placeholder until the first frame, then the
  * dimmed last frame with a spinner while reconnecting (spec 007 AC4). With [live], the fMP4
- * player instead of the JPEG frame, with the detection boxes drawn over it. Once the viewing
- * time is [ended] (spec 011), a notice over whatever is left.
+ * player instead of the JPEG frame, with the detection boxes drawn over it.
  */
 @Composable
-private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatus, ended: Boolean, zoom: VideoZoom) {
+private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatus, zoom: VideoZoom) {
     val hasPicture = live?.hasPicture ?: (frame != null)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (live != null) {
@@ -325,33 +320,13 @@ private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatu
                 )
             }
         }
-        if (ended) {
-            ViewingEndedNotice()
-        } else if (!hasPicture) {
+        if (!hasPicture) {
             Skeleton(Modifier.fillMaxSize()) { SkeletonBlock(Modifier.fillMaxSize(), RectangleShape) }
         } else if (status != StreamStatus.CONNECTED) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = CamColors.Accent, trackColor = CamColors.Border)
             }
         }
-    }
-}
-
-/** Spec 011 AC4: the stream was closed after its 30 s; reopening the camera starts a new one. */
-@Composable
-private fun ViewingEndedNotice() {
-    Column(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Viewing ended", color = CamColors.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        Text(
-            "Live view stops after 30 seconds to save data. Open the camera again to keep watching.",
-            color = CamColors.Muted,
-            fontSize = 12.sp,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 
@@ -387,7 +362,6 @@ private fun FullscreenCamera(
     frame: ImageBitmap?,
     live: LiveVideo?,
     status: StreamStatus,
-    ended: Boolean,
     zoom: VideoZoom,
     onZoom: (VideoZoom) -> Unit,
     onPan: (Float, Float) -> Unit,
@@ -399,7 +373,7 @@ private fun FullscreenCamera(
     speaker: @Composable (Modifier) -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(Color.Black).zoomPan(zoom, onPan)) {
-        VideoFeed(frame, live, status, ended, zoom)
+        VideoFeed(frame, live, status, zoom)
 
         Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
             Row(
@@ -408,7 +382,7 @@ private fun FullscreenCamera(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 GlassIconButton(label = "Exit fullscreen", onClick = onExit) { FullscreenIcon(exit = true) }
-                StatusBadge(status, ended = ended)
+                StatusBadge(status)
             }
 
             if (canUsePtz && !showPtz) {
