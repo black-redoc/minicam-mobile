@@ -11,7 +11,7 @@
 ## M1 - Viewer v1 (specs/001-viewer-v1.md)
 Scope: server URL, minicam login/logout, list of viewable cameras, live stream, hold-to-move PTZ,
 Cloudflare Access login for WAN hosts.
-- [ ] Backend prerequisites merged in minicam (specs/002; implemented on minicam branch `feat/mobile-endpoints`)
+- [x] Backend prerequisites merged in minicam (specs/002; minicam PR #12)
 - [ ] Android: all spec 001 acceptance criteria passing
 - [ ] iOS: all spec 001 acceptance criteria passing
 - [ ] Tested on a real device on LAN and through the tunnel

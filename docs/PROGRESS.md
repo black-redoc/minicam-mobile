@@ -138,3 +138,10 @@
 - Commit: see `git log feat/stream-time-limit`
 - Tests: Android 68/68 + lint 0 issues + debug build; iOS `swift test` 66/66, simulator build OK
 - Next: manual check of AC4/AC5/AC7 on emulator/simulator
+
+## 2026-10-25 — Spec 002 backend mobile endpoints
+- Done: confirmed minicam PR #12 (`feat/mobile-endpoints`) is merged and the endpoints are on
+  minicam `master`; spec marked Done and the M1 backend item ticked
+- Commit: see `git log feat/stream-time-limit`
+- Tests: minicam `test_mobile_flow.py` + `test_authorization_service.py` 21/21
+- Next: M1 device checks (specs/001, 004); spec 011 manual check of AC4/AC5/AC7

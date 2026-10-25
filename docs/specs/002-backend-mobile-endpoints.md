@@ -1,4 +1,4 @@
-# 002 Backend endpoints for mobile (minicam repo) — Status: In review
+# 002 Backend endpoints for mobile (minicam repo) — Status: Done
 ## Goal
 Give native clients a JSON way to list their cameras and to obtain a Cloudflare Access token.
 This is implemented in the **minicam** repo, not here; this spec is the contract the apps code
@@ -19,7 +19,7 @@ against.
 - [x] AC5: The handoff response has `Cache-Control: no-store` and the token never appears in logs.
 
 Tests: minicam `tests/integration/test_mobile_flow.py`, `tests/unit/test_authorization_service.py`.
-Branch `feat/mobile-endpoints`, commit 150ede1.
+Branch `feat/mobile-endpoints`, commit 150ede1, merged in minicam PR #12 (2026-10-22).
 
 ## Design
 New small router in minicam (e.g. `app/routers/mobile.py`), reusing existing dependencies.
