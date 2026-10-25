@@ -20,12 +20,17 @@ struct CameraView: View {
     @State private var audioAvailable = false
     @State private var detections: Detections?
     @State private var player = LivePlayer()
+    // Spec 011: at most 30 s of streaming per open; then the connection closes for good.
+    @State private var budget = ViewingBudget()
+    @State private var viewingEnded = false
 
-    /// Restarts the stream when it changes: foreground, audio toggled, fallback to MJPEG.
+    /// Restarts the stream when it changes: foreground, audio toggled, fallback to MJPEG; the
+    /// viewing time ending cancels it for good.
     private struct StreamKey: Hashable {
         let active: Bool
         let audio: Bool
         let fmp4Failed: Bool
+        let ended: Bool
     }
 
     var body: some View {
@@ -36,7 +41,7 @@ struct CameraView: View {
         }
         .navigationTitle(camera.name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { StatusBadge(status: status) } }
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { StatusBadge(status: status, ended: viewingEnded) } }
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .statusBarHidden(isFullscreen)
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
@@ -47,9 +52,17 @@ struct CameraView: View {
         }
         // Streaming only while visible and in the foreground, like the desktop's
         // visibilitychange handling: a background app costs the Pi nothing.
-        .task(id: StreamKey(active: scenePhase == .active, audio: audioOn, fmp4Failed: fmp4Failed)) {
-            guard scenePhase == .active, let api = model.api else { return }
+        .task(id: StreamKey(active: scenePhase == .active, audio: audioOn, fmp4Failed: fmp4Failed, ended: viewingEnded)) {
+            guard scenePhase == .active, !viewingEnded, let api = model.api else { return }
             await stream(api: api)
+        }
+        // The viewing time runs under the same rule as the stream, across its restarts.
+        .task(id: scenePhase == .active && !viewingEnded) {
+            guard scenePhase == .active, !viewingEnded else { return }
+            budget.start()
+            defer { budget.stop() }
+            try? await Task.sleep(for: .seconds(budget.remaining))
+            if !Task.isCancelled { viewingEnded = true }
         }
         .task {
             while !Task.isCancelled {
@@ -63,7 +76,7 @@ struct CameraView: View {
     /// Only offered when the server says this user may listen and the device can play it.
     @ViewBuilder
     private func speakerButton(size: CGFloat) -> some View {
-        if camera.canListen, audioAvailable {
+        if camera.canListen, audioAvailable, !viewingEnded {
             glassButton(
                 audioOn ? "Turn audio off" : "Turn audio on",
                 systemImage: audioOn ? "speaker.wave.2.fill" : "speaker.slash.fill", size: size
@@ -106,7 +119,7 @@ struct CameraView: View {
                     glassButton("Exit fullscreen", systemImage: "arrow.down.right.and.arrow.up.left") {
                         isFullscreen = false
                     }
-                    StatusBadge(status: status)
+                    StatusBadge(status: status, ended: viewingEnded)
                     Spacer()
                     if camera.canUsePTZ, !showPTZ {
                         glassButton("Show PTZ controls", systemImage: "gamecontroller") {
@@ -161,7 +174,8 @@ struct CameraView: View {
 
     /// Frame fitted to the container (`object-fit: contain`): a placeholder until the first
     /// frame, then the dimmed last frame with a spinner while reconnecting (spec 007 AC4). With
-    /// fMP4, the live player instead of the JPEG frame, with the detection boxes over it.
+    /// fMP4, the live player instead of the JPEG frame, with the detection boxes over it. Once
+    /// the viewing time has ended (spec 011), a notice over whatever is left.
     private var videoFeed: some View {
         ZStack {
             Color.black
@@ -173,7 +187,9 @@ struct CameraView: View {
                     .resizable()
                     .scaledToFit()
             }
-            if !(isFMP4 ? player.hasPicture : frame != nil) {
+            if viewingEnded {
+                viewingEndedNotice
+            } else if !(isFMP4 ? player.hasPicture : frame != nil) {
                 SkeletonBlock(width: nil, height: nil, cornerRadius: 0).skeletonGroup()
             } else if status != .connected {
                 ZStack {
@@ -183,6 +199,23 @@ struct CameraView: View {
             }
         }
         .accessibilityLabel("Live camera feed")
+    }
+
+    /// Spec 011 AC4: the stream was closed after its 30 s; reopening the camera starts a new one.
+    private var viewingEndedNotice: some View {
+        ZStack {
+            Color.black.opacity(0.72)
+            VStack(spacing: 4) {
+                Text("Viewing ended")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.text)
+                Text("Live view stops after 30 seconds to save data. Open the camera again to keep watching.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(16)
+        }
     }
 
     private func stream(api: MinicamAPI) async {
@@ -224,6 +257,8 @@ struct CameraView: View {
 /// `.badge--connected/disconnected/connecting` from main.css.
 struct StatusBadge: View {
     let status: StreamStatus
+    /// Spec 011: the viewing time is up and the stream was closed on purpose.
+    var ended = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -239,7 +274,8 @@ struct StatusBadge: View {
     }
 
     private var color: Color {
-        switch status {
+        if ended { return Theme.muted }
+        return switch status {
         case .connected: Theme.success
         case .disconnected: Theme.danger
         case .connecting: Theme.muted
@@ -247,7 +283,8 @@ struct StatusBadge: View {
     }
 
     private var label: String {
-        switch status {
+        if ended { return "Ended" }
+        return switch status {
         case .connected: "Live"
         case .disconnected: "Disconnected"
         case .connecting: "Connecting…"
