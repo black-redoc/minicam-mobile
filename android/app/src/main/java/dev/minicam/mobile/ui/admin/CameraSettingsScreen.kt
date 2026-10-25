@@ -30,7 +30,6 @@ import dev.minicam.mobile.data.CameraConfig
 import dev.minicam.mobile.data.DiscoveredCamera
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.NotificationMode
-import dev.minicam.mobile.data.StreamQuality
 import dev.minicam.mobile.data.adminCameras
 import dev.minicam.mobile.data.deleteCamera
 import dev.minicam.mobile.data.detectionClasses
@@ -132,7 +131,6 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
     // Never prefilled (the server redacts it) and never saved state: blank keeps the current one.
     var password by remember { mutableStateOf("") }
     var channel by remember { mutableStateOf(initial.channel.toString()) }
-    var stream by remember { mutableStateOf(initial.stream) }
     var notifications by remember { mutableStateOf(initial.notifications) }
     val selectedClasses = remember { mutableStateListOf(*initial.detectionClasses.toTypedArray()) }
     var availableClasses by remember { mutableStateOf<List<String>?>(null) }
@@ -167,7 +165,6 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
             user = user.trim(),
             password = password,
             channel = ch!!,
-            stream = stream,
             // With no backend there is nothing to pick from: keep the camera's classes as they are.
             detectionClasses = availableClasses?.takeIf { it.isNotEmpty() }?.filter { it in selectedClasses }
                 ?: selectedClasses.toList(),
@@ -214,7 +211,6 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
                 Hint("Leave blank to keep the existing password.")
             }
             CamTextField("Channel", channel, { channel = it }, keyboardType = KeyboardType.Number, placeholder = "1")
-            OptionPicker("Stream", listOf(StreamQuality.MAIN to "Main", StreamQuality.SUB to "Sub"), stream) { stream = it }
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Object detection", color = CamColors.Muted, fontSize = 12.sp)

@@ -18,7 +18,7 @@ class AdminApiTest {
     private val store = InMemoryCredentialStore()
     private val cameraJson = """
         {"name": "front door", "host": "192.168.1.100", "rtsp_port": 554, "onvif_port": 8000,
-         "user": "admin", "password": "", "channel": 1, "stream": "sub",
+         "user": "admin", "password": "", "channel": 1,
          "detection_classes": ["person"], "notifications": "on"}
     """
 
@@ -60,7 +60,6 @@ class AdminApiTest {
                     name = "front door",
                     host = "192.168.1.100",
                     onvifPort = 8000,
-                    stream = StreamQuality.SUB,
                     detectionClasses = listOf("person"),
                     notifications = NotificationMode.ON,
                 ),
@@ -68,6 +67,13 @@ class AdminApiTest {
             cameras,
         )
         assertEquals("/api/cameras", server.takeRequest().target)
+    }
+
+    @Test
+    fun adminCameras_ignoresLegacyStream() = runTest {
+        enqueue(200, "[${cameraJson.replace("\"channel\": 1,", "\"channel\": 1, \"stream\": \"main\",")}]")
+
+        assertEquals("front door", api().adminCameras().single().name)
     }
 
     @Test
@@ -85,7 +91,7 @@ class AdminApiTest {
         assertEquals(
             json(
                 """{"name": "patio", "host": "192.168.1.101", "rtsp_port": 554, "onvif_port": 80,
-                    "user": "admin", "password": "secret", "channel": 1, "stream": "main",
+                    "user": "admin", "password": "secret", "channel": 1,
                     "detection_classes": [], "notifications": "inherit"}""",
             ),
             post.json(),
