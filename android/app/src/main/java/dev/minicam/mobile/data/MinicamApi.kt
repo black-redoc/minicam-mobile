@@ -100,6 +100,11 @@ class MinicamApi(
         decode(serializer, text)
     }
 
+    /** Sends a JSON body to an endpoint that answers without one (202/204). */
+    internal suspend fun <B> sendJsonNoContent(method: String, path: String, bodySerializer: KSerializer<B>, body: B) {
+        send(method, path, json.encodeToString(bodySerializer, body).toRequestBody(JSON)) { _, _ -> }
+    }
+
     internal suspend fun sendEmpty(method: String, path: String) {
         send(method, path, if (method == "DELETE") null else EMPTY) { _, _ -> }
     }

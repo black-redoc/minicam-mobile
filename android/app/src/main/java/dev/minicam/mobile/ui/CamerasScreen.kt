@@ -119,6 +119,7 @@ private fun Header(isAdmin: Boolean, onRefresh: () -> Unit, onOpen: (Screen) -> 
                         Screen.CAMERA_SETTINGS to "Camera settings",
                         Screen.AI_DETECTION to "AI detection",
                         Screen.ADMIN to "Admin",
+                        Screen.REMOTE_ACCESS to "Remote access",
                     ).forEach { (screen, label) ->
                         DropdownMenuItem(
                             text = { Text(label, color = CamColors.Text) },
