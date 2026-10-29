@@ -50,6 +50,7 @@ struct CamerasView: View {
                 case .cameraSettings: CameraSettingsView()
                 case .aiDetection: AIDetectionView()
                 case .admin: AdminView()
+                case .remoteAccess: RemoteAccessView()
                 }
             }
             .toolbar {
@@ -69,6 +70,9 @@ struct CamerasView: View {
                             }
                             NavigationLink(value: AdminRoute.admin) {
                                 Label("Admin", systemImage: "person.2")
+                            }
+                            NavigationLink(value: AdminRoute.remoteAccess) {
+                                Label("Remote access", systemImage: "globe")
                             }
                             Divider()
                         }

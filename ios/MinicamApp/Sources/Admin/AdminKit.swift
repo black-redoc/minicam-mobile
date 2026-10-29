@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Admin-only sections reached from the camera list menu (ADR 0004).
 enum AdminRoute: Hashable {
-    case cameraSettings, aiDetection, admin
+    case cameraSettings, aiDetection, admin, remoteAccess
 }
 
 /// Pushes the add (`camera == nil`) or edit form from Camera settings.
