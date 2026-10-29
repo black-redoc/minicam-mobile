@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  * Top-level screens besides login and the camera view. Recordings is for everyone (ADR 0005);
  * the admin ones need `is_admin` (ADR 0004).
  */
-enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN }
+enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, REMOTE_ACCESS }
 
 /** App-wide state: which server, whether we have a session, the camera list. */
 class AppViewModel(application: Application) : AndroidViewModel(application) {

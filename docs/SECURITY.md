@@ -8,6 +8,8 @@
 | CF Access token | interception of the handoff redirect | Random `state` checked on callback; token in URL fragment; it is only the first factor (a minicam session is still required) |
 | Camera feed | sniffing on untrusted networks | `http` allowed only to LAN hosts; WAN is `https`/`wss` through the tunnel |
 | Stream token | reuse | Issued per camera, 30 s TTL by the server; never persisted |
+| Cloudflare API token (Remote access) | theft from the phone or the device | Typed by the admin, held only in the screen's state, cleared after setup; never stored, logged or sent to minicam (ADR 0009) |
+| Tunnel token | leak on the way to the device | Sent once to minicam over the LAN by an admin; `TunnelSetup.toString()` omits it; the device keeps it root-only (minicam ADR 0008) |
 
 ## Transport rules
 - `https://` hosts: always allowed. `http://` hosts: only private IPv4 (10/8, 172.16/12,
