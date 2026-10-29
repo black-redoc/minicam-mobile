@@ -50,7 +50,10 @@ ios/
    streams `/api/recordings/{id}/video` (HTTP Range) with the same auth headers; download
    fetches `?download=true` in-app. Admins: `DELETE /api/recordings/{id}` and
    `GET/PUT /api/recordings/settings` on the Admin screen.
-9. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
+9. Remote access (admins, LAN only, ADR 0009): the app creates the Cloudflare tunnel, route, DNS
+   record and Access application with the admin's API token (`CloudflareSetup`), then
+   `POST /api/system/tunnel` and polls `GET /api/system/tunnel` until the device runs it.
+10. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
    re-run the Access login.
 
 ## Backend contract
@@ -78,7 +81,8 @@ GitHub Actions: `ci.yml` on PRs, `release.yml` publishes installable builds on m
 
 ## Invariants
 - No third-party analytics, crash reporting or ads. The app only talks to the configured host and
-  its Cloudflare Access team domain.
+  its Cloudflare Access team domain, plus `api.cloudflare.com` during Admin → Remote access
+  ([ADR 0009](adr/0009-cloudflare-tunnel-setup.md)), with a token kept only in that screen's state.
 - Credentials (session cookie, Access token) live only in Android Keystore-backed storage / iOS
   Keychain; never in logs, never in plain preferences.
 - The password is never stored.
