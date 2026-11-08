@@ -56,7 +56,10 @@ ios/
 9. Remote access (admins, LAN only, ADR 0009): the app creates the Cloudflare tunnel, route, DNS
    record and Access application with the admin's API token (`CloudflareSetup`), then
    `POST /api/system/tunnel` and polls `GET /api/system/tunnel` until the device runs it.
-10. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
+10. Central dashboard (admins, LAN only, ADR 0010): the admin types the dashboard address and the
+    one-time code from its "Pair device"; `POST /api/system/central` makes minicam exchange the
+    code for its device token itself. `DELETE` disconnects.
+11. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
    re-run the Access login.
 
 ## Backend contract
