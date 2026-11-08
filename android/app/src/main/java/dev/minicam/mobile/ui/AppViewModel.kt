@@ -11,11 +11,15 @@ import dev.minicam.mobile.data.CameraSummary
 import dev.minicam.mobile.data.CredentialKey
 import dev.minicam.mobile.data.CredentialStore
 import dev.minicam.mobile.data.KeystoreCredentialStore
+import dev.minicam.mobile.data.LanDiscovery
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.MinicamException
 import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
+import dev.minicam.mobile.data.SetupStatus
 import dev.minicam.mobile.data.User
+import dev.minicam.mobile.data.requestSetupCode
+import dev.minicam.mobile.data.setupStatus
 import kotlinx.coroutines.launch
 
 /**
@@ -50,6 +54,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var accessTokenPresent by mutableStateOf(store.get(CredentialKey.ACCESS_TOKEN) != null)
         private set
+
+    /** The server's first-run setup status; null until checked, or for WAN hosts. */
+    var setupStatus by mutableStateOf<SetupStatus?>(null)
+        private set
+
+    /** Login screen shows "Create admin account" instead of "Sign in" (docs/adr/0008). */
+    var creatingAdmin by mutableStateOf(false)
+    var setupCodeMessage by mutableStateOf<String?>(null)
+        private set
+
+    /** `_minicam._tcp` browser for "Find minicam on my network". */
+    val discovery = LanDiscovery(application)
 
     /** Pending Custom Tabs login; its `state` must come back in the callback. */
     private var pendingHandoff: AccessHandoff? = null
@@ -111,6 +127,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         launchBusy {
             user = api.login(email, password)
             signedIn = true
+            cameras = api.cameras()
+            camerasLoaded = true
+        }
+    }
+
+    /**
+     * Asks a LAN server whether it still needs its first admin, and switches the login
+     * screen to "Create admin account" if so. WAN hosts are never set up from the app.
+     */
+    fun checkSetup() {
+        val config = runCatching { ServerConfig.parse(serverUrlText) }.getOrNull()
+        if (config == null || config.isWan) {
+            setupStatus = null
+            creatingAdmin = false
+            return
+        }
+        viewModelScope.launch {
+            val status = runCatching { MinicamApi(config, store).setupStatus() }.getOrNull()
+            if (runCatching { ServerConfig.parse(serverUrlText) }.getOrNull() != config) return@launch
+            setupStatus = status
+            creatingAdmin = status != null && status.setupRequired
+            setupCodeMessage = null
+        }
+    }
+
+    /** Has the device's LED blink a new setup code. */
+    fun requestSetupCode() {
+        val api = applyServerUrl() ?: return
+        launchBusy {
+            val claim = api.requestSetupCode()
+            setupCodeMessage = "The green LED is blinking a ${claim.digits}-digit code. " +
+                "Count the blinks of each digit; a longer pause separates digits, an even longer one starts " +
+                "again. It is valid for ${claim.expiresIn / 60} minutes."
+        }
+    }
+
+    /** Creates the first admin (with the LED code when the device asks for it) and signs in. */
+    fun completeSetup(email: String, password: String, setupCode: String?) {
+        val api = applyServerUrl() ?: return
+        launchBusy {
+            user = api.completeSetup(email, password, setupCode)
+            signedIn = true
+            setupStatus = null
+            creatingAdmin = false
+            setupCodeMessage = null
             cameras = api.cameras()
             camerasLoaded = true
         }

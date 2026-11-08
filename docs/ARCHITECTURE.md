@@ -22,7 +22,10 @@ ios/
 ```
 
 ## Data flow
-1. User enters the server base URL. `ServerConfig` validates it: `https://` anywhere, `http://`
+1. User enters the server base URL, or picks a device found on the LAN (`_minicam._tcp`,
+   [ADR 0008](adr/0008-lan-discovery-and-first-setup.md)). For a LAN address the app checks
+   `GET /api/auth/setup` and offers "Create admin account" (with the device's LED code) while the
+   device has no user. `ServerConfig` validates it: `https://` anywhere, `http://`
    only for LAN hosts (private IPv4, loopback, `*.local`). See SECURITY.md.
 2. **WAN (https) hosts only** - Cloudflare Access login ([ADR 0002](adr/0002-cloudflare-access-handoff.md)):
    system browser session (Custom Tabs / `ASWebAuthenticationSession`) opens

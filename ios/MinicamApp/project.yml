@@ -35,6 +35,9 @@ targets:
         # Plain HTTP only to local hosts; ServerConfig enforces the same rule (docs/SECURITY.md).
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # "Find minicam on my network" browses _minicam._tcp (docs/adr/0008).
+        NSLocalNetworkUsageDescription: minicam looks for your cameras' devices on your local network.
+        NSBonjourServices: [_minicam._tcp]
         CFBundleURLTypes:
           - CFBundleURLName: dev.minicam.mobile.access-callback
             CFBundleURLSchemes: [minicam]
