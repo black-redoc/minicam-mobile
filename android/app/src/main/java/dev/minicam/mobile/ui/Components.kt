@@ -183,6 +183,7 @@ fun CamTextField(
     secret: Boolean = false,
     placeholder: String? = null,
     monospace: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     // Secret fields start hidden; the eye button shows what was typed.
     var revealed by remember { mutableStateOf(false) }
@@ -212,7 +213,7 @@ fun CamTextField(
                 fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
             ),
             placeholder = placeholder?.let { { Text(it, color = CamColors.Muted.copy(alpha = 0.6f), fontSize = 14.sp) } },
-            visualTransformation = if (secret && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation = if (secret && !revealed) PasswordVisualTransformation() else visualTransformation,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, autoCorrectEnabled = false),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = CamColors.Bg,

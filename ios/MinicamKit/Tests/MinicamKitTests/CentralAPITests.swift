@@ -27,6 +27,14 @@ import Testing
         }
     }
 
+    @Test func pairingCode_insertsDashWhileTyping() {
+        #expect(PairingCode.format("abcd") == "ABCD")
+        #expect(PairingCode.format("ABCD-") == "ABCD")
+        #expect(PairingCode.format("abcde") == "ABCD-E")
+        #expect(PairingCode.format("ab cd-ef;ghij") == "ABCD-EFGH")
+        #expect(PairingCode.format("ABCDÉFGH") == "ABCD-FGH")
+    }
+
     @Test func centralApi_pairsReadsAndUnpairs() async throws {
         let notConnected = #"{"connected": false, "url": null, "source": null, "last_synced_at": null}"#
         let transport = FakeTransport([
