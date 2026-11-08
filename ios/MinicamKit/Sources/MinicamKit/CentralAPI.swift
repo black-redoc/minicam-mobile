@@ -30,6 +30,13 @@ public enum PairingCode {
         let code = input.filter { $0 != "-" && !$0.isWhitespace }.uppercased()
         return code.count == 8 && code.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }) ? code : nil
     }
+
+    /// What the field shows while typing: up to 8 uppercase letters and digits, with the dash the
+    /// dashboard shows inserted once a fifth character is typed (so deleting past it still works).
+    public static func format(_ input: String) -> String {
+        let code = String(input.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.uppercased().prefix(8))
+        return code.count > 4 ? "\(code.prefix(4))-\(code.dropFirst(4))" : code
+    }
 }
 
 public enum CentralURL {

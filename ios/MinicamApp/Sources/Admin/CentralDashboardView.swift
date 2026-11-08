@@ -54,6 +54,10 @@ struct CentralDashboardView: View {
                             .font(.body.monospaced())
                             .textInputAutocapitalization(.characters)
                             .autocorrectionDisabled()
+                            .onChange(of: code) { _, value in
+                                let formatted = PairingCode.format(value)
+                                if formatted != value { code = formatted }
+                            }
                     }
                     if status?.connected == true {
                         Button("Disconnect", role: .destructive) { Task { await unpair() } }
