@@ -36,6 +36,12 @@ object PairingCode {
     /** What the dashboard shows (`ABCD-EFGH`), ignoring dashes and spaces. */
     fun normalize(input: String): String? =
         input.filterNot { it == '-' || it.isWhitespace() }.uppercase().takeIf { PATTERN.matches(it) }
+
+    /** What the field keeps while typing: up to 8 uppercase letters and digits, nothing else. */
+    fun clean(input: String): String = input.filter { it.code < 128 && it.isLetterOrDigit() }.uppercase().take(8)
+
+    /** [clean] with the dash the dashboard shows inserted once a fifth character is typed. */
+    fun format(input: String): String = clean(input).let { if (it.length > 4) "${it.take(4)}-${it.drop(4)}" else it }
 }
 
 object CentralUrl {

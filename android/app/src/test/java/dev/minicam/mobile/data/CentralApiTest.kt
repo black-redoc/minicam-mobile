@@ -43,6 +43,15 @@ class CentralApiTest {
     }
 
     @Test
+    fun pairingCode_insertsDashWhileTyping() {
+        assertEquals("ABCD", PairingCode.format("abcd"))
+        assertEquals("ABCD-E", PairingCode.format("abcde"))
+        assertEquals("ABCD-EFGH", PairingCode.format("ab cd-ef;ghij"))
+        assertEquals("ABCDEFGH", PairingCode.clean("abcd-efghij"))
+        assertEquals("ABCDFGH", PairingCode.clean("ABCDÉFGH"))
+    }
+
+    @Test
     fun centralApi_pairsReadsAndUnpairs() = runTest {
         enqueue(200, """{"connected": false, "url": null, "source": null, "last_synced_at": null}""")
         enqueue(

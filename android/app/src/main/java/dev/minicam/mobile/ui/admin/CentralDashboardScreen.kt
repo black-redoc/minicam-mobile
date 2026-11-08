@@ -8,7 +8,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.CentralStatus
 import dev.minicam.mobile.data.CentralUrl
@@ -118,10 +122,11 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
                 CamTextField(
                     "Pairing code",
                     code,
-                    { code = it.take(12) },
+                    { code = PairingCode.clean(it) },
                     keyboardType = KeyboardType.Ascii,
                     placeholder = "ABCD-EFGH",
                     monospace = true,
+                    visualTransformation = PairingCodeTransformation,
                 )
                 PrimaryButton(
                     if (status?.connected == true) "Pair again" else "Connect",
@@ -135,5 +140,22 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             }
         }
         FormMessage(error, success)
+    }
+}
+
+/** Shows the cleaned code with its dash, so the user never types it and the cursor skips over it. */
+private object PairingCodeTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val shown = PairingCode.format(text.text)
+        val dashed = shown.length > text.length
+        return TransformedText(
+            AnnotatedString(shown),
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int) = if (dashed && offset > 4) offset + 1 else offset
+
+                override fun transformedToOriginal(offset: Int) =
+                    (if (dashed && offset > 4) offset - 1 else offset).coerceAtMost(text.length)
+            },
+        )
     }
 }
