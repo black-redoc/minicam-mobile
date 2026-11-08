@@ -49,6 +49,22 @@ class MinicamApi(
         }
     }
 
+    /**
+     * Creates the first admin and signs it in, like [login]. [setupCode] is the code the
+     * device's LED blinks when it uses the LED claim (docs/adr/0008).
+     */
+    suspend fun completeSetup(email: String, password: String, setupCode: String?): User {
+        val body = json.encodeToString(FirstAdminRequest.serializer(), FirstAdminRequest(email, password, setupCode))
+            .toRequestBody(JSON)
+        return send("POST", "/api/auth/setup", body) { response, text ->
+            val cookie = Cookie.parseAll(response.request.url, response.headers)
+                .firstOrNull { it.name == SESSION_COOKIE }
+                ?: throw MinicamException.InvalidResponse
+            store.set(CredentialKey.SESSION_COOKIE, cookie.value)
+            decode(User.serializer(), text)
+        }
+    }
+
     suspend fun logout() {
         runCatching { send("POST", "/api/auth/logout", EMPTY) { _, _ -> } }
         store.clearSession()
@@ -104,6 +120,10 @@ class MinicamApi(
     internal suspend fun <B> sendJsonNoContent(method: String, path: String, bodySerializer: KSerializer<B>, body: B) {
         send(method, path, json.encodeToString(bodySerializer, body).toRequestBody(JSON)) { _, _ -> }
     }
+
+    /** POST without a body, parsing the JSON answer. */
+    internal suspend fun <T> post(path: String, serializer: KSerializer<T>): T =
+        send("POST", path, EMPTY) { _, text -> decode(serializer, text) }
 
     internal suspend fun sendEmpty(method: String, path: String) {
         send(method, path, if (method == "DELETE") null else EMPTY) { _, _ -> }

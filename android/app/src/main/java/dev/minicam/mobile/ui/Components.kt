@@ -24,12 +24,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +42,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontFamily
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.minicam.mobile.R
 import dev.minicam.mobile.data.StreamStatus
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
@@ -177,12 +184,27 @@ fun CamTextField(
     placeholder: String? = null,
     monospace: Boolean = false,
 ) {
+    // Secret fields start hidden; the eye button shows what was typed.
+    var revealed by remember { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, color = CamColors.Muted, fontSize = 12.sp)
         OutlinedTextField(
             value = value,
             onValueChange = onChange,
             singleLine = true,
+            trailingIcon = if (secret) {
+                {
+                    IconButton(onClick = { revealed = !revealed }) {
+                        Icon(
+                            painterResource(if (revealed) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
+                            contentDescription = if (revealed) "Hide $label" else "Show $label",
+                            tint = CamColors.Muted,
+                        )
+                    }
+                }
+            } else {
+                null
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(CamDimens.Radius),
             textStyle = androidx.compose.ui.text.TextStyle(
@@ -190,7 +212,7 @@ fun CamTextField(
                 fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
             ),
             placeholder = placeholder?.let { { Text(it, color = CamColors.Muted.copy(alpha = 0.6f), fontSize = 14.sp) } },
-            visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation = if (secret && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, autoCorrectEnabled = false),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = CamColors.Bg,
