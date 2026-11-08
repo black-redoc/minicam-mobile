@@ -28,6 +28,27 @@ public final class MinicamAPI: Sendable {
         return try decode(User.self, data)
     }
 
+    /// Creates the first admin and signs it in, like `login`. `setupCode` is the code the
+    /// device's LED blinks when it uses the LED claim (docs/adr/0008).
+    public func completeSetup(email: String, password: String, setupCode: String?) async throws -> User {
+        struct FirstAdmin: Encodable {
+            let email: String
+            let password: String
+            let setupCode: String?
+
+            enum CodingKeys: String, CodingKey {
+                case email, password, setupCode = "setup_code"
+            }
+        }
+        let body = try JSONEncoder().encode(FirstAdmin(email: email, password: password, setupCode: setupCode))
+        let (data, response) = try await send("POST", "/api/auth/setup", body: body)
+        guard let cookie = Self.sessionCookie(from: response, url: config.url(path: "/")) else {
+            throw MinicamError.invalidResponse
+        }
+        store.set(cookie, for: .sessionCookie)
+        return try decode(User.self, data)
+    }
+
     public func logout() async {
         _ = try? await send("POST", "/api/auth/logout")
         store.clearSession()

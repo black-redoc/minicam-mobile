@@ -73,10 +73,8 @@ struct RemoteAccessView: View {
                 """)
                 .font(.caption).foregroundStyle(Theme.muted)
             LabeledField(label: "Cloudflare API token") {
-                SecureField("Token", text: $apiToken)
+                PasswordField(placeholder: "Token", text: $apiToken, contentType: nil)
                     .font(.body.monospaced())
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
             }
             Button("Load accounts") { Task { await loadAccounts() } }
                 .buttonStyle(.bordered)

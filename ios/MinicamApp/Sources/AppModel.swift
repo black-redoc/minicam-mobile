@@ -22,6 +22,14 @@ final class AppModel {
     var errorMessage: String?
     var isBusy = false
 
+    /// The server's first-run setup status; nil until checked, or for WAN hosts.
+    private(set) var setupStatus: SetupStatus?
+    /// Login shows "Create admin account" instead of "Sign in" (docs/adr/0008).
+    var creatingAdmin = false
+    private(set) var setupCodeMessage: String?
+    /// `_minicam._tcp` browser for "Find minicam on my network".
+    let discovery = LanDiscovery()
+
     let store: CredentialStore = KeychainCredentialStore()
     let transport = URLSessionTransport()
 
@@ -72,6 +80,46 @@ final class AppModel {
         await run {
             self.user = try await api.login(email: email, password: password)
             self.phase = .signedIn
+            try await self.reloadCameras()
+        }
+    }
+
+    /// Asks a LAN server whether it still needs its first admin, and switches the login
+    /// screen to "Create admin account" if so. WAN hosts are never set up from the app.
+    func checkSetup() async {
+        guard let config = try? ServerConfig(parsing: serverURLText), !config.isWAN else {
+            setupStatus = nil
+            creatingAdmin = false
+            return
+        }
+        let probe = MinicamAPI(config: config, transport: transport, store: store)
+        let status = try? await probe.setupStatus()
+        guard (try? ServerConfig(parsing: serverURLText)) == config else { return }
+        setupStatus = status
+        creatingAdmin = status?.setupRequired == true
+        setupCodeMessage = nil
+    }
+
+    /// Has the device's LED blink a new setup code.
+    func requestSetupCode() async {
+        guard let api = applyServerURL() else { return }
+        await run {
+            let claim = try await api.requestSetupCode()
+            self.setupCodeMessage = "The green LED is blinking a \(claim.digits)-digit code. Count the blinks of "
+                + "each digit; a longer pause separates digits, an even longer one starts again. It is valid "
+                + "for \(claim.expiresIn / 60) minutes."
+        }
+    }
+
+    /// Creates the first admin (with the LED code when the device asks for it) and signs in.
+    func completeSetup(email: String, password: String, setupCode: String?) async {
+        guard let api = applyServerURL() else { return }
+        await run {
+            self.user = try await api.completeSetup(email: email, password: password, setupCode: setupCode)
+            self.phase = .signedIn
+            self.setupStatus = nil
+            self.creatingAdmin = false
+            self.setupCodeMessage = nil
             try await self.reloadCameras()
         }
     }

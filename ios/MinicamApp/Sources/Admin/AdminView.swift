@@ -34,7 +34,7 @@ struct AdminView: View {
                     TextField("", text: $email).keyboardType(.emailAddress).textContentType(.username)
                 }
                 LabeledField(label: "Password") {
-                    SecureField("At least 8 characters", text: $password).textContentType(.newPassword)
+                    PasswordField(placeholder: "At least 8 characters", text: $password, contentType: .newPassword)
                 }
                 Toggle("Admin", isOn: $isAdmin)
                 FormMessage(error: createError)

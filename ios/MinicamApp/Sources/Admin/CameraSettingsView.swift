@@ -128,7 +128,7 @@ struct CameraFormView: View {
                 LabeledField(label: "Username") { TextField("", text: $form.user).textContentType(.username) }
                 LabeledField(label: "Password") {
                     // Never prefilled (the server redacts it): blank keeps the current one.
-                    SecureField("Leave blank to keep current", text: $form.password)
+                    PasswordField(placeholder: "Leave blank to keep current", text: $form.password, contentType: nil)
                 }
                 LabeledField(label: "Channel") { TextField("1", text: $channel).keyboardType(.numberPad) }
             } footer: {
