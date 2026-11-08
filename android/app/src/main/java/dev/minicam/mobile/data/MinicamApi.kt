@@ -125,6 +125,10 @@ class MinicamApi(
     internal suspend fun <T> post(path: String, serializer: KSerializer<T>): T =
         send("POST", path, EMPTY) { _, text -> decode(serializer, text) }
 
+    /** DELETE, parsing the JSON answer. */
+    internal suspend fun <T> delete(path: String, serializer: KSerializer<T>): T =
+        send("DELETE", path) { _, text -> decode(serializer, text) }
+
     internal suspend fun sendEmpty(method: String, path: String) {
         send(method, path, if (method == "DELETE") null else EMPTY) { _, _ -> }
     }

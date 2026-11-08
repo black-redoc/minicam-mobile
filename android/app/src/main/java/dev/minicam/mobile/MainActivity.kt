@@ -15,6 +15,7 @@ import dev.minicam.mobile.ui.Screen
 import dev.minicam.mobile.ui.admin.AdminScreen
 import dev.minicam.mobile.ui.admin.AiDetectionScreen
 import dev.minicam.mobile.ui.admin.CameraSettingsScreen
+import dev.minicam.mobile.ui.admin.CentralDashboardScreen
 import dev.minicam.mobile.ui.admin.RemoteAccessScreen
 import dev.minicam.mobile.ui.theme.MinicamTheme
 
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
                     viewModel.screen == Screen.AI_DETECTION -> AiDetectionScreen(viewModel)
                     viewModel.screen == Screen.ADMIN -> AdminScreen(viewModel)
                     viewModel.screen == Screen.REMOTE_ACCESS -> RemoteAccessScreen(viewModel)
+                    viewModel.screen == Screen.CENTRAL_DASHBOARD -> CentralDashboardScreen(viewModel)
                     else -> CamerasScreen(viewModel)
                 }
             }

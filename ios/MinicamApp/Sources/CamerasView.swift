@@ -51,6 +51,7 @@ struct CamerasView: View {
                 case .aiDetection: AIDetectionView()
                 case .admin: AdminView()
                 case .remoteAccess: RemoteAccessView()
+                case .centralDashboard: CentralDashboardView()
                 }
             }
             .toolbar {
@@ -73,6 +74,9 @@ struct CamerasView: View {
                             }
                             NavigationLink(value: AdminRoute.remoteAccess) {
                                 Label("Remote access", systemImage: "globe")
+                            }
+                            NavigationLink(value: AdminRoute.centralDashboard) {
+                                Label("Central dashboard", systemImage: "building.2")
                             }
                             Divider()
                         }
