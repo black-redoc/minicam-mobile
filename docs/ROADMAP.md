@@ -71,6 +71,15 @@ Scope: each camera open streams for at most 30 s, then the connection closes; re
 to watch again. Saves data transfer.
 - [ ] Android and iOS: all spec 011 acceptance criteria passing
 
+## M2.11 - Push notifications on detections, Android (ADR 0007)
+Scope: opt-in per phone; minicam sends encrypted FCM data messages through the minicam-admin relay;
+a tap opens the camera. Needs minicam (token store, sender) and minicam-admin (relay) first.
+- [x] ADR 0007 accepted
+- [ ] Backend contracts done in minicam and minicam-admin
+- [ ] Android: opt-in, encrypted notification shown with the app closed, tap opens the camera
+
+Non-goals for M2.11: iOS/APNs (needs the Apple Developer Program), images in notifications.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)
@@ -79,6 +88,6 @@ to watch again. Saves data transfer.
 
 ## Backlog
 - Optical PTZ zoom buttons (needs `zoom_in`/`zoom_out` ONVIF actions in the minicam server first)
-- Push notifications on detections (needs a backend push design + ADR)
+- iOS push notifications via APNs on the ADR 0007 relay (after joining the Apple Developer Program)
 - Store distribution (Play Store / App Store / TestFlight)
 - Kotlin Multiplatform for shared networking logic (would supersede part of ADR 0001)

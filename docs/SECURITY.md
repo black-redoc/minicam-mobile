@@ -51,6 +51,14 @@ password session, and the server pins the redirect target (no open redirect).
   enforces `can_listen`. Nothing is cached or recorded on the device.
 - Admin upserts always send `can_listen`, so editing other flags never changes it (KI-9).
 
+## Push notifications (ADR 0007)
+- Opt-in per phone; no FCM token exists until the user turns notifications on.
+- The FCM service-account key lives only in the minicam-admin Worker, never on the Pi or the app;
+  a site can push only to tokens registered for that site.
+- Payloads are AES-256-GCM with a per-install Keystore key: Google and the relay see ciphertext
+  only. Token and key are never logged; a payload that fails to decrypt is dropped.
+- Opening a camera from a notification goes through the normal `can_view` check on the server.
+
 ## Bandwidth / cost note
 MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer); fMP4 is the camera's own bitrate
 (~150 kbit/s for a sub stream). The app must close streams when not
