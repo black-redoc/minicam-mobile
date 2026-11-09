@@ -161,14 +161,22 @@
 ## 2026-11-09 — KI-10 AI detection timeout (Android)
 - Done: catalog, install and model fetch calls use a 120 s read timeout; other calls keep 10 s
 - Commit: see git log (fix: give the AI detection catalog calls ...), branch fix/slow-admin-timeouts
-- Tests: Android 98/98, lint 0 issues; cause seen on the S23 (SocketTimeoutException in logcat)
+- Tests: Android 98/98, lint only the 5 existing version notices; cause seen on the S23 (SocketTimeoutException in logcat)
 - Next: owner confirms AI detection loads over WAN
 
 ## 2026-11-09 — ADR 0013 Local / Remote switch
 - Done: both addresses saved per server (old `server_url` migrated), Local / Remote switch on the
   camera list and login, add-address dialog with LAN discovery, sign-out never waits on the server
 - Commit: see git log (feat: switch between the local and remote address ...), branch feat/lan-wan-switch
-- Tests: Android 103/103, lint 0 issues, installed on the S23 (migration kept the session); iOS
+- Tests: Android 103/103, lint only the 5 existing version notices, installed on the S23 (migration kept the session); iOS
   `swift test` 97/97, simulator build with no warnings (simulator not runnable here: CoreSimulator
   out of date)
 - Next: manual Remote ↔ Local check on the S23 and an iPhone
+
+## 2026-11-09 — Spec 012 Android push client (ADR 0007)
+- Done: `push/` package (PushPayload AES-GCM decrypt, PushRegistration opt-in/out, FirebasePush
+  hand-made init, MinicamMessagingService, notification that opens the camera), menu switch with
+  `POST_NOTIFICATIONS`, firebase-messaging 26.0.1; telemetry guard amended (ADR 0007 exception)
+- Commit: see git log (feat: detection notifications on Android ...), branch feat/android-push
+- Tests: Android 108/108, lint only the 5 existing version notices, debug + release build
+- Next: AC9/AC10 on the S23 once minicam #44 and minicam-admin #5 are deployed with the FCM secret

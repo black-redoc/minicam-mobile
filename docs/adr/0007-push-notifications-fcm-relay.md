@@ -32,7 +32,8 @@ Constraints:
 - **Recipients are the same as Web Push:** every active user with `can_view` on the camera. A
   subscription (or `wan_access`) is not required to receive pushes.
 - **End-to-end encrypted payload**, like Web Push: on opt-in the app creates a random AES-256 key
-  (Android Keystore) and registers it with the token. minicam encrypts the existing event JSON
+  (kept in the Keystore-encrypted credential store, since it must be sent once to minicam) and
+  registers it with the token. minicam encrypts the existing event JSON
   (`camera`, `classes`, `detected_at`) with AES-256-GCM; Google and the relay only see ciphertext.
   The app decrypts in its `FirebaseMessagingService` and shows a local notification; a tap opens
   that camera's live view.
@@ -40,6 +41,11 @@ Constraints:
   `google-services` Gradle plugin (not on the allowlist): `FirebaseApp` is initialized by hand from
   build-time values (`MINICAM_FIREBASE_*`); without them push is compiled out of the UI. No
   Analytics, auto-init off, token created only after the user opts in.
+- **Its dependencies are the one exception to "no Google telemetry"** (ADR 0012): Firebase core,
+  Installations, Play services cloud messaging and Google's `datatransport`, which FCM only uses to
+  export delivery metrics to BigQuery. The manifest turns that, analytics and auto-init off, and
+  `dependencies_haveNoGoogleTelemetry` checks it and still bans ML Kit, Analytics, Crashlytics,
+  Performance, Remote Config, Measurement and Ads (amended 2026-11-09).
 - **Opt-in per phone.** A "Detection notifications on this phone" switch, off by default; turning
   it on asks for `POST_NOTIFICATIONS` (Android 13+).
 

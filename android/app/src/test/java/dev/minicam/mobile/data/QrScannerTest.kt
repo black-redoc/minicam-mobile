@@ -44,14 +44,34 @@ class QrScannerTest {
         assertEquals("That QR is not a minicam dashboard code.", PairLink.NOT_A_PAIR_QR)
     }
 
+    /**
+     * No Google telemetry (docs/adr/0012). FCM is the one Google SDK (docs/adr/0007): its own
+     * dependencies, datatransport included, are allowed, with analytics, delivery metrics and
+     * auto-init off in the manifest.
+     */
     @Test
     fun dependencies_haveNoGoogleTelemetry() {
         val locks = File("gradle.lockfile").readText()
         assertTrue(locks.contains("com.google.zxing:core:"))
-        for (banned in listOf("com.google.mlkit", "com.google.android.datatransport", "com.google.firebase", "play-services")) {
-            assertFalse(banned, locks.contains(banned))
-        }
+        val banned = listOf(
+            "com.google.mlkit",
+            "firebase-analytics",
+            "firebase-crashlytics",
+            "firebase-perf",
+            "firebase-config",
+            "play-services-measurement",
+            "play-services-ads",
+        )
+        for (artifact in banned) assertFalse(artifact, locks.contains(artifact))
         val manifest = File("src/main/AndroidManifest.xml").readText()
         assertTrue(manifest.contains("""<uses-feature android:name="android.hardware.camera.any" android:required="false" />"""))
+        for (flag in listOf(
+            """<meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />""",
+            """<meta-data android:name="firebase_analytics_collection_deactivated" android:value="true" />""",
+            """<meta-data android:name="delivery_metrics_exported_to_big_query_enabled" android:value="false" />""",
+        )) {
+            assertTrue(flag, manifest.contains(flag))
+        }
+        assertTrue(manifest.contains("FirebaseInitProvider") && manifest.contains("""tools:node="remove""""))
     }
 }

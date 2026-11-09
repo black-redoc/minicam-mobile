@@ -55,8 +55,12 @@ password session, and the server pins the redirect target (no open redirect).
 - Opt-in per phone; no FCM token exists until the user turns notifications on.
 - The FCM service-account key lives only in the minicam-admin Worker, never on the Pi or the app;
   a site can push only to tokens registered for that site.
-- Payloads are AES-256-GCM with a per-install Keystore key: Google and the relay see ciphertext
-  only. Token and key are never logged; a payload that fails to decrypt is dropped.
+- Payloads are AES-256-GCM with a random per-install key kept in the Keystore-encrypted credential
+  store: Google and the relay see ciphertext only. Token and key are never logged; a payload that
+  fails to decrypt, or arrives after the switch was turned off, is dropped.
+- Sign-out forgets the key at once and deletes the FCM token; minicam drops that session's tokens.
+- Firebase analytics, delivery metrics and auto-init are off in the manifest (checked by
+  `dependencies_haveNoGoogleTelemetry`).
 - Opening a camera from a notification goes through the normal `can_view` check on the server.
 
 ## Connect to dashboard (ADR 0011)

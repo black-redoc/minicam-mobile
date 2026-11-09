@@ -32,6 +32,7 @@
 | androidx.camera (camera2, lifecycle, view) | 1.6.2 | Preview and frames for the in-app QR scanner ([ADR 0012](adr/0012-in-app-qr-scanner.md)); brings Guava and Dagger transitively |
 | com.google.zxing:core | 3.5.4 | Decodes the dashboard's QR on the phone, no network, no Google services ([ADR 0012](adr/0012-in-app-qr-scanner.md)) |
 | androidx.media3 (exoplayer, ui, datasource-okhttp) | 1.11.1 | Recording playback with Range/seek over the app's OkHttp client ([ADR 0005](adr/0005-event-recordings-in-the-apps.md)); brings Guava transitively (R8 strips unused code) |
+| com.google.firebase:firebase-messaging | 26.0.1 | Detection notifications with the app closed ([ADR 0007](adr/0007-push-notifications-fcm-relay.md)). Brings Firebase core/Installations, Play services cloud messaging and `datatransport` (BigQuery delivery metrics, turned off in the manifest); no `google-services` plugin |
 
 ## Android test
 | Dependency | Version | Why |

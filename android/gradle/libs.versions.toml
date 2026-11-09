@@ -12,6 +12,7 @@ coroutines = "1.11.0"
 media3 = "1.11.1"
 camerax = "1.6.2"
 zxing = "3.5.4"
+firebaseMessaging = "26.0.1"
 junit = "4.13.2"
 
 [libraries]
@@ -37,6 +38,7 @@ camerax-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "ca
 camerax-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
 camerax-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]

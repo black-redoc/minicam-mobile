@@ -17,6 +17,12 @@ enum class CredentialKey(val id: String) {
     LAN_URL("lan_url"),
     WAN_URL("wan_url"),
     ACTIVE_NETWORK("active_network"),
+
+    /** This phone's AES-256 push key (base64url); present while detection notifications are on (docs/adr/0007). */
+    PUSH_KEY("push_key"),
+
+    /** The FCM token registered with minicam, so it can be unregistered. */
+    PUSH_TOKEN("push_token"),
 }
 
 /**
