@@ -99,7 +99,7 @@ Non-goals for M2.12: in-app QR scanner, universal/app links.
 Scope: keep the local and the remote address of the same minicam and switch with one tap, without
 signing out; sign-out never waits on an unreachable server.
 - [x] ADR 0013 accepted
-- [ ] Android and iOS: switch, address migration and non-blocking sign-out, with tests
+- [x] Android and iOS: switch, address migration and non-blocking sign-out, with tests
 - [ ] Checked on a real phone on home Wi-Fi and mobile data
 
 Non-goals for M2.14: automatic LAN-first fallback, several servers.

@@ -96,4 +96,8 @@ GitHub Actions: `ci.yml` on PRs, `release.yml` publishes installable builds on m
   notifications; payloads are end-to-end encrypted ([ADR 0007](adr/0007-push-notifications-fcm-relay.md)).
 - Credentials (session cookie, Access token) live only in Android Keystore-backed storage / iOS
   Keychain; never in logs, never in plain preferences.
+- One server per phone, with up to two addresses: local (`http`, LAN host) and remote (`https`),
+  plus the active one (`ServerAddresses`). Switching keeps the session; the Access token is only
+  sent to the remote address; an address outside the pair is a new server and clears everything.
+  Sign-out clears the session before the best-effort server logout (3 s) ([ADR 0013](adr/0013-lan-wan-switch.md)).
 - The password is never stored.
