@@ -95,6 +95,15 @@ Non-goals for M2.12: in-app QR scanner, universal/app links.
 - [x] "Scan QR code" in Connect to dashboard and a shortcut from Remote access, with tests
 - [ ] Scanned on a real Android phone and iPhone
 
+## M2.14 - Local / Remote switch (ADR 0013)
+Scope: keep the local and the remote address of the same minicam and switch with one tap, without
+signing out; sign-out never waits on an unreachable server.
+- [x] ADR 0013 accepted
+- [ ] Android and iOS: switch, address migration and non-blocking sign-out, with tests
+- [ ] Checked on a real phone on home Wi-Fi and mobile data
+
+Non-goals for M2.14: automatic LAN-first fallback, several servers.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)
@@ -102,6 +111,7 @@ Non-goals for M2.12: in-app QR scanner, universal/app links.
 - [ ] Biometric unlock before showing streams
 
 ## Backlog
+- Automatic LAN-first with remote fallback on top of the ADR 0013 switch
 - Optical PTZ zoom buttons (needs `zoom_in`/`zoom_out` ONVIF actions in the minicam server first)
 - iOS push notifications via APNs on the ADR 0007 relay (after joining the Apple Developer Program)
 - Store distribution (Play Store / App Store / TestFlight)
