@@ -90,10 +90,8 @@ fun LoginScreen(viewModel: AppViewModel) {
                 )
             }
 
-            // Both addresses of this server saved: switch instead of retyping (docs/adr/0013).
-            if (viewModel.localAddress != null && viewModel.remoteAddress != null) {
-                NetworkSwitch(viewModel)
-            }
+            // Switch, or add the missing address, instead of retyping (docs/adr/0013).
+            NetworkSwitch(viewModel)
             CamTextField("Server", viewModel.serverUrlText, { viewModel.serverUrlText = it }, keyboardType = KeyboardType.Uri)
             DiscoveryList(
                 searching = searching,

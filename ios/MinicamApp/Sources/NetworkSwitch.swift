@@ -42,10 +42,6 @@ struct NetworkSwitch: View {
     }
 }
 
-extension Network: Identifiable {
-    public var id: String { rawValue }
-}
-
 private struct AddAddressSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss

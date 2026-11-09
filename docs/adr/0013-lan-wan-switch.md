@@ -16,8 +16,8 @@ works over both addresses of the same server.
 - Each phone keeps **one server with up to two addresses**: a local one (`http`, LAN host) and a
   remote one (`https`), plus which one is active. The existing single address migrates to the
   slot that matches its scheme.
-- A **Local / Remote switch** on the camera list (and on the login screen when both addresses
-  are saved) changes the active address right away. It never calls the old address. The session
+- A **Local / Remote switch** on the camera list and on the login screen changes the active
+  address right away. It never calls the old address. The session
   cookie and the Access token are kept; the Access token is only ever sent to the remote address.
   The camera list then reloads. A 401 or an Access redirect is handled as today, for that address only.
 - If the other address is not saved yet, the switch asks for it. The local address can come from

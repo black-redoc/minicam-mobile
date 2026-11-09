@@ -1,9 +1,11 @@
 import Foundation
 
 /// Which address of the server the app talks to (docs/adr/0013).
-public enum Network: String, Sendable, CaseIterable {
+public enum Network: String, Sendable, CaseIterable, Identifiable {
     case local = "LOCAL"
     case remote = "REMOTE"
+
+    public var id: String { rawValue }
 }
 
 public extension ServerConfig {
