@@ -33,7 +33,8 @@ suspend fun MinicamApi.detectionSettings(): DetectionSettings =
 suspend fun MinicamApi.saveDetectionSettings(settings: DetectionSettings): DetectionSettings =
     sendJson("PUT", "/api/detection/settings", DetectionSettings.serializer(), settings, DetectionSettings.serializer())
 
-suspend fun MinicamApi.modelCatalog(): ModelCatalog = get("/api/detection/catalog", ModelCatalog.serializer())
+// The catalog, install and fetch calls make minicam download from GitHub first: `slow` (KI-10).
+suspend fun MinicamApi.modelCatalog(): ModelCatalog = get("/api/detection/catalog", ModelCatalog.serializer(), slow = true)
 
 /** Downloads (if needed), verifies and activates a catalog model on the server. */
 suspend fun MinicamApi.installCatalogModel(name: String) {
@@ -43,6 +44,7 @@ suspend fun MinicamApi.installCatalogModel(name: String) {
         CatalogInstallRequest.serializer(),
         CatalogInstallRequest(name),
         ModelPathResponse.serializer(),
+        slow = true,
     )
 }
 
@@ -54,6 +56,7 @@ suspend fun MinicamApi.fetchModel(url: String): String =
         ModelFetchRequest.serializer(),
         ModelFetchRequest(url),
         ModelPathResponse.serializer(),
+        slow = true,
     ).modelPath
 
 suspend fun MinicamApi.users(): List<User> = get("/api/auth/users", ListSerializer(User.serializer()))
