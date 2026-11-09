@@ -33,6 +33,18 @@ struct RemoteAccessView: View {
                 }
                 .adminRow()
             } else {
+                Section("Have a code from your dashboard?") {
+                    Text("If this device is a site in a minicam dashboard, its \"Pair device\" code sets up remote access too.")
+                        .font(.caption).foregroundStyle(Theme.muted)
+                    Button {
+                        model.scanPairQROnOpen = true
+                        model.path.append(AdminRoute.centralDashboard)
+                    } label: {
+                        Label("Scan the dashboard's QR", systemImage: "qrcode.viewfinder")
+                    }
+                    .disabled(busy)
+                }
+                .adminRow()
                 statusSection
                 if status?.managedByCentral != true { setupSection }
             }

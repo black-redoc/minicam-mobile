@@ -167,6 +167,14 @@ fun RemoteAccessScreen(viewModel: AppViewModel) {
             return@AdminScaffold
         }
 
+        Section("Have a code from your dashboard?") {
+            Hint("If this device is a site in a minicam dashboard, its \"Pair device\" code sets up remote access too.")
+            SecondaryButton("Scan the dashboard's QR", enabled = !busy) {
+                viewModel.scanPairQrOnOpen = true
+                viewModel.screen = Screen.CENTRAL_DASHBOARD
+            }
+        }
+
         Section("Status") {
             val current = status
             when {

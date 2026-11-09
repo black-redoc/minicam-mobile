@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import dev.minicam.mobile.data.CentralStatus
 import dev.minicam.mobile.data.CentralUrl
 import dev.minicam.mobile.data.ConnectProgress
+import dev.minicam.mobile.data.PairLink
 import dev.minicam.mobile.data.PairingCode
 import dev.minicam.mobile.data.StepState
 import dev.minicam.mobile.data.centralStatus
@@ -26,6 +27,7 @@ import dev.minicam.mobile.data.unpairFromCentral
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
 import dev.minicam.mobile.ui.PrimaryButton
+import dev.minicam.mobile.ui.QrScannerDialog
 import dev.minicam.mobile.ui.Screen
 import dev.minicam.mobile.ui.SecondaryButton
 import dev.minicam.mobile.ui.theme.CamColors
@@ -51,6 +53,13 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
     var progress by remember { mutableStateOf<ConnectProgress?>(null) }
     // Filled from a QR link: the admin must see the dashboard host and confirm (docs/adr/0011).
     var linkHost by remember { mutableStateOf<String?>(null) }
+    var scanning by remember { mutableStateOf(false) }
+
+    fun fill(link: PairLink) {
+        url = link.url
+        code = link.code
+        linkHost = java.net.URI(link.url).host
+    }
 
     LaunchedEffect(api) {
         if (api.config.isWan) {
@@ -62,11 +71,23 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             status = it
             it.url?.let { current -> url = current }
         }
-        if (link != null) {
-            url = link.url
-            code = link.code
-            linkHost = java.net.URI(link.url).host
+        if (link != null) fill(link)
+        if (viewModel.scanPairQrOnOpen) {
+            viewModel.scanPairQrOnOpen = false
+            scanning = true
         }
+    }
+
+    if (scanning) {
+        QrScannerDialog(
+            onResult = { text ->
+                scanning = false
+                error = null
+                success = null
+                PairLink.fromScan(text)?.let(::fill) ?: run { error = PairLink.NOT_A_PAIR_QR }
+            },
+            onDismiss = { scanning = false },
+        )
     }
 
     fun pair() {
@@ -149,6 +170,7 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
                     Text("Connect this device to $host?", color = CamColors.Text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     Hint("Only continue if you opened this code from your own dashboard: it decides who can watch from outside.")
                 }
+                SecondaryButton("Scan QR code", enabled = !busy) { scanning = true }
                 CamTextField("Dashboard address", url, { url = it }, keyboardType = KeyboardType.Uri)
                 CamTextField(
                     "Pairing code",

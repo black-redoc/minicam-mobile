@@ -11,6 +11,11 @@ data class PairLink(val url: String, val code: String) {
     override fun toString() = "PairLink(url=$url)"
 
     companion object {
+        const val NOT_A_PAIR_QR = "That QR is not a minicam dashboard code."
+
+        /** A value read by the in-app scanner (docs/adr/0012): only a pair link is accepted. */
+        fun fromScan(raw: String?): PairLink? = raw?.trim()?.takeIf { it.length <= 512 }?.let(::parse)
+
         /** The link's dashboard address and code, both validated; null for anything else. */
         fun parse(link: String): PairLink? {
             val uri = runCatching { URI(link) }.getOrNull() ?: return null

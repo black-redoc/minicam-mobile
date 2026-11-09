@@ -66,6 +66,9 @@ password session, and the server pins the redirect target (no open redirect).
   type and only **Connect** pairs. A link opened without an admin LAN session is kept in memory
   only, for 10 minutes. The code is cleared from the form as soon as it is sent.
 - No device token or tunnel token reaches the phone; the app only reads the device's status.
+- In-app scanner ([ADR 0012](adr/0012-in-app-qr-scanner.md)): the camera is used only while the
+  scanner is open, frames are decoded on the phone (ZXing / AVFoundation) and never stored or
+  sent; the scanned text is parsed like the deep link. No ML Kit or Google telemetry on Android.
 
 ## Bandwidth / cost note
 MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer); fMP4 is the camera's own bitrate

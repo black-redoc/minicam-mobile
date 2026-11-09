@@ -90,6 +90,11 @@ access coming up; needs minicam ADR 0010 and minicam-admin ADR 0012 first.
 
 Non-goals for M2.12: in-app QR scanner, universal/app links.
 
+## M2.13 - In-app QR scanner (ADR 0012)
+- [x] ADR 0012 accepted (CameraX + ZXing on Android, AVFoundation on iOS)
+- [x] "Scan QR code" in Connect to dashboard and a shortcut from Remote access, with tests
+- [ ] Scanned on a real Android phone and iPhone
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)

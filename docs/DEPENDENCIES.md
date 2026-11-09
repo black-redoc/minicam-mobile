@@ -29,6 +29,8 @@
 | com.squareup.okhttp3:okhttp | 5.5.0 | HTTP + WebSocket (no platform WebSocket client) |
 | org.jetbrains.kotlinx:kotlinx-serialization-json | 1.12.0 | JSON parsing |
 | org.jetbrains.kotlinx:kotlinx-coroutines-android | 1.11.0 | async |
+| androidx.camera (camera2, lifecycle, view) | 1.6.2 | Preview and frames for the in-app QR scanner ([ADR 0012](adr/0012-in-app-qr-scanner.md)); brings Guava and Dagger transitively |
+| com.google.zxing:core | 3.5.4 | Decodes the dashboard's QR on the phone, no network, no Google services ([ADR 0012](adr/0012-in-app-qr-scanner.md)) |
 | androidx.media3 (exoplayer, ui, datasource-okhttp) | 1.11.1 | Recording playback with Range/seek over the app's OkHttp client ([ADR 0005](adr/0005-event-recordings-in-the-apps.md)); brings Guava transitively (R8 strips unused code) |
 
 ## Android test

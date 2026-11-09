@@ -38,6 +38,8 @@ targets:
         # "Find minicam on my network" browses _minicam._tcp (docs/adr/0008).
         NSLocalNetworkUsageDescription: minicam looks for your cameras' devices on your local network.
         NSBonjourServices: [_minicam._tcp]
+        # Only for the in-app QR scanner of the dashboard's code (docs/adr/0012).
+        NSCameraUsageDescription: minicam uses the camera only to read the QR code your minicam dashboard shows.
         CFBundleURLTypes:
           - CFBundleURLName: dev.minicam.mobile.access-callback
             CFBundleURLSchemes: [minicam]

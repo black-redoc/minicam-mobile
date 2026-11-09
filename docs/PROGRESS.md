@@ -148,3 +148,12 @@
 - Tests: Android unit tests pass (8 new), lint only the 5 existing version notices, debug + release
   build; iOS `swift test` 91/91, simulator build OK.
 - Next: scan the QR on real phones (Android, iPhone) against the deployed dashboard.
+
+## 2026-11-08 — M2.13 In-app QR scanner (ADR 0012)
+- Done: "Scan QR code" in Connect to dashboard and "Scan the dashboard's QR" in Remote access;
+  Android CameraX + ZXing (`QrDecoder`, `QrScannerDialog`), iOS AVFoundation (`QRScannerSheet`);
+  `PairLink.fromScan`. Google code scanner rejected: it pulls ML Kit telemetry.
+- Commit: see git log (feat: scan the dashboard's QR inside the app), branch feat/in-app-qr-scanner
+- Tests: Android unit tests pass (3 new), lint only the 5 existing version notices, debug + release
+  build; iOS `swift test` 92/92, simulator build OK with no warnings.
+- Next: scan on real phones.

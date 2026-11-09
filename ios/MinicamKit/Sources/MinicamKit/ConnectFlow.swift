@@ -18,6 +18,16 @@ public struct PairLink: Equatable, Sendable, CustomStringConvertible {
     /// The dashboard's host, shown for confirmation before anything is sent.
     public var host: String { URLComponents(string: url)?.host ?? url }
 
+    public static let notAPairQR = "That QR is not a minicam dashboard code."
+
+    /// A value read by the in-app scanner (docs/adr/0012): only a pair link is accepted.
+    public static func fromScan(_ raw: String?) -> PairLink? {
+        guard let text = raw?.trimmingCharacters(in: .whitespacesAndNewlines), text.count <= 512,
+              let url = URL(string: text)
+        else { return nil }
+        return parse(url)
+    }
+
     /// The link's dashboard address and code, both validated; nil for anything else.
     public static func parse(_ link: URL) -> PairLink? {
         guard let parts = URLComponents(url: link, resolvingAgainstBaseURL: false),

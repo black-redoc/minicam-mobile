@@ -69,6 +69,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** A dashboard QR link opened before the app could use it (docs/adr/0011); memory only. */
     val pendingPairLink = PendingPairLink()
 
+    /** Open "Connect to dashboard" with the in-app scanner (from Remote access, docs/adr/0012). */
+    var scanPairQrOnOpen by mutableStateOf(false)
+
     /** `_minicam._tcp` browser for "Find minicam on my network". */
     val discovery = LanDiscovery(application)
 
