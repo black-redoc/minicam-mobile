@@ -100,7 +100,8 @@ Scope: keep the local and the remote address of the same minicam and switch with
 signing out; sign-out never waits on an unreachable server.
 - [x] ADR 0013 accepted
 - [x] Android and iOS: switch, address migration and non-blocking sign-out, with tests
-- [ ] Checked on a real phone on home Wi-Fi and mobile data
+- [x] Checked on the Galaxy S23 on home Wi-Fi and mobile data (2026-11-09)
+- [ ] Checked on an iPhone
 
 Non-goals for M2.14: automatic LAN-first fallback, several servers.
 
