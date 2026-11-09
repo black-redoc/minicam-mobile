@@ -12,6 +12,9 @@ public enum CredentialKey: String, CaseIterable, Sendable {
     case sessionCookie = "minicam_session"
     case accessToken = "cf_access_token"
     case serverURL = "server_url"
+    case lanURL = "lan_url"
+    case wanURL = "wan_url"
+    case activeNetwork = "active_network"
 }
 
 public extension CredentialStore {

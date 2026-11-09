@@ -8,6 +8,9 @@ struct CamerasView: View {
         @Bindable var model = model
         NavigationStack(path: $model.path) {
             List {
+                NetworkSwitch()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 if showsSkeleton {
                     ForEach([140, 96, 120, 80], id: \.self) { width in
                         HStack(spacing: 12) {

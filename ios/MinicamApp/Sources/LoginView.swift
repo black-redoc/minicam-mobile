@@ -33,6 +33,10 @@ struct LoginView: View {
                             .foregroundStyle(Theme.muted)
                     }
 
+                    // Both addresses of this server saved: switch instead of retyping (docs/adr/0013).
+                    if model.localAddress != nil, model.remoteAddress != nil {
+                        NetworkSwitch()
+                    }
                     field("Server") {
                         TextField("https://cam.example.com", text: $model.serverURLText)
                             .keyboardType(.URL)
