@@ -6,7 +6,7 @@ allowed to see and drives PTZ. The apps never talk to any service other than the
 minicam host and their Cloudflare Access login page.
 
 ## Current focus
-Milestone: M2.12 - Connect to dashboard with a code or QR · ADR 0011 · Next step: scan the
+Milestone: M2.13 - In-app QR scanner · ADR 0012 (after M2.12, ADR 0011) · Next step: scan the
 dashboard QR on real phones once minicam-admin #4 and minicam #42 are deployed. Earlier: M2.10
 manual AC4/AC5; M2.8 HEVC check; M1 device checks (specs/001, 004).
 

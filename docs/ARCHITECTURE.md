@@ -90,7 +90,8 @@ GitHub Actions: `ci.yml` on PRs, `release.yml` publishes installable builds on m
   its Cloudflare Access team domain, plus `api.cloudflare.com` during Admin → Remote access
   ([ADR 0009](adr/0009-cloudflare-tunnel-setup.md)), with a token kept only in that screen's state.
   "Connect to dashboard" ([ADR 0011](adr/0011-connect-with-code-or-qr.md)) talks only to the
-  device: the device itself calls the dashboard, and the QR deep link only fills the form.
+  device: the device itself calls the dashboard, and the QR deep link or the in-app scanner
+  ([ADR 0012](adr/0012-in-app-qr-scanner.md), decoded on the phone) only fills the form.
   Android also talks to Google (FCM, Firebase Installations) once the user turns on detection
   notifications; payloads are end-to-end encrypted ([ADR 0007](adr/0007-push-notifications-fcm-relay.md)).
 - Credentials (session cookie, Access token) live only in Android Keystore-backed storage / iOS

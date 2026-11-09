@@ -140,3 +140,16 @@ private actor Recorder {
     var states: [StepState] = []
     func add(_ state: StepState) { states.append(state) }
 }
+
+/// docs/adr/0012: values read by the in-app QR scanner.
+@Suite struct QRScanTests {
+    @Test func qrScan_acceptsOnlyPairLinks() {
+        let link = "minicam://pair?url=https%3A%2F%2Fadmin.example.com&code=ABCDEFGH"
+        #expect(PairLink.fromScan("  \(link)\n") == PairLink(url: "https://admin.example.com", code: "ABCDEFGH"))
+        for bad in [nil, "", "https://admin.example.com", "ABCD-EFGH", "minicam://access-callback?x=1",
+                    link + String(repeating: "x", count: 600)] as [String?] {
+            #expect(PairLink.fromScan(bad) == nil)
+        }
+        #expect(PairLink.notAPairQR == "That QR is not a minicam dashboard code.")
+    }
+}

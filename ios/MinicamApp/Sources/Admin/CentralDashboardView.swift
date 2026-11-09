@@ -16,6 +16,7 @@ struct CentralDashboardView: View {
     @State private var progress: ConnectProgress?
     /// Filled from a QR link: the admin must see the dashboard host and confirm (docs/adr/0011).
     @State private var linkHost: String?
+    @State private var scanning = false
 
     var body: some View {
         Form {
@@ -62,6 +63,12 @@ struct CentralDashboardView: View {
                         Text("Only continue if you opened this code from your own dashboard: it decides who can watch from outside.")
                             .font(.caption).foregroundStyle(Theme.muted)
                     }
+                    Button {
+                        scanning = true
+                    } label: {
+                        Label("Scan QR code", systemImage: "qrcode.viewfinder")
+                    }
+                    .disabled(busy)
                     LabeledField(label: "Dashboard address") {
                         TextField("https://admin.example.com", text: $url)
                             .keyboardType(.URL)
@@ -100,6 +107,13 @@ struct CentralDashboardView: View {
         .adminForm()
         .navigationTitle("Connect to dashboard")
         .task { await load() }
+        .fullScreenCover(isPresented: $scanning) {
+            QRScannerSheet { text in
+                error = nil
+                success = nil
+                if let link = PairLink.fromScan(text) { fill(link) } else { error = PairLink.notAPairQR }
+            }
+        }
     }
 
     private func load() async {
@@ -113,11 +127,17 @@ struct CentralDashboardView: View {
             status = current
             if let current = current.url { url = current }
         }
-        if let link {
-            url = link.url
-            code = PairingCode.format(link.code)
-            linkHost = link.host
+        if let link { fill(link) }
+        if model.scanPairQROnOpen {
+            model.scanPairQROnOpen = false
+            scanning = true
         }
+    }
+
+    private func fill(_ link: PairLink) {
+        url = link.url
+        code = PairingCode.format(link.code)
+        linkHost = link.host
     }
 
     private func pair() async {
