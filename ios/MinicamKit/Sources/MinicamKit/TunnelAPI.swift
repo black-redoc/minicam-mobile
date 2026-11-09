@@ -13,13 +13,20 @@ public struct TunnelStatus: Decodable, Equatable, Sendable {
     public var state: TunnelState
     public var hostname: String?
     public var message: String?
+    /// "app" (set up here) or "central" (by the dashboard, read only here; minicam ADR 0010).
+    public var source: String?
 
-    public init(available: Bool, state: TunnelState, hostname: String? = nil, message: String? = nil) {
+    public init(
+        available: Bool, state: TunnelState, hostname: String? = nil, message: String? = nil, source: String? = nil
+    ) {
         self.available = available
         self.state = state
         self.hostname = hostname
         self.message = message
+        self.source = source
     }
+
+    public var managedByCentral: Bool { source == "central" }
 }
 
 /// What the device needs from Cloudflare; the API token never leaves the app.

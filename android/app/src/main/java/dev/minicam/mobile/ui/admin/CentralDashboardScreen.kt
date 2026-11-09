@@ -14,11 +14,14 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import dev.minicam.mobile.data.CentralStatus
 import dev.minicam.mobile.data.CentralUrl
+import dev.minicam.mobile.data.ConnectProgress
 import dev.minicam.mobile.data.PairingCode
+import dev.minicam.mobile.data.StepState
 import dev.minicam.mobile.data.centralStatus
-import dev.minicam.mobile.data.pairWithCentral
+import dev.minicam.mobile.data.connectToDashboard
 import dev.minicam.mobile.data.unpairFromCentral
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
@@ -29,9 +32,10 @@ import dev.minicam.mobile.ui.theme.CamColors
 import kotlinx.coroutines.launch
 
 /**
- * Admin → Central dashboard (minicam ADR 0009): connects the device to minicam-admin with the
- * one-time code shown by "Pair device" there. minicam exchanges the code for its token itself;
- * the code is only held in this screen's state.
+ * Admin → Connect to dashboard (minicam ADRs 0009/0010, docs/adr/0011): connects the device to
+ * minicam-admin with the one-time code shown by "Pair device" there, typed or from its QR link,
+ * and shows the remote access the dashboard sets up. minicam exchanges the code for its token
+ * itself; the code is only held in this screen's state.
  */
 @Composable
 fun CentralDashboardScreen(viewModel: AppViewModel) {
@@ -44,15 +48,24 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var success by remember { mutableStateOf<String?>(null) }
+    var progress by remember { mutableStateOf<ConnectProgress?>(null) }
+    // Filled from a QR link: the admin must see the dashboard host and confirm (docs/adr/0011).
+    var linkHost by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(api) {
         if (api.config.isWan) {
             error = "The dashboard can only be connected while you're on your home network."
             return@LaunchedEffect
         }
+        val link = viewModel.pendingPairLink.take()
         viewModel.attempt({ error = it }) { api.centralStatus() }?.let {
             status = it
             it.url?.let { current -> url = current }
+        }
+        if (link != null) {
+            url = link.url
+            code = link.code
+            linkHost = java.net.URI(link.url).host
         }
     }
 
@@ -71,11 +84,17 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
         }
         scope.launch {
             busy = true
-            viewModel.attempt({ error = it }) { api.pairWithCentral(dashboard, pairing) }?.let {
-                status = it
-                code = ""
-                success = "Connected" + (it.site?.let { site -> " as ${site.name} (${site.hostname})" } ?: "") +
-                    ". WAN access is now managed in the dashboard."
+            code = ""
+            linkHost = null
+            val result = viewModel.attempt({ error = it }) {
+                api.connectToDashboard(dashboard, pairing, onProgress = { progress = it })
+            }
+            if (result == null) {
+                progress = null
+            } else {
+                viewModel.attempt({}) { api.centralStatus() }?.let { status = it }
+                success = "WAN access is now managed in the dashboard." +
+                    (result.wanUrl?.let { " From outside your home network, sign in at $it" } ?: "")
             }
             busy = false
         }
@@ -94,7 +113,7 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
         }
     }
 
-    AdminScaffold("Central dashboard", onBack = { viewModel.screen = Screen.CAMERAS }) {
+    AdminScaffold("Connect to dashboard", onBack = { viewModel.screen = Screen.CAMERAS }) {
         Section("Status") {
             val current = status
             when {
@@ -111,13 +130,25 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             }
         }
 
+        progress?.let { current ->
+            Section("Progress") {
+                ProgressRow("Dashboard", current.dashboard, current.dashboardText)
+                ProgressRow("Remote access", current.remoteAccess, current.remoteAccessText)
+            }
+        }
+
         if (status?.managedInEnv != true) {
             Section(if (status?.connected == true) "Pair again (new token)" else "Connect") {
                 Hint(
                     "In the dashboard open Sites, press \"Pair device\" on this device's site and type the " +
-                        "code it shows (valid once, for 10 minutes). The device fetches its own token: " +
+                        "code it shows (valid once, for 10 minutes), or scan its QR with the phone's camera. " +
+                        "The device fetches its own token and, if the dashboard offers it, its remote access: " +
                         "nothing secret is copied by hand.",
                 )
+                linkHost?.let { host ->
+                    Text("Connect this device to $host?", color = CamColors.Text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Hint("Only continue if you opened this code from your own dashboard: it decides who can watch from outside.")
+                }
                 CamTextField("Dashboard address", url, { url = it }, keyboardType = KeyboardType.Uri)
                 CamTextField(
                     "Pairing code",
@@ -158,4 +189,17 @@ private object PairingCodeTransformation : VisualTransformation {
             },
         )
     }
+}
+
+@Composable
+private fun ProgressRow(label: String, state: StepState, detail: String?) {
+    val (mark, color) = when (state) {
+        StepState.WAITING -> "○" to CamColors.Muted
+        StepState.WORKING -> "…" to CamColors.Text
+        StepState.DONE -> "✓" to CamColors.Success
+        StepState.SKIPPED -> "–" to CamColors.Muted
+        StepState.FAILED -> "✕" to CamColors.Danger
+    }
+    Text("$mark $label", color = color, fontSize = 14.sp)
+    detail?.let { Hint(it) }
 }

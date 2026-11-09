@@ -16,6 +16,10 @@ struct MinicamApp: App {
                 }
             }
             .environment(model)
+            // The dashboard's QR (docs/adr/0011); the Access callback uses its own session.
+            .onOpenURL { url in
+                if url.scheme == "minicam", url.host == "pair" { model.openPairLink(url) }
+            }
             .preferredColorScheme(.dark)
             .tint(Theme.accent)
         }

@@ -138,3 +138,13 @@
 - Commit: see `git log feat/stream-time-limit`
 - Tests: Android 68/68 + lint 0 issues + debug build; iOS `swift test` 66/66, simulator build OK
 - Next: manual check of AC4/AC5/AC7 on emulator/simulator
+
+## 2026-11-08 — M2.12 Connect to dashboard with a code or QR (ADR 0011)
+- Done: `PairLink` (deep link parsing), `PendingPairLink` (10 min, memory), `ConnectProgress` and
+  `connectToDashboard` on both platforms; `minicam://pair` intent filter / `onOpenURL`; "Central
+  dashboard" became "Connect to dashboard" with host confirmation and progress rows; Remote access
+  read-only when the dashboard manages the tunnel.
+- Commit: see git log (feat: connect to the dashboard with a code or its QR), branch feat/connect-with-code
+- Tests: Android unit tests pass (8 new), lint only the 5 existing version notices, debug + release
+  build; iOS `swift test` 91/91, simulator build OK.
+- Next: scan the QR on real phones (Android, iPhone) against the deployed dashboard.

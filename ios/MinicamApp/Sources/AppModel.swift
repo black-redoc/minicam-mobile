@@ -1,6 +1,7 @@
 import Foundation
 import MinicamKit
 import Observation
+import SwiftUI
 
 /// App-wide state: which server, whether we have a session, the camera list.
 @MainActor
@@ -27,6 +28,11 @@ final class AppModel {
     /// Login shows "Create admin account" instead of "Sign in" (docs/adr/0008).
     var creatingAdmin = false
     private(set) var setupCodeMessage: String?
+    /// A dashboard QR link opened before the app could use it (docs/adr/0011); memory only.
+    var pendingPairLink = PendingPairLink()
+    /// The signed-in navigation stack, so a QR link can open "Connect to dashboard".
+    var path = NavigationPath()
+
     /// `_minicam._tcp` browser for "Find minicam on my network".
     let discovery = LanDiscovery()
 
@@ -124,9 +130,32 @@ final class AppModel {
         }
     }
 
+    /// `minicam://pair?url=…&code=…` from the dashboard's QR (docs/adr/0011). Opens "Connect to
+    /// dashboard" with the form filled in; it never sends anything by itself.
+    func openPairLink(_ url: URL) {
+        guard let link = PairLink.parse(url) else {
+            errorMessage = "That link is not a minicam dashboard code."
+            return
+        }
+        pendingPairLink.store(link)
+        offerPairLink()
+    }
+
+    /// Opens the Connect screen for a pending link once signed in as an admin on the LAN.
+    private func offerPairLink() {
+        guard pendingPairLink.peek() != nil else { return }
+        if phase == .signedIn, api?.config.isWAN == false, user?.isAdmin == true {
+            path = NavigationPath([AdminRoute.centralDashboard])
+        } else {
+            errorMessage = "To use the dashboard code, sign in as an admin while you're on the device's "
+                + "home network. The code is kept for 10 minutes."
+        }
+    }
+
     func reloadCameras() async throws {
         guard let api else { return }
         if user == nil { user = try await api.me() }
+        offerPairLink()
         cameras = try await api.cameras()
         camerasLoaded = true
     }
@@ -140,6 +169,7 @@ final class AppModel {
         cameras = []
         camerasLoaded = false
         user = nil
+        path = NavigationPath()
         phase = .signedOut
     }
 

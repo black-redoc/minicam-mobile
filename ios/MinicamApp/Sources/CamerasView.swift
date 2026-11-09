@@ -5,7 +5,8 @@ struct CamerasView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        NavigationStack {
+        @Bindable var model = model
+        NavigationStack(path: $model.path) {
             List {
                 if showsSkeleton {
                     ForEach([140, 96, 120, 80], id: \.self) { width in
@@ -76,7 +77,7 @@ struct CamerasView: View {
                                 Label("Remote access", systemImage: "globe")
                             }
                             NavigationLink(value: AdminRoute.centralDashboard) {
-                                Label("Central dashboard", systemImage: "building.2")
+                                Label("Connect to dashboard", systemImage: "building.2")
                             }
                             Divider()
                         }

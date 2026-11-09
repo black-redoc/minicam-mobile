@@ -80,6 +80,16 @@ a tap opens the camera. Needs minicam (token store, sender) and minicam-admin (r
 
 Non-goals for M2.11: iOS/APNs (needs the Apple Developer Program), images in notifications.
 
+## M2.12 - Connect to dashboard with a code or QR (ADR 0011)
+Scope: one Admin screen pairs the device with a typed code or a QR deep link and shows remote
+access coming up; needs minicam ADR 0010 and minicam-admin ADR 0012 first.
+- [x] ADR 0011 accepted
+- [x] Backend contracts done in minicam (PR #42) and minicam-admin (PR #4)
+- [x] Android and iOS: shared logic, deep link and Connect screen with tests
+- [ ] Scanned from the dashboard QR on a real Android phone and iPhone
+
+Non-goals for M2.12: in-app QR scanner, universal/app links.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)

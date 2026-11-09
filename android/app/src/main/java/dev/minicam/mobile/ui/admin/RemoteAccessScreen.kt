@@ -181,12 +181,16 @@ fun RemoteAccessScreen(viewModel: AppViewModel) {
                     Text(label, color = CamColors.Text, fontSize = 14.sp)
                     current.hostname?.let { Hint("https://$it") }
                     current.message?.let { Hint(it) }
-                    if (current.state == TunnelState.RUNNING || current.state == TunnelState.ERROR) {
+                    if (current.managedByCentral) {
+                        Hint("Managed by the central dashboard. Disconnect from it in \"Connect to dashboard\" to change it here.")
+                    } else if (current.state == TunnelState.RUNNING || current.state == TunnelState.ERROR) {
                         SecondaryButton("Remove remote access", enabled = !busy, onClick = ::remove)
                     }
                 }
             }
         }
+
+        if (status?.managedByCentral == true) return@AdminScaffold
 
         Section("Set up with Cloudflare") {
             Hint(

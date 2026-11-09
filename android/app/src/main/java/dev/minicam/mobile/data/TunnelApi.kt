@@ -22,7 +22,11 @@ data class TunnelStatus(
     val state: TunnelState,
     val hostname: String? = null,
     val message: String? = null,
-)
+    /** "app" (set up here) or "central" (by the dashboard, read only here; minicam ADR 0010). */
+    val source: String? = null,
+) {
+    val managedByCentral: Boolean get() = source == "central"
+}
 
 /** What the device needs from Cloudflare; the API token never leaves the app. */
 @Serializable

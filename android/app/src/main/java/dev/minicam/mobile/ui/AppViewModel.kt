@@ -14,6 +14,8 @@ import dev.minicam.mobile.data.KeystoreCredentialStore
 import dev.minicam.mobile.data.LanDiscovery
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.MinicamException
+import dev.minicam.mobile.data.PairLink
+import dev.minicam.mobile.data.PendingPairLink
 import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
 import dev.minicam.mobile.data.SetupStatus
@@ -63,6 +65,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var creatingAdmin by mutableStateOf(false)
     var setupCodeMessage by mutableStateOf<String?>(null)
         private set
+
+    /** A dashboard QR link opened before the app could use it (docs/adr/0011); memory only. */
+    val pendingPairLink = PendingPairLink()
 
     /** `_minicam._tcp` browser for "Find minicam on my network". */
     val discovery = LanDiscovery(application)
@@ -127,8 +132,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         launchBusy {
             user = api.login(email, password)
             signedIn = true
+            offerPairLink()
             cameras = api.cameras()
             camerasLoaded = true
+        }
+    }
+
+    /**
+     * `minicam://pair?url=…&code=…` from the dashboard's QR (docs/adr/0011). Opens "Connect to
+     * dashboard" with the form filled in; it never sends anything by itself.
+     */
+    fun openPairLink(link: String) {
+        val parsed = PairLink.parse(link)
+        if (parsed == null) {
+            errorMessage = "That link is not a minicam dashboard code."
+            return
+        }
+        pendingPairLink.store(parsed)
+        offerPairLink()
+    }
+
+    /** Opens the Connect screen for a pending link once signed in as an admin on the LAN. */
+    private fun offerPairLink() {
+        if (pendingPairLink.peek() == null) return
+        val onLan = api?.config?.isWan == false
+        if (signedIn && onLan && user?.isAdmin == true) {
+            selectedCamera = null
+            screen = Screen.CENTRAL_DASHBOARD
+        } else {
+            errorMessage = "To use the dashboard code, sign in as an admin while you're on the device's " +
+                "home network. The code is kept for 10 minutes."
         }
     }
 
@@ -172,6 +205,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             setupStatus = null
             creatingAdmin = false
             setupCodeMessage = null
+            offerPairLink()
             cameras = api.cameras()
             camerasLoaded = true
         }
@@ -181,6 +215,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val api = api ?: return
         launchBusy {
             if (user == null) user = api.me()
+            offerPairLink()
             cameras = api.cameras()
             camerasLoaded = true
         }
