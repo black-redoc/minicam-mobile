@@ -33,6 +33,8 @@ struct LoginView: View {
                             .foregroundStyle(Theme.muted)
                     }
 
+                    // Switch, or add the missing address, instead of retyping (docs/adr/0013).
+                    NetworkSwitch()
                     field("Server") {
                         TextField("https://cam.example.com", text: $model.serverURLText)
                             .keyboardType(.URL)

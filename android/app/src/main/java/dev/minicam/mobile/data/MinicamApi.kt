@@ -7,6 +7,7 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.Call
@@ -72,9 +73,16 @@ class MinicamApi(
         }
     }
 
+    /**
+     * Forgets the session at once, then tells the server for at most [LOGOUT_TIMEOUT_MS], so
+     * sign-out never hangs on an address that cannot be reached (docs/adr/0013).
+     */
     suspend fun logout() {
-        runCatching { send("POST", "/api/auth/logout", EMPTY) { _, _ -> } }
+        val request = authorized(Request.Builder().url(config.url("/api/auth/logout")).post(EMPTY)).build()
         store.clearSession()
+        withTimeoutOrNull(LOGOUT_TIMEOUT_MS) {
+            runCatching { withContext(Dispatchers.IO) { client.newCall(request).await().close() } }
+        }
     }
 
     suspend fun me(): User = send("GET", "/api/auth/me") { _, text -> decode(User.serializer(), text) }
@@ -217,6 +225,7 @@ class MinicamApi(
         const val ACCESS_TOKEN_HEADER = "cf-access-token"
         // Above Cloudflare's 100 s origin timeout, so a WAN request ends with its 524, not ours.
         const val SLOW_READ_TIMEOUT_MS = 120_000L
+        const val LOGOUT_TIMEOUT_MS = 3_000L
         private val JSON = "application/json".toMediaType()
         private val EMPTY = ByteArray(0).toRequestBody(null)
         private val json = Json {

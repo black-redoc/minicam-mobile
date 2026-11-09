@@ -5,6 +5,7 @@ import Foundation
 public final class MinicamAPI: Sendable {
     static let sessionCookieName = "minicam_session"
     static let accessTokenHeader = "cf-access-token"
+    static let logoutTimeout: TimeInterval = 3
 
     public let config: ServerConfig
     let transport: HTTPTransport
@@ -49,9 +50,14 @@ public final class MinicamAPI: Sendable {
         return try decode(User.self, data)
     }
 
+    /// Forgets the session at once, then tells the server within `logoutTimeout`, so sign-out
+    /// never hangs on an address that cannot be reached (docs/adr/0013).
     public func logout() async {
-        _ = try? await send("POST", "/api/auth/logout")
+        var request = authorized(URLRequest(url: config.url(path: "/api/auth/logout")))
+        request.httpMethod = "POST"
+        request.timeoutInterval = Self.logoutTimeout
         store.clearSession()
+        _ = try? await transport.send(request)
     }
 
     public func me() async throws -> User {

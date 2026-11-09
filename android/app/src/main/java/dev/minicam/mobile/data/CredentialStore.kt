@@ -14,6 +14,9 @@ enum class CredentialKey(val id: String) {
     SESSION_COOKIE("minicam_session"),
     ACCESS_TOKEN("cf_access_token"),
     SERVER_URL("server_url"),
+    LAN_URL("lan_url"),
+    WAN_URL("wan_url"),
+    ACTIVE_NETWORK("active_network"),
 }
 
 /**
