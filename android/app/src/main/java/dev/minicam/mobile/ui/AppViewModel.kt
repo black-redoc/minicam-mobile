@@ -14,12 +14,15 @@ import dev.minicam.mobile.data.KeystoreCredentialStore
 import dev.minicam.mobile.data.LanDiscovery
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.MinicamException
+import dev.minicam.mobile.data.Network
 import dev.minicam.mobile.data.PairLink
 import dev.minicam.mobile.data.PendingPairLink
+import dev.minicam.mobile.data.ServerAddresses
 import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
 import dev.minicam.mobile.data.SetupStatus
 import dev.minicam.mobile.data.User
+import dev.minicam.mobile.data.network
 import dev.minicam.mobile.data.requestSetupCode
 import dev.minicam.mobile.data.setupStatus
 import kotlinx.coroutines.launch
@@ -75,15 +78,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** `_minicam._tcp` browser for "Find minicam on my network". */
     val discovery = LanDiscovery(application)
 
+    /** Local and remote address of the server, and which one is active (docs/adr/0013). */
+    private val addresses = ServerAddresses(store)
+    var activeNetwork by mutableStateOf<Network?>(null)
+        private set
+    var localAddress by mutableStateOf<String?>(null)
+        private set
+    var remoteAddress by mutableStateOf<String?>(null)
+        private set
+
     /** Pending Custom Tabs login; its `state` must come back in the callback. */
     private var pendingHandoff: AccessHandoff? = null
 
     init {
-        store.get(CredentialKey.SERVER_URL)?.let { saved ->
-            runCatching { ServerConfig.parse(saved) }.getOrNull()?.let { config ->
-                api = MinicamApi(config, store).also { signedIn = it.hasSession }
-            }
+        addresses.active?.let { config ->
+            api = MinicamApi(config, store).also { signedIn = it.hasSession }
         }
+        syncAddresses()
+    }
+
+    private fun syncAddresses() {
+        activeNetwork = addresses.active?.network
+        localAddress = addresses.local?.origin()
+        remoteAddress = addresses.remote?.origin()
+        accessTokenPresent = store.get(CredentialKey.ACCESS_TOKEN) != null
     }
 
     val needsAccessLogin: Boolean
@@ -95,21 +113,58 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Validates the URL and (re)creates the API client for it. */
     fun applyServerUrl(): MinicamApi? = try {
         val config = ServerConfig.parse(serverUrlText)
-        if (api?.config != config) {
-            store.set(CredentialKey.ACCESS_TOKEN, null)
-            accessTokenPresent = false
-            store.clearSession()
-            api = MinicamApi(config, store)
-        }
-        store.set(CredentialKey.SERVER_URL, config.origin())
+        // One of the saved pair keeps the session; any other address is a new server.
+        addresses.use(config)
+        if (api?.config != config) api = MinicamApi(config, store)
+        syncAddresses()
         api
     } catch (e: ServerConfigException) {
-        errorMessage = when (e.reason) {
-            ServerConfigException.Reason.INSECURE_REMOTE_HOST ->
-                "Plain http:// is only allowed on your local network. Use https://."
-            else -> "Enter a valid server address, e.g. https://cam.example.com"
-        }
+        errorMessage = addressError(e)
         null
+    }
+
+    private fun addressError(e: ServerConfigException) = when (e.reason) {
+        ServerConfigException.Reason.INSECURE_REMOTE_HOST ->
+            "Plain http:// is only allowed on your local network. Use https://."
+        else -> "Enter a valid server address, e.g. https://cam.example.com"
+    }
+
+    /**
+     * Uses the other saved address of the same server (docs/adr/0013). Nothing is sent to the
+     * old one; the session and Access token are kept, so the list reloads without signing in.
+     */
+    fun switchNetwork(network: Network) {
+        val config = addresses.switchTo(network) ?: return
+        serverUrlText = config.origin()
+        api = MinicamApi(config, store)
+        errorMessage = null
+        cameras = emptyList()
+        camerasLoaded = false
+        selectedCamera = null
+        screen = Screen.CAMERAS
+        syncAddresses()
+        // Remote without an Access token goes back to the login screen's Access button.
+        signedIn = store.get(CredentialKey.SESSION_COOKIE) != null && !addresses.needsAccessLogin(config)
+        if (signedIn) refresh()
+    }
+
+    /** Saves the missing [network] address of this server and switches to it; null on success. */
+    fun addAddress(text: String, network: Network): String? {
+        val config = try {
+            ServerConfig.parse(text)
+        } catch (e: ServerConfigException) {
+            return addressError(e)
+        }
+        if (config.network != network) {
+            return if (network == Network.LOCAL) {
+                "A local address starts with http://, e.g. http://192.168.1.20:8080"
+            } else {
+                "A remote address starts with https://"
+            }
+        }
+        addresses.add(config)
+        switchNetwork(network)
+        return null
     }
 
     /** Returns the URL to open in Custom Tabs, or null if the server URL is invalid. */
@@ -126,6 +181,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 store.set(CredentialKey.ACCESS_TOKEN, it)
                 accessTokenPresent = true
                 errorMessage = null
+                // Switched to Remote with a session already: no need to sign in again.
+                if (api?.hasSession == true) {
+                    signedIn = true
+                    refresh()
+                }
             }
             .onFailure { errorMessage = "Cloudflare Access login failed. Try again." }
     }
@@ -226,15 +286,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         val api = api
-        viewModelScope.launch {
-            api?.logout()
-            cameras = emptyList()
-            camerasLoaded = false
-            selectedCamera = null
-            screen = Screen.CAMERAS
-            user = null
-            signedIn = false
-        }
+        // The screen changes at once; the server is told best-effort (docs/adr/0013).
+        cameras = emptyList()
+        camerasLoaded = false
+        selectedCamera = null
+        screen = Screen.CAMERAS
+        user = null
+        signedIn = false
+        viewModelScope.launch { api?.logout() }
     }
 
     /** Central error mapping, shared by every screen. */

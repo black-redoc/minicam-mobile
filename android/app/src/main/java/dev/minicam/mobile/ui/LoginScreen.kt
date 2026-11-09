@@ -90,6 +90,10 @@ fun LoginScreen(viewModel: AppViewModel) {
                 )
             }
 
+            // Both addresses of this server saved: switch instead of retyping (docs/adr/0013).
+            if (viewModel.localAddress != null && viewModel.remoteAddress != null) {
+                NetworkSwitch(viewModel)
+            }
             CamTextField("Server", viewModel.serverUrlText, { viewModel.serverUrlText = it }, keyboardType = KeyboardType.Uri)
             DiscoveryList(
                 searching = searching,
@@ -190,7 +194,7 @@ fun LoginScreen(viewModel: AppViewModel) {
 
 /** "Find minicam on my network": devices answering `_minicam._tcp` on the Wi-Fi. */
 @Composable
-private fun DiscoveryList(
+internal fun DiscoveryList(
     searching: Boolean,
     servers: List<Pair<String, String>>,
     onToggle: () -> Unit,

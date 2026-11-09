@@ -42,6 +42,7 @@ fun CamerasScreen(viewModel: AppViewModel) {
             onOpen = { viewModel.screen = it },
             onLogout = viewModel::logout,
         )
+        NetworkSwitch(viewModel, Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
 
         if (viewModel.cameras.isEmpty() && !viewModel.camerasLoaded && viewModel.errorMessage == null) {
             CameraListSkeleton()
