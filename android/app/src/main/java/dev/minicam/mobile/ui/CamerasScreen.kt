@@ -120,7 +120,7 @@ private fun Header(isAdmin: Boolean, onRefresh: () -> Unit, onOpen: (Screen) -> 
                         Screen.AI_DETECTION to "AI detection",
                         Screen.ADMIN to "Admin",
                         Screen.REMOTE_ACCESS to "Remote access",
-                        Screen.CENTRAL_DASHBOARD to "Central dashboard",
+                        Screen.CENTRAL_DASHBOARD to "Connect to dashboard",
                     ).forEach { (screen, label) ->
                         DropdownMenuItem(
                             text = { Text(label, color = CamColors.Text) },

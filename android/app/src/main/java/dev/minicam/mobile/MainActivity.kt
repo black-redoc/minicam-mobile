@@ -51,11 +51,16 @@ class MainActivity : ComponentActivity() {
         handleCallback(intent)
     }
 
-    /** `minicam://access-callback?state=…#token=…` from the Access handoff (docs/adr/0002). */
+    /**
+     * `minicam://access-callback?state=…#token=…` from the Access handoff (docs/adr/0002), and
+     * `minicam://pair?url=…&code=…` from the dashboard's QR (docs/adr/0011).
+     */
     private fun handleCallback(intent: Intent?) {
         val data = intent?.data ?: return
-        if (data.scheme == "minicam" && data.host == "access-callback") {
-            viewModel.completeAccessLogin(data.toString())
+        if (data.scheme != "minicam") return
+        when (data.host) {
+            "access-callback" -> viewModel.completeAccessLogin(data.toString())
+            "pair" -> viewModel.openPairLink(data.toString())
         }
     }
 }

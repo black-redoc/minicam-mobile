@@ -34,7 +34,7 @@ struct RemoteAccessView: View {
                 .adminRow()
             } else {
                 statusSection
-                setupSection
+                if status?.managedByCentral != true { setupSection }
             }
         }
         .adminForm()
@@ -52,7 +52,10 @@ struct RemoteAccessView: View {
                 if let message = status.message {
                     Text(message).font(.caption).foregroundStyle(Theme.muted)
                 }
-                if status.state == .running || status.state == .error {
+                if status.managedByCentral {
+                    Text("Managed by the central dashboard. Disconnect from it in \"Connect to dashboard\" to change it here.")
+                        .font(.caption).foregroundStyle(Theme.muted)
+                } else if status.state == .running || status.state == .error {
                     Button("Remove remote access", role: .destructive) { Task { await remove() } }
                         .disabled(busy)
                 }

@@ -9,6 +9,34 @@ public struct PairedSite: Decodable, Equatable, Sendable {
     public let hostname: String
 }
 
+/// Remote access the dashboard handed over when pairing (minicam ADR 0010): `installing` (poll
+/// `tunnelStatus()`), `skipped` (Access is set in the device's .env) or `error`. Nil when the
+/// dashboard provisions no remote access.
+public struct CentralTunnel: Decodable, Equatable, Sendable {
+    public var state: String
+    public var hostname: String?
+    public var message: String?
+    /// A tunnel set up from this app was replaced by the dashboard's.
+    public var replaced: Bool
+
+    enum CodingKeys: String, CodingKey { case state, hostname, message, replaced }
+
+    public init(state: String, hostname: String? = nil, message: String? = nil, replaced: Bool = false) {
+        self.state = state
+        self.hostname = hostname
+        self.message = message
+        self.replaced = replaced
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        state = try c.decode(String.self, forKey: .state)
+        hostname = try c.decodeIfPresent(String.self, forKey: .hostname)
+        message = try c.decodeIfPresent(String.self, forKey: .message)
+        replaced = try c.decodeIfPresent(Bool.self, forKey: .replaced) ?? false
+    }
+}
+
 public struct CentralStatus: Decodable, Equatable, Sendable {
     public let connected: Bool
     public let url: String?
@@ -16,9 +44,11 @@ public struct CentralStatus: Decodable, Equatable, Sendable {
     public let source: String?
     public let lastSyncedAt: String?
     public let site: PairedSite?
+    /// Only in the answer to `pairWithCentral`.
+    public let tunnel: CentralTunnel?
 
     enum CodingKeys: String, CodingKey {
-        case connected, url, source, lastSyncedAt = "last_synced_at", site
+        case connected, url, source, lastSyncedAt = "last_synced_at", site, tunnel
     }
 
     public var managedInEnv: Bool { source == "env" }

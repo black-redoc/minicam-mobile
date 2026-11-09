@@ -32,6 +32,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="minicam" android:host="access-callback" />
             </intent-filter>
+            <!-- Dashboard QR: fills "Connect to dashboard", never sends by itself (docs/adr/0011). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="minicam" android:host="pair" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

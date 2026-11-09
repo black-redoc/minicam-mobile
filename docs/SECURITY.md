@@ -59,6 +59,14 @@ password session, and the server pins the redirect target (no open redirect).
   only. Token and key are never logged; a payload that fails to decrypt is dropped.
 - Opening a camera from a notification goes through the normal `can_view` check on the server.
 
+## Connect to dashboard (ADR 0011)
+- `minicam://pair?url=…&code=…` is untrusted input: only `https` dashboard origins without a path
+  and 8-symbol codes are accepted; anything else is rejected with a fixed message.
+- A link never sends anything by itself: the form is filled, the dashboard host is shown in large
+  type and only **Connect** pairs. A link opened without an admin LAN session is kept in memory
+  only, for 10 minutes. The code is cleared from the form as soon as it is sent.
+- No device token or tunnel token reaches the phone; the app only reads the device's status.
+
 ## Bandwidth / cost note
 MJPEG at 720p/15 fps is ~1 MB/s (~4 GB/hour per viewer); fMP4 is the camera's own bitrate
 (~150 kbit/s for a sub stream). The app must close streams when not

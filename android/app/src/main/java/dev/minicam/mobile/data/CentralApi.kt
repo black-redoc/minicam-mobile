@@ -10,6 +10,20 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PairedSite(val name: String, val hostname: String)
 
+/**
+ * Remote access the dashboard handed over when pairing (minicam ADR 0010): `installing` (the
+ * device is setting up its tunnel; poll [tunnelStatus]), `skipped` (Access is set in the
+ * device's .env) or `error`. Null when the dashboard provisions no remote access.
+ */
+@Serializable
+data class CentralTunnel(
+    val state: String,
+    val hostname: String? = null,
+    val message: String? = null,
+    /** A tunnel set up from this app was replaced by the dashboard's. */
+    val replaced: Boolean = false,
+)
+
 @Serializable
 data class CentralStatus(
     val connected: Boolean,
@@ -18,6 +32,8 @@ data class CentralStatus(
     val source: String? = null,
     @SerialName("last_synced_at") val lastSyncedAt: String? = null,
     val site: PairedSite? = null,
+    /** Only in the answer to [pairWithCentral]. */
+    val tunnel: CentralTunnel? = null,
 ) {
     val managedInEnv: Boolean get() = source == "env"
 }
