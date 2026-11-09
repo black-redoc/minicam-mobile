@@ -18,6 +18,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import java.util.concurrent.TimeUnit
 
 /**
  * REST client for the minicam endpoints the viewer needs
@@ -27,12 +28,18 @@ class MinicamApi(
     val config: ServerConfig,
     private val store: CredentialStore,
     client: OkHttpClient = defaultClient(),
+    slowReadTimeoutMillis: Long = SLOW_READ_TIMEOUT_MS,
 ) {
     // A redirect from a WAN host means Cloudflare Access wants a login; cookies
     // are managed explicitly through CredentialStore, not a cookie jar.
     val client: OkHttpClient = client.newBuilder()
         .followRedirects(false)
         .followSslRedirects(false)
+        .build()
+
+    // For calls where minicam downloads from the internet before it answers (KI-10).
+    private val slowClient: OkHttpClient = this.client.newBuilder()
+        .readTimeout(slowReadTimeoutMillis, TimeUnit.MILLISECONDS)
         .build()
 
     val hasSession: Boolean get() = store.get(CredentialKey.SESSION_COOKIE) != null
@@ -103,8 +110,8 @@ class MinicamApi(
 
     // -- Plumbing ---------------------------------------------------------
 
-    internal suspend fun <T> get(path: String, serializer: KSerializer<T>): T =
-        send("GET", path) { _, text -> decode(serializer, text) }
+    internal suspend fun <T> get(path: String, serializer: KSerializer<T>, slow: Boolean = false): T =
+        send("GET", path, slow = slow) { _, text -> decode(serializer, text) }
 
     internal suspend fun <B, T> sendJson(
         method: String,
@@ -112,7 +119,8 @@ class MinicamApi(
         bodySerializer: KSerializer<B>,
         body: B,
         serializer: KSerializer<T>,
-    ): T = send(method, path, json.encodeToString(bodySerializer, body).toRequestBody(JSON)) { _, text ->
+        slow: Boolean = false,
+    ): T = send(method, path, json.encodeToString(bodySerializer, body).toRequestBody(JSON), slow = slow) { _, text ->
         decode(serializer, text)
     }
 
@@ -149,6 +157,7 @@ class MinicamApi(
         path: String,
         body: RequestBody? = null,
         isLogin: Boolean = false,
+        slow: Boolean = false,
         parse: (Response, String) -> T,
     ): T {
         val request = authorized(
@@ -160,7 +169,7 @@ class MinicamApi(
         // Reading the body is blocking network I/O: never on the caller's
         // dispatcher, which is Main for viewModelScope (KI-6).
         return withContext(Dispatchers.IO) {
-            client.newCall(request).await().use { response ->
+            (if (slow) slowClient else client).newCall(request).await().use { response ->
                 val text = response.body.string()
                 check(response.code, text, isLogin)
                 parse(response, text)
@@ -206,6 +215,8 @@ class MinicamApi(
     companion object {
         const val SESSION_COOKIE = "minicam_session"
         const val ACCESS_TOKEN_HEADER = "cf-access-token"
+        // Above Cloudflare's 100 s origin timeout, so a WAN request ends with its 524, not ours.
+        const val SLOW_READ_TIMEOUT_MS = 120_000L
         private val JSON = "application/json".toMediaType()
         private val EMPTY = ByteArray(0).toRequestBody(null)
         private val json = Json {

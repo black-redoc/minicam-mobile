@@ -57,3 +57,12 @@ or PTZ for that user/camera in the app. Expected: Listen stays on. Actual: the a
 `can_listen`, the server defaults it to false and revokes it. Test:
 `setPermission_sendsCanListen` (both platforms). Fix: spec 009 AC9, every upsert sends
 `can_listen` and Admin has a Listen column (a81420f Android, 66a734e iOS).
+
+## KI-10 "AI detection" says "Can't reach the server" over WAN (Android) — Status: Resolved 2026-11-09
+Repro: open Admin > AI detection over the tunnel. Expected: the model catalog. Actual: "Can't reach
+the server." Cause: `GET /api/detection/catalog` makes minicam download the minicam-models manifest
+from GitHub Releases first (11 s measured), and OkHttp's default 10 s read timeout fired
+(`SocketTimeoutException` while reading the response headers). Catalog install and model fetch also
+download before answering. iOS uses URLSession's 60 s default and was not affected.
+Fix: those three calls use a 120 s read timeout (above Cloudflare's 100 s origin timeout); every
+other call keeps the default. Test: `slowAdminCalls_waitLongerThanTheReadTimeout`.

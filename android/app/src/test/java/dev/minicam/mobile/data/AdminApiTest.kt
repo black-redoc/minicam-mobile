@@ -6,6 +6,9 @@ import kotlinx.serialization.json.JsonElement
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
+import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -144,6 +147,27 @@ class AdminApiTest {
             CatalogAsset("yolo11n-int8.onnx", "yolo11n", "YOLO11", "int8", "Raspberry Pi 5 (CPU)", 4590317, true, true),
             catalog.assets.single(),
         )
+    }
+
+    @Test
+    fun slowAdminCalls_waitLongerThanTheReadTimeout() = runTest {
+        // The server downloads from GitHub before answering these (KI-10); others keep the short timeout.
+        val quick = OkHttpClient.Builder().readTimeout(200, TimeUnit.MILLISECONDS).build()
+        val api = MinicamApi(ServerConfig.parse(server.url("/").toString()), store, quick, slowReadTimeoutMillis = 5_000)
+        fun slow(body: String) = server.enqueue(
+            MockResponse.Builder().code(200).body(body).headersDelay(600, TimeUnit.MILLISECONDS).build(),
+        )
+
+        slow("""{"release": "v0.1.0", "assets": []}""")
+        assertEquals("v0.1.0", api.modelCatalog().release)
+        slow("""{"model_path": "/m/a.onnx"}""")
+        api.installCatalogModel("a.onnx")
+        slow("""{"model_path": "/m/b.onnx"}""")
+        assertEquals("/m/b.onnx", api.fetchModel("https://example.com/b.onnx"))
+
+        slow("""{"backend": "none"}""")
+        val error = runCatching { api.detectionSettings() }.exceptionOrNull()
+        assertTrue(error is java.io.InterruptedIOException)
     }
 
     @Test
