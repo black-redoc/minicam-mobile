@@ -1,8 +1,7 @@
 import Foundation
 
-// minicam's Cloudflare Tunnel endpoints (minicam ADR 0008, docs/adr/0009):
-// admins only, LAN only. The device installs cloudflared itself and reports
-// progress through `tunnelStatus()`.
+// minicam's Cloudflare Tunnel status (minicam ADR 0008). Only the dashboard sets the tunnel
+// up (docs/adr/0014); the device installs cloudflared itself and reports progress here.
 
 public enum TunnelState: String, Decodable, Sendable {
     case none, installing, running, error
@@ -13,7 +12,7 @@ public struct TunnelStatus: Decodable, Equatable, Sendable {
     public var state: TunnelState
     public var hostname: String?
     public var message: String?
-    /// "app" (set up here) or "central" (by the dashboard, read only here; minicam ADR 0010).
+    /// "app" (set up by an older app) or "central" (by the dashboard; minicam ADR 0010).
     public var source: String?
 
     public init(
@@ -25,41 +24,12 @@ public struct TunnelStatus: Decodable, Equatable, Sendable {
         self.message = message
         self.source = source
     }
-
-    public var managedByCentral: Bool { source == "central" }
-}
-
-/// What the device needs from Cloudflare; the API token never leaves the app.
-public struct TunnelSetup: Encodable, Equatable, Sendable {
-    public var tunnelToken: String
-    public var hostname: String
-    public var teamDomain: String
-    public var aud: String
-
-    enum CodingKeys: String, CodingKey {
-        case tunnelToken = "tunnel_token", hostname, teamDomain = "team_domain", aud
-    }
-
-    public init(tunnelToken: String, hostname: String, teamDomain: String, aud: String) {
-        self.tunnelToken = tunnelToken
-        self.hostname = hostname
-        self.teamDomain = teamDomain
-        self.aud = aud
-    }
 }
 
 extension MinicamAPI {
     /// `notFound` when this installation has no tunnel helper.
     public func tunnelStatus() async throws -> TunnelStatus {
         try await get("/api/system/tunnel")
-    }
-
-    public func setUpTunnel(_ setup: TunnelSetup) async throws {
-        _ = try await send("POST", "/api/system/tunnel", body: try JSONEncoder().encode(setup))
-    }
-
-    public func removeTunnel() async throws {
-        _ = try await send("DELETE", "/api/system/tunnel")
     }
 
     /// Polls until the device reports `running` or `error` (installing takes about a minute).

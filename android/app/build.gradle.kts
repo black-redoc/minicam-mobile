@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -15,6 +17,17 @@ android {
         // CI passes -PversionCode=<run number> so each published APK upgrades the previous one.
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = "0.2.0"
+
+        // Firebase app values for push (docs/adr/0007): local.properties or CI env, never committed.
+        // Without them the build has no push and hides the switch.
+        val localProperties = Properties().apply {
+            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+        }
+        listOf("PROJECT_ID", "APP_ID", "API_KEY", "SENDER_ID").forEach { name ->
+            val key = "MINICAM_FIREBASE_$name"
+            val value = System.getenv(key) ?: localProperties.getProperty(key) ?: ""
+            buildConfigField("String", "FIREBASE_$name", "\"$value\"")
+        }
     }
 
     // Release key comes from the environment (CI secrets, docs/adr/0003). Without it, release
@@ -47,6 +60,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     lint {
@@ -87,6 +101,7 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
     implementation(libs.zxing.core)
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)

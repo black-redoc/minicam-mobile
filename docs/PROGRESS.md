@@ -161,14 +161,62 @@
 ## 2026-11-09 — KI-10 AI detection timeout (Android)
 - Done: catalog, install and model fetch calls use a 120 s read timeout; other calls keep 10 s
 - Commit: see git log (fix: give the AI detection catalog calls ...), branch fix/slow-admin-timeouts
-- Tests: Android 98/98, lint 0 issues; cause seen on the S23 (SocketTimeoutException in logcat)
+- Tests: Android 98/98, lint only the 5 existing version notices; cause seen on the S23 (SocketTimeoutException in logcat)
 - Next: owner confirms AI detection loads over WAN
 
 ## 2026-11-09 — ADR 0013 Local / Remote switch
 - Done: both addresses saved per server (old `server_url` migrated), Local / Remote switch on the
   camera list and login, add-address dialog with LAN discovery, sign-out never waits on the server
 - Commit: see git log (feat: switch between the local and remote address ...), branch feat/lan-wan-switch
-- Tests: Android 103/103, lint 0 issues, installed on the S23 (migration kept the session); iOS
+- Tests: Android 103/103, lint only the 5 existing version notices, installed on the S23 (migration kept the session); iOS
   `swift test` 97/97, simulator build with no warnings (simulator not runnable here: CoreSimulator
   out of date)
 - Next: manual Remote ↔ Local check on the S23 and an iPhone
+
+## 2026-11-09 — Spec 012 Android push client (ADR 0007)
+- Done: `push/` package (PushPayload AES-GCM decrypt, PushRegistration opt-in/out, FirebasePush
+  hand-made init, MinicamMessagingService, notification that opens the camera), menu switch with
+  `POST_NOTIFICATIONS`, firebase-messaging 26.0.1; telemetry guard amended (ADR 0007 exception)
+- Commit: see git log (feat: detection notifications on Android ...), branch feat/android-push
+- Tests: Android 108/108, lint only the 5 existing version notices, debug + release build
+- Next: AC9/AC10 on the S23 once minicam #44 and minicam-admin #5 are deployed with the FCM secret
+
+## 2026-11-10 — Custom detection sound (Android, ADR 0007)
+- Done: synthesized pump-action reload sound (`android/tools/detection_sound.py`, stdlib, seeded)
+  on the "Detections" channel, now `detections_v2`; the old `detections` channel is deleted
+- Commit: see git log (feat: play a gun reload sound ...), branch feat/android-push
+- Tests: Android 109/109, lint only the 5 existing version notices, debug + release build
+- Next: hear it on the S23 with AC9/AC10 once minicam #44 and minicam-admin #5 are deployed
+
+## 2026-11-10 — Detection vibration (Android, ADR 0007)
+- Done: two buzzes matching the reload sound's clacks; channel now `detections_v3` (older ones
+  deleted). Push with the reload sound checked on the S23 against minicam v0.6.0
+- Commit: see git log (feat: vibrate on detection notifications ...), branch feat/android-push
+- Tests: Android 110/110, lint only the 5 existing version notices, release build
+- Next: feel the vibration on the S23, tap opens the camera (AC10)
+
+## 2026-11-10 — ADR 0014 Remote access only through the dashboard
+- Done: Admin → Remote access removed on Android and iOS (screen, Cloudflare client, tunnel
+  set-up/remove calls, scanner shortcut); "Connect to dashboard" still polls the tunnel status
+- Commit: see git log (refactor: remove the in-app Remote access ...), branch feat/android-push
+- Tests: Android 100/100, lint only the 5 existing version notices, debug + release build; iOS
+  `swift test` 87/87, simulator build with no Swift warnings
+- Next: open the PR; feel the detection vibration on the S23
+
+## 2026-11-10 — Saved dashboard status away from home (ADR 0011)
+- Done: "Connect to dashboard" keeps the last status read on the LAN (`CentralStatusCache`, credential
+  store, cleared on logout) and shows it on Remote with a neutral note instead of a red error;
+  the pairing form is hidden away from home. Android and iOS
+- Commit: see git log (feat: show the saved dashboard status ...), branch feat/android-push
+- Tests: Android 103/103, lint only the 5 existing version notices, release build; iOS `swift test`
+  90/90, simulator build with no Swift warnings. Push, sound, vibration and tap checked on the S23
+- Next: check the saved status on the S23 (open once on Local, then on Remote); merge PR #25
+
+## 2026-11-10 — Login: remembered email and setup switch (ADR 0008)
+- Done: the last sign-in email is kept on logout and prefilled; "New device? Create admin account" /
+  "I already have an account: sign in" always shown, re-checking the device (says when it
+  already has an admin or is not reachable on the LAN). Android and iOS
+- Commit: see git log (feat: remember the last email ...), branch feat/android-push
+- Tests: Android 104/104, lint only the 5 existing version notices, release build; iOS `swift test`
+  91/91, simulator build with no Swift warnings
+- Next: check both on the S23 after re-flashing the Pi; merge PR #25

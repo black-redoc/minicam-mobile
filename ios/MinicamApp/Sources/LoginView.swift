@@ -51,6 +51,14 @@ struct LoginView: View {
                         Text("This server is outside your network. Cloudflare Access verifies you first.")
                             .font(.caption)
                             .foregroundStyle(Theme.muted)
+                    } else if model.creatingAdmin, status == nil {
+                        Text("Can't check this device. Setting it up only works on its home network (Local), at its local address.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                    } else if model.creatingAdmin, status?.state == .configured {
+                        Text("This device already has an administrator: sign in. To set it up again, reset or re-flash it.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
                     } else if model.creatingAdmin, status?.state == .restartNeeded {
                         Text("""
                             Setup is only open for 30 minutes after the device starts. Unplug the device's \
@@ -64,11 +72,11 @@ struct LoginView: View {
                         signInForm
                     }
 
-                    // Only a device with no account yet can be set up; switching lets the user
-                    // sign in instead (or go back to setup) without retyping the address.
-                    if status?.setupRequired == true, !model.needsAccessLogin {
-                        Button(model.creatingAdmin ? "I already have an account: sign in" : "Set up this device") {
-                            model.creatingAdmin.toggle()
+                    // Always offered (e.g. after re-flashing the device); the setup form re-checks the
+                    // device and only a device with no account yet can be set up.
+                    if !model.needsAccessLogin {
+                        Button(model.creatingAdmin ? "I already have an account: sign in" : "New device? Create admin account") {
+                            Task { await model.chooseCreateAdmin(!model.creatingAdmin) }
                         }
                         .font(.footnote)
                         .foregroundStyle(Theme.accentHover)
@@ -97,6 +105,7 @@ struct LoginView: View {
             if on { model.discovery.start() } else { model.discovery.stop() }
         }
         .onDisappear { model.discovery.stop() }
+        .onAppear { if email.isEmpty { email = model.lastEmail } }
     }
 
     @ViewBuilder private var signInForm: some View {

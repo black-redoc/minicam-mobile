@@ -7,11 +7,12 @@
 | `minicam_session` cookie | theft from device storage or logs | Keystore/Keychain only (`WhenUnlockedThisDeviceOnly`), never logged, cleared on logout/401 |
 | CF Access token | interception of the handoff redirect | Random `state` checked on callback; token in URL fragment; it is only the first factor (a minicam session is still required) |
 | Camera feed | sniffing on untrusted networks | `http` allowed only to LAN hosts; WAN is `https`/`wss` through the tunnel |
+| Last sign-in email | read from the phone | Only the email (never the password), Keystore/Keychain store; kept on logout to prefill the login screen |
+| Saved dashboard status | read from the phone | Address, site name and last sync only (no token); Keystore/Keychain store, cleared on logout |
 | LED setup code | brute force, reuse | Typed by the user, never stored; minicam allows 3 tries per code, 5 codes and 30 min per boot (minicam ADR 0006) |
 | Discovered devices | spoofed `_minicam._tcp` answer | Resolved address must pass `ServerConfig` (private IPv4 only); names shown as plain text |
 | Stream token | reuse | Issued per camera, 30 s TTL by the server; never persisted |
-| Cloudflare API token (Remote access) | theft from the phone or the device | Typed by the admin, held only in the screen's state, cleared after setup; never stored, logged or sent to minicam (ADR 0009) |
-| Tunnel token | leak on the way to the device | Sent once to minicam over the LAN by an admin; `TunnelSetup.toString()` omits it; the device keeps it root-only (minicam ADR 0008) |
+| Tunnel / Cloudflare API tokens | theft from the phone | Never reach the app: the dashboard provisions the tunnel on the device (ADR 0014) |
 
 ## Transport rules
 - `https://` hosts: always allowed. `http://` hosts: only private IPv4 (10/8, 172.16/12,
@@ -55,8 +56,12 @@ password session, and the server pins the redirect target (no open redirect).
 - Opt-in per phone; no FCM token exists until the user turns notifications on.
 - The FCM service-account key lives only in the minicam-admin Worker, never on the Pi or the app;
   a site can push only to tokens registered for that site.
-- Payloads are AES-256-GCM with a per-install Keystore key: Google and the relay see ciphertext
-  only. Token and key are never logged; a payload that fails to decrypt is dropped.
+- Payloads are AES-256-GCM with a random per-install key kept in the Keystore-encrypted credential
+  store: Google and the relay see ciphertext only. Token and key are never logged; a payload that
+  fails to decrypt, or arrives after the switch was turned off, is dropped.
+- Sign-out forgets the key at once and deletes the FCM token; minicam drops that session's tokens.
+- Firebase analytics, delivery metrics and auto-init are off in the manifest (checked by
+  `dependencies_haveNoGoogleTelemetry`).
 - Opening a camera from a notification goes through the normal `can_view` check on the server.
 
 ## Connect to dashboard (ADR 0011)

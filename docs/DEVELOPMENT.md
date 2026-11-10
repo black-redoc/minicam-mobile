@@ -36,6 +36,16 @@ gh secret set ANDROID_KEYSTORE_PASSWORD; gh secret set ANDROID_KEY_ALIAS; gh sec
 ```
 Losing the key means users must uninstall to update. iOS builds from CI are unsigned (ADR 0003).
 
+## Push notifications (Android, ADR 0007)
+Builds include push only with the Firebase app values, as `android/local.properties` lines or env
+vars (CI secrets): `MINICAM_FIREBASE_PROJECT_ID`, `MINICAM_FIREBASE_APP_ID`,
+`MINICAM_FIREBASE_API_KEY`, `MINICAM_FIREBASE_SENDER_ID` (from the Firebase console's
+`google-services.json`, which is never committed). Without them the switch is hidden. Delivery
+also needs the minicam device paired with minicam-admin and its `FCM_SERVICE_ACCOUNT` secret.
+The detection sound `res/raw/detection_reload.wav` is synthesized (no third-party audio): change
+`android/tools/detection_sound.py`, run it from the repo root and commit both. A new sound needs a
+new channel id in `DetectionNotifications`, since Android keeps a channel's first sound and vibration.
+
 ## Conventions
 - Package / bundle id: `dev.minicam.mobile`. Callback scheme: `minicam://access-callback`.
 - Keep Android and iOS behavior identical; when one changes, update the other or open an issue.

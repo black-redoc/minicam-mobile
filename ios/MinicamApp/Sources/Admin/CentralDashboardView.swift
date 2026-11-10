@@ -17,6 +17,9 @@ struct CentralDashboardView: View {
     /// Filled from a QR link: the admin must see the dashboard host and confirm (docs/adr/0011).
     @State private var linkHost: String?
     @State private var scanning = false
+    /// Away from home minicam does not answer the status: show the copy from the last LAN visit.
+    @State private var saved: SavedCentralStatus?
+    private var away: Bool { model.api?.config.isWAN == true }
 
     var body: some View {
         Form {
@@ -34,8 +37,15 @@ struct CentralDashboardView: View {
                                 .font(.caption).foregroundStyle(Theme.muted)
                         }
                     }
+                } else if away {
+                    Text("Not checked yet: open this screen once on your home network.")
+                        .font(.caption).foregroundStyle(Theme.muted)
                 } else if error == nil {
                     SkeletonRow(index: 0, trailing: false)
+                }
+                if let saved {
+                    Text("As of \(saved.savedAt.formatted(date: .abbreviated, time: .shortened)), on your home network.")
+                        .font(.caption).foregroundStyle(Theme.muted)
                 }
             }
             .adminRow()
@@ -48,7 +58,11 @@ struct CentralDashboardView: View {
                 .adminRow()
             }
 
-            if status?.managedInEnv != true {
+            if away {
+                Text("To connect, pair again or disconnect, switch to your home network (Local).")
+                    .font(.caption).foregroundStyle(Theme.muted)
+                    .adminRow()
+            } else if status?.managedInEnv != true {
                 Section(status?.connected == true ? "Pair again (new token)" : "Connect") {
                     Text("""
                         In the dashboard open Sites, press "Pair device" on this device's site and type the \
@@ -119,19 +133,21 @@ struct CentralDashboardView: View {
     private func load() async {
         guard let api = model.api else { return }
         if api.config.isWAN {
-            error = "The dashboard can only be connected while you're on your home network."
+            saved = model.centralStatus.load()
+            status = saved?.status
             return
         }
         let link = model.pendingPairLink.take()
         if let current = await model.attempt({ error = $0 }, { try await api.centralStatus() }) {
-            status = current
+            keep(current)
             if let current = current.url { url = current }
         }
         if let link { fill(link) }
-        if model.scanPairQROnOpen {
-            model.scanPairQROnOpen = false
-            scanning = true
-        }
+    }
+
+    private func keep(_ current: CentralStatus) {
+        status = current
+        model.centralStatus.save(current)
     }
 
     private func fill(_ link: PairLink) {
@@ -165,7 +181,7 @@ struct CentralDashboardView: View {
             progress = nil
             return
         }
-        if let current = await model.attempt({ _ in }, { try await api.centralStatus() }) { status = current }
+        if let current = await model.attempt({ _ in }, { try await api.centralStatus() }) { keep(current) }
         success = "WAN access is now managed in the dashboard."
             + (result.wanURL.map { " From outside your home network, sign in at \($0)" } ?? "")
     }
@@ -177,7 +193,7 @@ struct CentralDashboardView: View {
         busy = true
         defer { busy = false }
         if let current = await model.attempt({ error = $0 }, { try await api.unpairFromCentral() }) {
-            status = current
+            keep(current)
             success = "Disconnected. WAN access is managed on the device again."
         }
     }

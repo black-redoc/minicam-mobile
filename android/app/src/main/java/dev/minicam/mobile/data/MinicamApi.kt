@@ -53,6 +53,8 @@ class MinicamApi(
                 .firstOrNull { it.name == SESSION_COOKIE }
                 ?: throw MinicamException.InvalidResponse
             store.set(CredentialKey.SESSION_COOKIE, cookie.value)
+            // Kept on logout: the login screen prefills it.
+            store.set(CredentialKey.LAST_EMAIL, email)
             decode(User.serializer(), text)
         }
     }
@@ -69,6 +71,8 @@ class MinicamApi(
                 .firstOrNull { it.name == SESSION_COOKIE }
                 ?: throw MinicamException.InvalidResponse
             store.set(CredentialKey.SESSION_COOKIE, cookie.value)
+            // Kept on logout: the login screen prefills it.
+            store.set(CredentialKey.LAST_EMAIL, email)
             decode(User.serializer(), text)
         }
     }

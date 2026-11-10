@@ -4,9 +4,8 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// minicam's Cloudflare Tunnel endpoints (minicam ADR 0008, docs/adr/0009):
-// admins only, LAN only. The device installs cloudflared itself and reports
-// progress through tunnelStatus().
+// minicam's Cloudflare Tunnel status (minicam ADR 0008). Only the dashboard sets the tunnel
+// up (docs/adr/0014); the device installs cloudflared itself and reports progress here.
 
 @Serializable
 enum class TunnelState {
@@ -22,32 +21,12 @@ data class TunnelStatus(
     val state: TunnelState,
     val hostname: String? = null,
     val message: String? = null,
-    /** "app" (set up here) or "central" (by the dashboard, read only here; minicam ADR 0010). */
+    /** "app" (set up by an older app) or "central" (by the dashboard; minicam ADR 0010). */
     val source: String? = null,
-) {
-    val managedByCentral: Boolean get() = source == "central"
-}
-
-/** What the device needs from Cloudflare; the API token never leaves the app. */
-@Serializable
-data class TunnelSetup(
-    @SerialName("tunnel_token") val tunnelToken: String,
-    val hostname: String,
-    @SerialName("team_domain") val teamDomain: String,
-    val aud: String,
-) {
-    // The tunnel token is a credential: keep it out of logs and crash reports.
-    override fun toString() = "TunnelSetup(hostname=$hostname, teamDomain=$teamDomain)"
-}
+)
 
 /** [MinicamException.NotFound] when this installation has no tunnel helper. */
 suspend fun MinicamApi.tunnelStatus(): TunnelStatus = get("/api/system/tunnel", TunnelStatus.serializer())
-
-suspend fun MinicamApi.setUpTunnel(setup: TunnelSetup) {
-    sendJsonNoContent("POST", "/api/system/tunnel", TunnelSetup.serializer(), setup)
-}
-
-suspend fun MinicamApi.removeTunnel() = sendEmpty("DELETE", "/api/system/tunnel")
 
 /** Polls until the device reports running or error (installing takes about a minute). */
 suspend fun MinicamApi.waitForTunnel(

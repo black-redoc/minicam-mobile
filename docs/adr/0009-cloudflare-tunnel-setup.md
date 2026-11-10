@@ -1,4 +1,4 @@
-# 0009 Cloudflare Tunnel setup from the app — Status: Accepted
+# 0009 Cloudflare Tunnel setup from the app — Status: Superseded by 0014
 Date: 2026-10-29
 
 ## Context

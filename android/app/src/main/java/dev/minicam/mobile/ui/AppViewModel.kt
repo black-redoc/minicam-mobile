@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.minicam.mobile.data.AccessHandoff
 import dev.minicam.mobile.data.CameraSummary
+import dev.minicam.mobile.data.CentralStatusCache
 import dev.minicam.mobile.data.CredentialKey
 import dev.minicam.mobile.data.CredentialStore
 import dev.minicam.mobile.data.KeystoreCredentialStore
@@ -22,16 +23,20 @@ import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
 import dev.minicam.mobile.data.SetupStatus
 import dev.minicam.mobile.data.User
+import dev.minicam.mobile.data.mobilePushStatus
 import dev.minicam.mobile.data.network
 import dev.minicam.mobile.data.requestSetupCode
 import dev.minicam.mobile.data.setupStatus
+import dev.minicam.mobile.push.FirebasePush
+import dev.minicam.mobile.push.PushRegistration
+import dev.minicam.mobile.push.PushSwitch
 import kotlinx.coroutines.launch
 
 /**
  * Top-level screens besides login and the camera view. Recordings is for everyone (ADR 0005);
  * the admin ones need `is_admin` (ADR 0004).
  */
-enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, REMOTE_ACCESS, CENTRAL_DASHBOARD }
+enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, CENTRAL_DASHBOARD }
 
 /** App-wide state: which server, whether we have a session, the camera list. */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -72,14 +77,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** A dashboard QR link opened before the app could use it (docs/adr/0011); memory only. */
     val pendingPairLink = PendingPairLink()
 
-    /** Open "Connect to dashboard" with the in-app scanner (from Remote access, docs/adr/0012). */
-    var scanPairQrOnOpen by mutableStateOf(false)
-
     /** `_minicam._tcp` browser for "Find minicam on my network". */
     val discovery = LanDiscovery(application)
 
     /** Local and remote address of the server, and which one is active (docs/adr/0013). */
     private val addresses = ServerAddresses(store)
+
+    /** Shown by "Connect to dashboard" away from home, where minicam does not answer it. */
+    val centralStatus = CentralStatusCache(store)
+
+    /** Detection notifications on this phone (docs/adr/0007); hidden in builds without Firebase. */
+    private val push = PushRegistration(store, FirebasePush.tokens(application))
+    var pushSwitch by mutableStateOf(push.switchState(available = null))
+        private set
+
+    /** One-off message about the switch, shown by the screen and then cleared. */
+    var pushMessage by mutableStateOf<String?>(null)
+
+    /** A camera to open from a tapped notification, once signed in and the list is loaded. */
+    private var pendingCamera: String? = null
     var activeNetwork by mutableStateOf<Network?>(null)
         private set
     var localAddress by mutableStateOf<String?>(null)
@@ -190,6 +206,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .onFailure { errorMessage = "Cloudflare Access login failed. Try again." }
     }
 
+    /** Prefilled on the login screen, so signing back in only needs the password. */
+    val lastEmail: String get() = store.get(CredentialKey.LAST_EMAIL).orEmpty()
+
     fun login(email: String, password: String) {
         val api = applyServerUrl() ?: return
         launchBusy {
@@ -197,7 +216,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             signedIn = true
             offerPairLink()
             cameras = api.cameras()
-            camerasLoaded = true
+            onCamerasLoaded(api, newSession = true)
         }
     }
 
@@ -231,21 +250,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Asks a LAN server whether it still needs its first admin, and switches the login
      * screen to "Create admin account" if so. WAN hosts are never set up from the app.
+     * With [switchMode] false the user's own choice of form is kept (only the status refreshes).
      */
-    fun checkSetup() {
+    fun checkSetup(switchMode: Boolean = true) {
         val config = runCatching { ServerConfig.parse(serverUrlText) }.getOrNull()
         if (config == null || config.isWan) {
             setupStatus = null
-            creatingAdmin = false
+            if (switchMode) creatingAdmin = false
             return
         }
         viewModelScope.launch {
             val status = runCatching { MinicamApi(config, store).setupStatus() }.getOrNull()
             if (runCatching { ServerConfig.parse(serverUrlText) }.getOrNull() != config) return@launch
             setupStatus = status
-            creatingAdmin = status != null && status.setupRequired
+            if (switchMode) creatingAdmin = status != null && status.setupRequired
             setupCodeMessage = null
         }
+    }
+
+    /** The login screen's Sign in / Create admin account switch; always offered, e.g. after re-flashing. */
+    fun chooseCreateAdmin(create: Boolean) {
+        creatingAdmin = create
+        errorMessage = null
+        // The device may have been re-flashed since the address was typed: ask again.
+        if (create) checkSetup(switchMode = false)
     }
 
     /** Has the device's LED blink a new setup code. */
@@ -270,7 +298,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             setupCodeMessage = null
             offerPairLink()
             cameras = api.cameras()
-            camerasLoaded = true
+            onCamerasLoaded(api, newSession = true)
         }
     }
 
@@ -280,7 +308,45 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (user == null) user = api.me()
             offerPairLink()
             cameras = api.cameras()
-            camerasLoaded = true
+            onCamerasLoaded(api, newSession = false)
+        }
+    }
+
+    private fun onCamerasLoaded(api: MinicamApi, newSession: Boolean) {
+        camerasLoaded = true
+        pendingCamera?.let { name ->
+            cameras.firstOrNull { it.name == name }?.let { selectedCamera = it }
+            pendingCamera = null
+        }
+        if (pushSwitch == PushSwitch.HIDDEN) return
+        viewModelScope.launch {
+            // A new session must own the token, or its logout would not stop the pushes.
+            if (newSession && push.enabled) runCatching { push.refresh(api) }
+            val available = runCatching { api.mobilePushStatus().available }.getOrDefault(false)
+            pushSwitch = push.switchState(available)
+        }
+    }
+
+    /** Opens [camera] from a notification tap; after sign-in if the session is gone (spec 012 AC10). */
+    fun openCameraFromNotification(camera: String) {
+        selectedCamera = null
+        screen = Screen.CAMERAS
+        val loaded = cameras.firstOrNull { it.name == camera }
+        if (signedIn && loaded != null) selectedCamera = loaded else pendingCamera = camera
+        if (signedIn && loaded == null) refresh()
+    }
+
+    /** The switch; the screen asks for `POST_NOTIFICATIONS` first on Android 13+. */
+    fun setPushEnabled(on: Boolean) {
+        val api = api ?: return
+        viewModelScope.launch {
+            try {
+                if (on) push.enable(api) else push.disable(api)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                pushMessage = "Could not turn on notifications. ${describe(e)}"
+            }
+            pushSwitch = push.switchState(available = true)
         }
     }
 
@@ -293,7 +359,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         screen = Screen.CAMERAS
         user = null
         signedIn = false
+        if (pushSwitch != PushSwitch.HIDDEN) pushSwitch = PushSwitch.UNAVAILABLE
+        centralStatus.clear()
+        // Both clear their local state before they first suspend: nothing waits on the network.
         viewModelScope.launch { api?.logout() }
+        viewModelScope.launch { push.onLogout() }
     }
 
     /** Central error mapping, shared by every screen. */

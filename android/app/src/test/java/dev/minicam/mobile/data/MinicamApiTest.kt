@@ -56,6 +56,19 @@ class MinicamApiTest {
     }
 
     @Test
+    fun login_remembersEmailAfterLogout() = runTest {
+        enqueue(200, userJson, "Set-Cookie" to "minicam_session=jwt123; HttpOnly; Path=/; SameSite=lax")
+        enqueue(200)
+        val api = lanApi()
+
+        api.login("a@example.com", "secret123")
+        api.logout()
+
+        assertNull(store.get(CredentialKey.SESSION_COOKIE))
+        assertEquals("a@example.com", store.get(CredentialKey.LAST_EMAIL))
+    }
+
+    @Test
     fun login_unauthorized_reportsInvalidCredentials() = runTest {
         enqueue(401, """{"detail": "Invalid email or password"}""")
         val api = lanApi()

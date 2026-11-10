@@ -54,7 +54,6 @@ struct CamerasView: View {
                 case .cameraSettings: CameraSettingsView()
                 case .aiDetection: AIDetectionView()
                 case .admin: AdminView()
-                case .remoteAccess: RemoteAccessView()
                 case .centralDashboard: CentralDashboardView()
                 }
             }
@@ -75,9 +74,6 @@ struct CamerasView: View {
                             }
                             NavigationLink(value: AdminRoute.admin) {
                                 Label("Admin", systemImage: "person.2")
-                            }
-                            NavigationLink(value: AdminRoute.remoteAccess) {
-                                Label("Remote access", systemImage: "globe")
                             }
                             NavigationLink(value: AdminRoute.centralDashboard) {
                                 Label("Connect to dashboard", systemImage: "building.2")

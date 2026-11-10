@@ -4,15 +4,20 @@ import Foundation
 // types the dashboard address and the one-time code it shows; minicam exchanges the code for
 // its device token itself, so the token never reaches the phone. Admins only, LAN only.
 
-public struct PairedSite: Decodable, Equatable, Sendable {
+public struct PairedSite: Codable, Equatable, Sendable {
     public let name: String
     public let hostname: String
+
+    public init(name: String, hostname: String) {
+        self.name = name
+        self.hostname = hostname
+    }
 }
 
 /// Remote access the dashboard handed over when pairing (minicam ADR 0010): `installing` (poll
 /// `tunnelStatus()`), `skipped` (Access is set in the device's .env) or `error`. Nil when the
 /// dashboard provisions no remote access.
-public struct CentralTunnel: Decodable, Equatable, Sendable {
+public struct CentralTunnel: Codable, Equatable, Sendable {
     public var state: String
     public var hostname: String?
     public var message: String?
@@ -37,7 +42,7 @@ public struct CentralTunnel: Decodable, Equatable, Sendable {
     }
 }
 
-public struct CentralStatus: Decodable, Equatable, Sendable {
+public struct CentralStatus: Codable, Equatable, Sendable {
     public let connected: Bool
     public let url: String?
     /// "env": set in the device's .env (read only here); "app": paired from the app.
@@ -49,6 +54,18 @@ public struct CentralStatus: Decodable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case connected, url, source, lastSyncedAt = "last_synced_at", site, tunnel
+    }
+
+    public init(
+        connected: Bool, url: String? = nil, source: String? = nil, lastSyncedAt: String? = nil,
+        site: PairedSite? = nil, tunnel: CentralTunnel? = nil
+    ) {
+        self.connected = connected
+        self.url = url
+        self.source = source
+        self.lastSyncedAt = lastSyncedAt
+        self.site = site
+        self.tunnel = tunnel
     }
 
     public var managedInEnv: Bool { source == "env" }

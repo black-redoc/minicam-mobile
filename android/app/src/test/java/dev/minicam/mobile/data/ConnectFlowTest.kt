@@ -151,18 +151,6 @@ class ConnectFlowTest {
     }
 
     @Test
-    fun remoteAccess_readOnlyWhenCentral() = runTest {
-        enqueue("""{"available": true, "state": "running", "hostname": "cam.example.com", "message": null, "source": "central"}""")
-        enqueue("""{"available": true, "state": "running", "hostname": "own.example.org", "message": null, "source": "app"}""")
-        enqueue("""{"available": true, "state": "none", "hostname": null, "message": null}""")
-        val api = api()
-
-        assertTrue(api.tunnelStatus().managedByCentral)
-        assertFalse(api.tunnelStatus().managedByCentral)
-        assertFalse(api.tunnelStatus().managedByCentral)
-    }
-
-    @Test
     fun manifest_registersPairLink() {
         val manifest = File("src/main/AndroidManifest.xml").readText()
         assertTrue(manifest.contains("""<data android:scheme="minicam" android:host="pair" />"""))
