@@ -72,10 +72,6 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             it.url?.let { current -> url = current }
         }
         if (link != null) fill(link)
-        if (viewModel.scanPairQrOnOpen) {
-            viewModel.scanPairQrOnOpen = false
-            scanning = true
-        }
     }
 
     if (scanning) {

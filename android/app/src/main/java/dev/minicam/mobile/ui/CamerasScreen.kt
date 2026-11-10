@@ -159,7 +159,6 @@ private fun Header(
                         Screen.CAMERA_SETTINGS to "Camera settings",
                         Screen.AI_DETECTION to "AI detection",
                         Screen.ADMIN to "Admin",
-                        Screen.REMOTE_ACCESS to "Remote access",
                         Screen.CENTRAL_DASHBOARD to "Connect to dashboard",
                     ).forEach { (screen, label) ->
                         DropdownMenuItem(

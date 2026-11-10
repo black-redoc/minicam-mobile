@@ -53,9 +53,8 @@ ios/
    streams `/api/recordings/{id}/video` (HTTP Range) with the same auth headers; download
    fetches `?download=true` in-app. Admins: `DELETE /api/recordings/{id}` and
    `GET/PUT /api/recordings/settings` on the Admin screen.
-9. Remote access (admins, LAN only, ADR 0009): the app creates the Cloudflare tunnel, route, DNS
-   record and Access application with the admin's API token (`CloudflareSetup`), then
-   `POST /api/system/tunnel` and polls `GET /api/system/tunnel` until the device runs it.
+9. Remote access is set up only by the central dashboard (ADR 0014, supersedes ADR 0009); the
+   app just polls `GET /api/system/tunnel` while connecting to it.
 10. Central dashboard (admins, LAN only, ADR 0010): the admin types the dashboard address and the
     one-time code from its "Pair device"; `POST /api/system/central` makes minicam exchange the
     code for its device token itself. `DELETE` disconnects.
@@ -87,8 +86,8 @@ GitHub Actions: `ci.yml` on PRs, `release.yml` publishes installable builds on m
 
 ## Invariants
 - No third-party analytics, crash reporting or ads. The app only talks to the configured host and
-  its Cloudflare Access team domain, plus `api.cloudflare.com` during Admin → Remote access
-  ([ADR 0009](adr/0009-cloudflare-tunnel-setup.md)), with a token kept only in that screen's state.
+  its Cloudflare Access team domain; it never calls `api.cloudflare.com`
+  ([ADR 0014](adr/0014-remote-access-only-through-the-dashboard.md)).
   "Connect to dashboard" ([ADR 0011](adr/0011-connect-with-code-or-qr.md)) talks only to the
   device: the device itself calls the dashboard, and the QR deep link or the in-app scanner
   ([ADR 0012](adr/0012-in-app-qr-scanner.md), decoded on the phone) only fills the form.

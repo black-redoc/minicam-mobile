@@ -30,8 +30,6 @@ final class AppModel {
     private(set) var setupCodeMessage: String?
     /// A dashboard QR link opened before the app could use it (docs/adr/0011); memory only.
     var pendingPairLink = PendingPairLink()
-    /// Open "Connect to dashboard" with the in-app scanner (from Remote access, docs/adr/0012).
-    var scanPairQROnOpen = false
     /// The signed-in navigation stack, so a QR link can open "Connect to dashboard".
     var path = NavigationPath()
 

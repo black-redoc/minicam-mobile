@@ -194,3 +194,11 @@
 - Commit: see git log (feat: vibrate on detection notifications ...), branch feat/android-push
 - Tests: Android 110/110, lint only the 5 existing version notices, release build
 - Next: feel the vibration on the S23, tap opens the camera (AC10)
+
+## 2026-11-10 — ADR 0014 Remote access only through the dashboard
+- Done: Admin → Remote access removed on Android and iOS (screen, Cloudflare client, tunnel
+  set-up/remove calls, scanner shortcut); "Connect to dashboard" still polls the tunnel status
+- Commit: see git log (refactor: remove the in-app Remote access ...), branch feat/android-push
+- Tests: Android 100/100, lint only the 5 existing version notices, debug + release build; iOS
+  `swift test` 87/87, simulator build with no Swift warnings
+- Next: open the PR; feel the detection vibration on the S23

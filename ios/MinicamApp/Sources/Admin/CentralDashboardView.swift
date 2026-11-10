@@ -128,10 +128,6 @@ struct CentralDashboardView: View {
             if let current = current.url { url = current }
         }
         if let link { fill(link) }
-        if model.scanPairQROnOpen {
-            model.scanPairQROnOpen = false
-            scanning = true
-        }
     }
 
     private func fill(_ link: PairLink) {

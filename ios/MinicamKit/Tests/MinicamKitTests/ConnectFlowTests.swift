@@ -124,16 +124,6 @@ import Testing
         #expect(noTunnel.wanURL == nil && noTunnel.remoteAccess == .skipped)
     }
 
-    @Test func remoteAccess_readOnlyWhenCentral() async throws {
-        let api = api(FakeTransport([
-            .init(status: 200, body: #"{"available": true, "state": "running", "hostname": "cam.example.com", "source": "central"}"#),
-            .init(status: 200, body: #"{"available": true, "state": "running", "hostname": "own.example.org", "source": "app"}"#),
-            .init(status: 200, body: #"{"available": true, "state": "none"}"#),
-        ]))
-        #expect(try await api.tunnelStatus().managedByCentral)
-        #expect(try await !api.tunnelStatus().managedByCentral)
-        #expect(try await !api.tunnelStatus().managedByCentral)
-    }
 }
 
 private actor Recorder {

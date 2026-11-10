@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
  * Top-level screens besides login and the camera view. Recordings is for everyone (ADR 0005);
  * the admin ones need `is_admin` (ADR 0004).
  */
-enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, REMOTE_ACCESS, CENTRAL_DASHBOARD }
+enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, CENTRAL_DASHBOARD }
 
 /** App-wide state: which server, whether we have a session, the camera list. */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -75,9 +75,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** A dashboard QR link opened before the app could use it (docs/adr/0011); memory only. */
     val pendingPairLink = PendingPairLink()
-
-    /** Open "Connect to dashboard" with the in-app scanner (from Remote access, docs/adr/0012). */
-    var scanPairQrOnOpen by mutableStateOf(false)
 
     /** `_minicam._tcp` browser for "Find minicam on my network". */
     val discovery = LanDiscovery(application)

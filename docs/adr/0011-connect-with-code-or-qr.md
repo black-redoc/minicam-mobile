@@ -24,7 +24,7 @@ or by scanning a QR.
   "Remote access" (`installing` → `running` / `error` / `skipped`), polling
   `GET /api/system/tunnel`. On `running` it shows `https://<hostname>` as the address to sign in
   at from outside the home network (the app keeps one server address, so nothing is saved).
-- **Remote access** (ADR 0009) stays for devices without a dashboard. It becomes read-only with
+- **Remote access** (ADR 0009) stays for devices without a dashboard (removed by ADR 0014). It becomes read-only with
   "Managed by the dashboard" when the tunnel `source` is `central`.
 - The code and URL live only in screen state and are cleared after a result. No token, central or
   tunnel, ever reaches the phone.

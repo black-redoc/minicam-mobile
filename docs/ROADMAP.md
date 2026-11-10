@@ -105,6 +105,11 @@ signing out; sign-out never waits on an unreachable server.
 
 Non-goals for M2.14: automatic LAN-first fallback, several servers.
 
+## M2.15 - Remote access only through the dashboard (ADR 0014)
+Scope: remove Admin → Remote access (in-app Cloudflare setup) on Android and iOS.
+- [x] ADR 0014 accepted
+- [x] Android and iOS: menu entry, screen and Cloudflare client removed; tests and builds pass
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)
