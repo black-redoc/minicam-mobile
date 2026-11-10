@@ -28,7 +28,7 @@ A small `ViewingBudget` (Android `data/`, iOS `MinicamKit`) with an injectable m
 it only while the screen is in the foreground (the same rule that already gates the stream), and
 when it expires the screen navigates back (Android `selectedCamera = null`, iOS `dismiss()`);
 leaving the screen cancels the stream task, which closes the HTTP connection. Time counts from
-when the stream starts connecting, so slow connects are counted too. PTZ stays usable.
+the first rendered frame (MJPEG or fMP4), so a slow connect does not eat the 30 s. PTZ stays usable.
 
 ## Security notes
 No new input, endpoint or host. Lowers the bandwidth cost noted in SECURITY.md.

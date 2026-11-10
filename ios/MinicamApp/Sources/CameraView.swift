@@ -24,6 +24,8 @@ struct CameraView: View {
     // Spec 011: at most 30 s of streaming per open; then back to the camera list.
     @State private var budget = ViewingBudget()
     @State private var secondsLeft = Int(ViewingBudget.limit)
+    /// The time starts on the first rendered frame (MJPEG or fMP4), not while connecting.
+    @State private var firstFrameShown = false
 
     /// Restarts the stream when it changes: foreground, audio toggled, fallback to MJPEG.
     private struct StreamKey: Hashable {
@@ -55,10 +57,10 @@ struct CameraView: View {
             guard scenePhase == .active, let api = model.api else { return }
             await stream(api: api)
         }
-        // The viewing time runs under the same rule as the stream, across its restarts.
-        // Leaving the screen closes the stream connection.
-        .task(id: scenePhase == .active) {
-            guard scenePhase == .active else { return }
+        // The viewing time runs under the same rule as the stream, across its restarts, from
+        // the first rendered frame on. Leaving the screen closes the stream connection.
+        .task(id: scenePhase == .active && firstFrameShown) {
+            guard scenePhase == .active, firstFrameShown else { return }
             budget.start()
             defer { budget.stop() }
             while !budget.expired {
@@ -77,6 +79,7 @@ struct CameraView: View {
             }
         }
         .onChange(of: player.failed) { _, failed in if failed { fmp4Failed = true } }
+        .onChange(of: frame != nil || player.hasPicture) { _, shown in if shown { firstFrameShown = true } }
     }
 
     /// Only offered when the server says this user may listen and the device can play it.
