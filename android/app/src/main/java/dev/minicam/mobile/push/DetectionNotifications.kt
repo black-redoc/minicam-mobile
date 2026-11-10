@@ -17,9 +17,12 @@ import dev.minicam.mobile.R
 /** System notifications for detections; a tap opens that camera (spec 012 AC10). */
 object DetectionNotifications {
     const val EXTRA_CAMERA = "dev.minicam.mobile.extra.CAMERA"
-    // Android never changes a created channel's sound, so adding the reload sound needed a new id.
-    private const val CHANNEL_ID = "detections_v2"
-    private const val OLD_CHANNEL_ID = "detections"
+    // Android never changes a created channel's sound or vibration, so each change needs a new id.
+    private const val CHANNEL_ID = "detections_v3"
+    private val OLD_CHANNEL_IDS = listOf("detections", "detections_v2")
+
+    /** Off/on pairs in ms: one buzz per clack of the reload sound. */
+    internal val VIBRATION_PATTERN = longArrayOf(0, 120, 160, 200)
 
     fun show(context: Context, push: DetectionPush) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -28,7 +31,7 @@ object DetectionNotifications {
             return
         }
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.deleteNotificationChannel(OLD_CHANNEL_ID)
+        OLD_CHANNEL_IDS.forEach(manager::deleteNotificationChannel)
         val sound = Uri.parse("android.resource://${context.packageName}/${R.raw.detection_reload}")
         val audio = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_NOTIFICATION)
@@ -38,6 +41,8 @@ object DetectionNotifications {
             NotificationChannel(CHANNEL_ID, "Detections", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Objects detected on your cameras"
                 setSound(sound, audio)
+                enableVibration(true)
+                vibrationPattern = VIBRATION_PATTERN
             },
         )
         val open = Intent(context, MainActivity::class.java)

@@ -187,3 +187,10 @@
 - Commit: see git log (feat: play a gun reload sound ...), branch feat/android-push
 - Tests: Android 109/109, lint only the 5 existing version notices, debug + release build
 - Next: hear it on the S23 with AC9/AC10 once minicam #44 and minicam-admin #5 are deployed
+
+## 2026-11-10 — Detection vibration (Android, ADR 0007)
+- Done: two buzzes matching the reload sound's clacks; channel now `detections_v3` (older ones
+  deleted). Push with the reload sound checked on the S23 against minicam v0.6.0
+- Commit: see git log (feat: vibrate on detection notifications ...), branch feat/android-push
+- Tests: Android 110/110, lint only the 5 existing version notices, release build
+- Next: feel the vibration on the S23, tap opens the camera (AC10)
