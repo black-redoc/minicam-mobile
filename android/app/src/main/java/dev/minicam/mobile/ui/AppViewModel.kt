@@ -206,6 +206,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .onFailure { errorMessage = "Cloudflare Access login failed. Try again." }
     }
 
+    /** Prefilled on the login screen, so signing back in only needs the password. */
+    val lastEmail: String get() = store.get(CredentialKey.LAST_EMAIL).orEmpty()
+
     fun login(email: String, password: String) {
         val api = applyServerUrl() ?: return
         launchBusy {
@@ -247,21 +250,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Asks a LAN server whether it still needs its first admin, and switches the login
      * screen to "Create admin account" if so. WAN hosts are never set up from the app.
+     * With [switchMode] false the user's own choice of form is kept (only the status refreshes).
      */
-    fun checkSetup() {
+    fun checkSetup(switchMode: Boolean = true) {
         val config = runCatching { ServerConfig.parse(serverUrlText) }.getOrNull()
         if (config == null || config.isWan) {
             setupStatus = null
-            creatingAdmin = false
+            if (switchMode) creatingAdmin = false
             return
         }
         viewModelScope.launch {
             val status = runCatching { MinicamApi(config, store).setupStatus() }.getOrNull()
             if (runCatching { ServerConfig.parse(serverUrlText) }.getOrNull() != config) return@launch
             setupStatus = status
-            creatingAdmin = status != null && status.setupRequired
+            if (switchMode) creatingAdmin = status != null && status.setupRequired
             setupCodeMessage = null
         }
+    }
+
+    /** The login screen's Sign in / Create admin account switch; always offered, e.g. after re-flashing. */
+    fun chooseCreateAdmin(create: Boolean) {
+        creatingAdmin = create
+        errorMessage = null
+        // The device may have been re-flashed since the address was typed: ask again.
+        if (create) checkSetup(switchMode = false)
     }
 
     /** Has the device's LED blink a new setup code. */

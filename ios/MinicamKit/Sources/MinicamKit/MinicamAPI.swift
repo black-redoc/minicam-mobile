@@ -26,6 +26,8 @@ public final class MinicamAPI: Sendable {
             throw MinicamError.invalidResponse
         }
         store.set(cookie, for: .sessionCookie)
+        // Kept on logout: the login screen prefills it.
+        store.set(email, for: .lastEmail)
         return try decode(User.self, data)
     }
 
@@ -47,6 +49,8 @@ public final class MinicamAPI: Sendable {
             throw MinicamError.invalidResponse
         }
         store.set(cookie, for: .sessionCookie)
+        // Kept on logout: the login screen prefills it.
+        store.set(email, for: .lastEmail)
         return try decode(User.self, data)
     }
 

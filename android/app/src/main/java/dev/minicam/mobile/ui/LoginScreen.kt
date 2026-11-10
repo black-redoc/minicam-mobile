@@ -38,7 +38,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun LoginScreen(viewModel: AppViewModel) {
     val context = LocalContext.current
-    var email by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf(viewModel.lastEmail) }
     // Not rememberSaveable: passwords and the setup code must not end up in saved instance state.
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
@@ -116,6 +116,17 @@ fun LoginScreen(viewModel: AppViewModel) {
                         fontSize = 12.sp,
                     )
                 }
+                viewModel.creatingAdmin && status == null -> Text(
+                    "Can't check this device. Setting it up only works on its home network (Local), " +
+                        "at its local address.",
+                    color = CamColors.Muted,
+                    fontSize = 12.sp,
+                )
+                viewModel.creatingAdmin && status?.state == DeviceSetupState.CONFIGURED -> Text(
+                    "This device already has an administrator: sign in. To set it up again, reset or re-flash it.",
+                    color = CamColors.Muted,
+                    fontSize = 12.sp,
+                )
                 viewModel.creatingAdmin && status?.state == DeviceSetupState.RESTART_NEEDED -> Text(
                     "Setup is only open for 30 minutes after the device starts. Unplug the device's " +
                         "power, plug it back in, wait a minute and try again.",
@@ -173,12 +184,12 @@ fun LoginScreen(viewModel: AppViewModel) {
                 }
             }
 
-            // Only a device with no account yet can be set up; switching lets the user sign in
-            // instead (or go back to setup) without retyping the address.
-            if (status?.setupRequired == true && !viewModel.needsAccessLogin) {
-                TextButton(onClick = { viewModel.creatingAdmin = !viewModel.creatingAdmin }) {
+            // Always offered (e.g. after re-flashing the device); the setup form re-checks the
+            // device and only a device with no account yet can be set up.
+            if (!viewModel.needsAccessLogin) {
+                TextButton(onClick = { viewModel.chooseCreateAdmin(!viewModel.creatingAdmin) }) {
                     Text(
-                        if (viewModel.creatingAdmin) "I already have an account: sign in" else "Set up this device",
+                        if (viewModel.creatingAdmin) "I already have an account: sign in" else "New device? Create admin account",
                         color = CamColors.AccentHover,
                         fontSize = 13.sp,
                     )

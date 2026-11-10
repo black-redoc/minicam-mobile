@@ -26,6 +26,9 @@ enum class CredentialKey(val id: String) {
 
     /** The dashboard status last read on the home network (JSON, [CentralStatusCache]). */
     CENTRAL_STATUS("central_status"),
+
+    /** The email of the last successful sign-in, prefilled on the login screen; kept on logout. */
+    LAST_EMAIL("last_email"),
 }
 
 /**

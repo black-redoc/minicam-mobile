@@ -17,6 +17,8 @@ public enum CredentialKey: String, CaseIterable, Sendable {
     case activeNetwork = "active_network"
     /// The dashboard status last read on the home network (JSON, `CentralStatusCache`).
     case centralStatus = "central_status"
+    /// The email of the last successful sign-in, prefilled on the login screen; kept on logout.
+    case lastEmail = "last_email"
 }
 
 public extension CredentialStore {

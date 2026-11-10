@@ -26,6 +26,21 @@ import Testing
         #expect(body == ["email": "a@example.com", "password": "secret123"])
     }
 
+    @Test func login_remembersEmailAfterLogout() async throws {
+        let transport = FakeTransport([
+            .init(status: 200, body: userJSON, headers: ["Set-Cookie": "minicam_session=jwt123; HttpOnly; Path=/"]),
+            .init(status: 200, body: ""),
+        ])
+        let store = InMemoryCredentialStore()
+        let api = MinicamAPI(config: lan, transport: transport, store: store)
+
+        _ = try await api.login(email: "a@example.com", password: "secret123")
+        await api.logout()
+
+        #expect(store.value(for: .sessionCookie) == nil)
+        #expect(store.value(for: .lastEmail) == "a@example.com")
+    }
+
     @Test func login_unauthorized_reportsInvalidCredentials() async {
         let transport = FakeTransport([.init(status: 401, body: #"{"detail": "Invalid email or password"}"#)])
         let api = MinicamAPI(config: lan, transport: transport, store: InMemoryCredentialStore())

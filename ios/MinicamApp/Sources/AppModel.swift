@@ -151,20 +151,32 @@ final class AppModel {
         }
     }
 
+    /// Prefilled on the login screen, so signing back in only needs the password.
+    var lastEmail: String { store.value(for: .lastEmail) ?? "" }
+
     /// Asks a LAN server whether it still needs its first admin, and switches the login
     /// screen to "Create admin account" if so. WAN hosts are never set up from the app.
-    func checkSetup() async {
+    /// With `switchMode` false the user's own choice of form is kept (only the status refreshes).
+    func checkSetup(switchMode: Bool = true) async {
         guard let config = try? ServerConfig(parsing: serverURLText), !config.isWAN else {
             setupStatus = nil
-            creatingAdmin = false
+            if switchMode { creatingAdmin = false }
             return
         }
         let probe = MinicamAPI(config: config, transport: transport, store: store)
         let status = try? await probe.setupStatus()
         guard (try? ServerConfig(parsing: serverURLText)) == config else { return }
         setupStatus = status
-        creatingAdmin = status?.setupRequired == true
+        if switchMode { creatingAdmin = status?.setupRequired == true }
         setupCodeMessage = nil
+    }
+
+    /// The login screen's Sign in / Create admin account switch; always offered, e.g. after re-flashing.
+    func chooseCreateAdmin(_ create: Bool) async {
+        creatingAdmin = create
+        errorMessage = nil
+        // The device may have been re-flashed since the address was typed: ask again.
+        if create { await checkSetup(switchMode: false) }
     }
 
     /// Has the device's LED blink a new setup code.

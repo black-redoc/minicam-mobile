@@ -211,3 +211,12 @@
 - Tests: Android 103/103, lint only the 5 existing version notices, release build; iOS `swift test`
   90/90, simulator build with no Swift warnings. Push, sound, vibration and tap checked on the S23
 - Next: check the saved status on the S23 (open once on Local, then on Remote); merge PR #25
+
+## 2026-11-10 — Login: remembered email and setup switch (ADR 0008)
+- Done: the last sign-in email is kept on logout and prefilled; "New device? Create admin account" /
+  "I already have an account: sign in" always shown, re-checking the device (says when it
+  already has an admin or is not reachable on the LAN). Android and iOS
+- Commit: see git log (feat: remember the last email ...), branch feat/android-push
+- Tests: Android 104/104, lint only the 5 existing version notices, release build; iOS `swift test`
+  91/91, simulator build with no Swift warnings
+- Next: check both on the S23 after re-flashing the Pi; merge PR #25
