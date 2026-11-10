@@ -180,3 +180,10 @@
 - Commit: see git log (feat: detection notifications on Android ...), branch feat/android-push
 - Tests: Android 108/108, lint only the 5 existing version notices, debug + release build
 - Next: AC9/AC10 on the S23 once minicam #44 and minicam-admin #5 are deployed with the FCM secret
+
+## 2026-11-10 — Custom detection sound (Android, ADR 0007)
+- Done: synthesized pump-action reload sound (`android/tools/detection_sound.py`, stdlib, seeded)
+  on the "Detections" channel, now `detections_v2`; the old `detections` channel is deleted
+- Commit: see git log (feat: play a gun reload sound ...), branch feat/android-push
+- Tests: Android 109/109, lint only the 5 existing version notices, debug + release build
+- Next: hear it on the S23 with AC9/AC10 once minicam #44 and minicam-admin #5 are deployed
