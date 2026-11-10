@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.minicam.mobile.data.AccessHandoff
 import dev.minicam.mobile.data.CameraSummary
+import dev.minicam.mobile.data.CentralStatusCache
 import dev.minicam.mobile.data.CredentialKey
 import dev.minicam.mobile.data.CredentialStore
 import dev.minicam.mobile.data.KeystoreCredentialStore
@@ -81,6 +82,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Local and remote address of the server, and which one is active (docs/adr/0013). */
     private val addresses = ServerAddresses(store)
+
+    /** Shown by "Connect to dashboard" away from home, where minicam does not answer it. */
+    val centralStatus = CentralStatusCache(store)
 
     /** Detection notifications on this phone (docs/adr/0007); hidden in builds without Firebase. */
     private val push = PushRegistration(store, FirebasePush.tokens(application))
@@ -344,6 +348,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         user = null
         signedIn = false
         if (pushSwitch != PushSwitch.HIDDEN) pushSwitch = PushSwitch.UNAVAILABLE
+        centralStatus.clear()
         // Both clear their local state before they first suspend: nothing waits on the network.
         viewModelScope.launch { api?.logout() }
         viewModelScope.launch { push.onLogout() }

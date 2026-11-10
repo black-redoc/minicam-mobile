@@ -57,7 +57,9 @@ ios/
    app just polls `GET /api/system/tunnel` while connecting to it.
 10. Central dashboard (admins, LAN only, ADR 0010): the admin types the dashboard address and the
     one-time code from its "Pair device"; `POST /api/system/central` makes minicam exchange the
-    code for its device token itself. `DELETE` disconnects.
+    code for its device token itself. `DELETE` disconnects. The last status read on the LAN is kept
+    in the credential store (`CentralStatusCache`) and shown away from home, where minicam does not
+    answer it; cleared on logout.
 11. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
    re-run the Access login.
 

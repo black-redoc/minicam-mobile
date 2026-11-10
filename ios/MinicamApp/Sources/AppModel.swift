@@ -37,6 +37,8 @@ final class AppModel {
     let discovery = LanDiscovery()
 
     let store: CredentialStore = KeychainCredentialStore()
+    /// Shown by "Connect to dashboard" away from home, where minicam does not answer it.
+    var centralStatus: CentralStatusCache { CentralStatusCache(store: store) }
     let transport = URLSessionTransport()
 
     /// Local and remote address of the server, and which one is active (docs/adr/0013).
@@ -231,6 +233,7 @@ final class AppModel {
         user = nil
         path = NavigationPath()
         phase = .signedOut
+        centralStatus.clear()
         await api?.logout()
     }
 

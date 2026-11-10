@@ -15,6 +15,8 @@ public enum CredentialKey: String, CaseIterable, Sendable {
     case lanURL = "lan_url"
     case wanURL = "wan_url"
     case activeNetwork = "active_network"
+    /// The dashboard status last read on the home network (JSON, `CentralStatusCache`).
+    case centralStatus = "central_status"
 }
 
 public extension CredentialStore {

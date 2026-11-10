@@ -20,6 +20,7 @@ import dev.minicam.mobile.data.CentralUrl
 import dev.minicam.mobile.data.ConnectProgress
 import dev.minicam.mobile.data.PairLink
 import dev.minicam.mobile.data.PairingCode
+import dev.minicam.mobile.data.SavedCentralStatus
 import dev.minicam.mobile.data.StepState
 import dev.minicam.mobile.data.centralStatus
 import dev.minicam.mobile.data.connectToDashboard
@@ -31,6 +32,10 @@ import dev.minicam.mobile.ui.QrScannerDialog
 import dev.minicam.mobile.ui.Screen
 import dev.minicam.mobile.ui.SecondaryButton
 import dev.minicam.mobile.ui.theme.CamColors
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.launch
 
 /**
@@ -45,6 +50,14 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
     val scope = rememberCoroutineScope()
 
     var status by remember { mutableStateOf<CentralStatus?>(null) }
+    // Away from home minicam does not answer the status: show the copy from the last LAN visit.
+    val away = api.config.isWan
+    var saved by remember { mutableStateOf<SavedCentralStatus?>(null) }
+
+    fun keep(current: CentralStatus) {
+        status = current
+        viewModel.centralStatus.save(current)
+    }
     var url by remember { mutableStateOf("https://") }
     var code by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -62,13 +75,14 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
     }
 
     LaunchedEffect(api) {
-        if (api.config.isWan) {
-            error = "The dashboard can only be connected while you're on your home network."
+        if (away) {
+            saved = viewModel.centralStatus.load()
+            status = saved?.status
             return@LaunchedEffect
         }
         val link = viewModel.pendingPairLink.take()
         viewModel.attempt({ error = it }) { api.centralStatus() }?.let {
-            status = it
+            keep(it)
             it.url?.let { current -> url = current }
         }
         if (link != null) fill(link)
@@ -109,7 +123,7 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             if (result == null) {
                 progress = null
             } else {
-                viewModel.attempt({}) { api.centralStatus() }?.let { status = it }
+                viewModel.attempt({}) { api.centralStatus() }?.let(::keep)
                 success = "WAN access is now managed in the dashboard." +
                     (result.wanUrl?.let { " From outside your home network, sign in at $it" } ?: "")
             }
@@ -123,7 +137,7 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
         scope.launch {
             busy = true
             viewModel.attempt({ error = it }) { api.unpairFromCentral() }?.let {
-                status = it
+                keep(it)
                 success = "Disconnected. WAN access is managed on the device again."
             }
             busy = false
@@ -134,6 +148,7 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
         Section("Status") {
             val current = status
             when {
+                away && current == null -> Hint("Not checked yet: open this screen once on your home network.")
                 current == null && error == null -> RowsSkeleton(rows = 1, trailing = false)
                 current != null && current.connected -> {
                     Text("Connected", color = CamColors.Text, fontSize = 14.sp)
@@ -145,6 +160,7 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
                 }
                 current != null -> Text("Not connected", color = CamColors.Text, fontSize = 14.sp)
             }
+            saved?.let { Hint("As of ${checkedAt(it.savedAt)}, on your home network.") }
         }
 
         progress?.let { current ->
@@ -154,7 +170,9 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             }
         }
 
-        if (status?.managedInEnv != true) {
+        if (away) {
+            Hint("To connect, pair again or disconnect, switch to your home network (Local).")
+        } else if (status?.managedInEnv != true) {
             Section(if (status?.connected == true) "Pair again (new token)" else "Connect") {
                 Hint(
                     "In the dashboard open Sites, press \"Pair device\" on this device's site and type the " +
@@ -191,6 +209,12 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
         FormMessage(error, success)
     }
 }
+
+private val checkedFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+
+/** When the saved status was read, in the phone's time zone. */
+private fun checkedAt(savedAt: String): String =
+    runCatching { checkedFormat.format(Instant.parse(savedAt).atZone(ZoneId.systemDefault())) }.getOrDefault(savedAt)
 
 /** Shows the cleaned code with its dash, so the user never types it and the cursor skips over it. */
 private object PairingCodeTransformation : VisualTransformation {

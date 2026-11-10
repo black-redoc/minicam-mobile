@@ -202,3 +202,12 @@
 - Tests: Android 100/100, lint only the 5 existing version notices, debug + release build; iOS
   `swift test` 87/87, simulator build with no Swift warnings
 - Next: open the PR; feel the detection vibration on the S23
+
+## 2026-11-10 — Saved dashboard status away from home (ADR 0011)
+- Done: "Connect to dashboard" keeps the last status read on the LAN (`CentralStatusCache`, credential
+  store, cleared on logout) and shows it on Remote with a neutral note instead of a red error;
+  the pairing form is hidden away from home. Android and iOS
+- Commit: see git log (feat: show the saved dashboard status ...), branch feat/android-push
+- Tests: Android 103/103, lint only the 5 existing version notices, release build; iOS `swift test`
+  90/90, simulator build with no Swift warnings. Push, sound, vibration and tap checked on the S23
+- Next: check the saved status on the S23 (open once on Local, then on Remote); merge PR #25

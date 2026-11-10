@@ -23,6 +23,9 @@ enum class CredentialKey(val id: String) {
 
     /** The FCM token registered with minicam, so it can be unregistered. */
     PUSH_TOKEN("push_token"),
+
+    /** The dashboard status last read on the home network (JSON, [CentralStatusCache]). */
+    CENTRAL_STATUS("central_status"),
 }
 
 /**

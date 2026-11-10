@@ -7,6 +7,7 @@
 | `minicam_session` cookie | theft from device storage or logs | Keystore/Keychain only (`WhenUnlockedThisDeviceOnly`), never logged, cleared on logout/401 |
 | CF Access token | interception of the handoff redirect | Random `state` checked on callback; token in URL fragment; it is only the first factor (a minicam session is still required) |
 | Camera feed | sniffing on untrusted networks | `http` allowed only to LAN hosts; WAN is `https`/`wss` through the tunnel |
+| Saved dashboard status | read from the phone | Address, site name and last sync only (no token); Keystore/Keychain store, cleared on logout |
 | LED setup code | brute force, reuse | Typed by the user, never stored; minicam allows 3 tries per code, 5 codes and 30 min per boot (minicam ADR 0006) |
 | Discovered devices | spoofed `_minicam._tcp` answer | Resolved address must pass `ServerConfig` (private IPv4 only); names shown as plain text |
 | Stream token | reuse | Issued per camera, 30 s TTL by the server; never persisted |

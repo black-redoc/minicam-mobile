@@ -75,8 +75,9 @@ to watch again. Saves data transfer.
 Scope: opt-in per phone; minicam sends encrypted FCM data messages through the minicam-admin relay;
 a tap opens the camera. Needs minicam (token store, sender) and minicam-admin (relay) first.
 - [x] ADR 0007 accepted
-- [ ] Backend contracts done in minicam and minicam-admin
-- [ ] Android: opt-in, encrypted notification shown with the app closed, tap opens the camera
+- [x] Backend contracts done in minicam and minicam-admin (minicam v0.6.0)
+- [x] Android: opt-in, encrypted notification shown with the app closed, tap opens the camera
+- [x] Custom reload sound and vibration, checked on the Galaxy S23 (2026-11-10)
 
 Non-goals for M2.11: iOS/APNs (needs the Apple Developer Program), images in notifications.
 
