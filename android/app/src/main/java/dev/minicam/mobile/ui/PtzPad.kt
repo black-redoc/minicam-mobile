@@ -55,12 +55,14 @@ import kotlinx.coroutines.launch
 private val PadSize = CamDimens.PtzSize * 3 + 12.dp
 private val KnobSize = 64.dp
 private val KnobTravel = 30.dp
-private val DeadZone = 14.dp
+private val DeadZone = 22.dp
 
 /**
  * Game-controller thumbstick for PTZ: a round base with the four arrows and a knob that follows
- * the finger. Pushing the knob past the dead zone moves the camera on the dominant axis; letting
- * go springs it back to the centre and sends `stop`. A tap on the centre sends `stop`.
+ * the finger. Pressing the knob sends `stop` at once; dragging it past the dead zone (measured
+ * from where the thumb landed, so a press slightly off-centre is not a move) moves the camera on
+ * the dominant axis. Pressing an arrow moves straight away. Letting go springs the knob back to
+ * the centre and sends `stop` if it was moving.
  * [glass] draws a translucent base for the fullscreen overlay (spec 004).
  */
 @Composable
@@ -75,6 +77,7 @@ fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit, glass:
     val density = LocalDensity.current
     val travelPx = with(density) { KnobTravel.toPx() }
     val deadZonePx = with(density) { DeadZone.toPx() }
+    val knobRadiusPx = with(density) { KnobSize.toPx() / 2 }
 
     Box(
         Modifier
@@ -87,17 +90,19 @@ fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit, glass:
                 awaitEachGesture {
                     val down = awaitFirstDown()
                     held = true
-                    var moved = false
+                    // On the knob: a centre press (stop now), deflection from the landing point.
+                    // On the ring: the arrow under the finger, deflection from the centre.
+                    val fromCentre = down.position - centre
+                    val onKnob = hypot(fromCentre.x, fromCentre.y) <= knobRadiusPx
+                    val origin = if (onKnob) down.position else centre
+                    if (onKnob) dispatcher.dispatch(PtzAction.STOP)
                     fun track(position: Offset) {
-                        val raw = position - centre
+                        val raw = position - origin
                         val distance = hypot(raw.x, raw.y)
                         val clamped = if (distance > travelPx) raw * (travelPx / distance) else raw
                         scope.launch { knob.animateTo(clamped, follow) }
-                        val next = PtzJoystick.direction(raw.x, raw.y, deadZonePx)
-                        PtzJoystick.transition(active, next)?.let {
-                            dispatcher.dispatch(it)
-                            moved = true
-                        }
+                        val next = PtzJoystick.direction(raw.x, raw.y, deadZonePx, active)
+                        PtzJoystick.transition(active, next)?.let(dispatcher::dispatch)
                         active = next
                         if (next != null) lastDirection = next
                     }
@@ -109,8 +114,7 @@ fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit, glass:
                         if (change.positionChange() != Offset.Zero) track(change.position)
                         change.consume()
                     }
-                    // Stop whatever is moving; a plain tap on the centre is the old stop button.
-                    if (active != null || !moved) dispatcher.dispatch(PtzAction.STOP)
+                    if (active != null) dispatcher.dispatch(PtzAction.STOP)
                     active = null
                     held = false
                     scope.launch { knob.animateTo(Offset.Zero, release) }

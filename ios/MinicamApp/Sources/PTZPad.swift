@@ -2,8 +2,10 @@ import MinicamKit
 import SwiftUI
 
 /// Game-controller thumbstick for PTZ: a round base with the four arrows and a knob that follows
-/// the finger. Pushing the knob past the dead zone moves the camera on the dominant axis; letting
-/// go springs it back to the centre and sends `stop`. A tap on the centre sends `stop`.
+/// the finger. Pressing the knob sends `stop` at once; dragging it past the dead zone (measured
+/// from where the thumb landed, so a press slightly off-centre is not a move) moves the camera on
+/// the dominant axis. Pressing an arrow moves straight away. Letting go springs the knob back to
+/// the centre and sends `stop` if it was moving.
 /// `PTZDispatcher` keeps at most one request in flight. `glass` draws a translucent base for the
 /// fullscreen overlay (spec 004).
 struct PTZPad: View {
@@ -15,7 +17,7 @@ struct PTZPad: View {
     private static let padSize = Theme.ptzSize * 3 + 12
     private static let knobSize: CGFloat = 64
     private static let travel: CGFloat = 30
-    private static let deadZone: CGFloat = 14
+    private static let deadZone: CGFloat = 22
 
     @State private var dispatcher: PTZDispatcher?
     @State private var knob: CGSize = .zero
@@ -23,7 +25,9 @@ struct PTZPad: View {
     /// Where the glow wedge points; kept after release so it fades out in place.
     @State private var lastDirection: PTZAction = .up
     @State private var held = false
-    @State private var movedThisPress = false
+    /// Where the deflection is measured from during this press: the landing point on the knob,
+    /// the centre on the arrow ring.
+    @State private var origin: CGPoint?
 
     var body: some View {
         ZStack {
@@ -107,32 +111,32 @@ struct PTZPad: View {
     // MARK: Input
 
     private func track(_ location: CGPoint) {
-        let centre = Self.padSize / 2
-        let dx = location.x - centre
-        let dy = location.y - centre
-        if !held {
+        let centre = CGPoint(x: Self.padSize / 2, y: Self.padSize / 2)
+        if origin == nil {
             held = true
-            movedThisPress = false
+            let onKnob = hypot(location.x - centre.x, location.y - centre.y) <= Self.knobSize / 2
+            origin = onKnob ? location : centre
+            if onKnob { dispatch(.stop) }
         }
+        let start = origin ?? centre
+        let dx = location.x - start.x
+        let dy = location.y - start.y
         let distance = (dx * dx + dy * dy).squareRoot()
         let scale = distance > Self.travel ? Self.travel / distance : 1
         withAnimation(.interactiveSpring(response: 0.15, dampingFraction: 0.8)) {
             knob = CGSize(width: dx * scale, height: dy * scale)
         }
-        let next = PTZJoystick.direction(dx: dx, dy: dy, deadZone: Self.deadZone)
-        if let command = PTZJoystick.transition(from: active, to: next) {
-            dispatch(command)
-            movedThisPress = true
-        }
+        let next = PTZJoystick.direction(dx: dx, dy: dy, deadZone: Self.deadZone, current: active)
+        if let command = PTZJoystick.transition(from: active, to: next) { dispatch(command) }
         active = next
         if let next { lastDirection = next }
     }
 
     private func release() {
-        // Stop whatever is moving; a plain tap on the centre is the old stop button.
-        if active != nil || !movedThisPress { dispatch(.stop) }
+        if active != nil { dispatch(.stop) }
         active = nil
         held = false
+        origin = nil
         withAnimation(.spring(response: 0.4, dampingFraction: 0.45)) { knob = .zero }
     }
 

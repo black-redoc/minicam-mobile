@@ -19,6 +19,25 @@ class PtzJoystickTest {
     }
 
     @Test
+    fun activeDirectionHoldsUntilWellInsideDeadZone() {
+        // 8 is under the dead zone but above 60 % of it: still moving.
+        assertEquals(PtzAction.UP, PtzJoystick.direction(0f, -8f, 10f, current = PtzAction.UP))
+        assertNull(PtzJoystick.direction(0f, -5f, 10f, current = PtzAction.UP))
+        // From rest, the same deflection does not start a move.
+        assertNull(PtzJoystick.direction(0f, -8f, 10f))
+    }
+
+    @Test
+    fun otherAxisNeedsAClearWin() {
+        // Slightly past the diagonal: keep going right.
+        assertEquals(PtzAction.RIGHT, PtzJoystick.direction(20f, 24f, 10f, current = PtzAction.RIGHT))
+        // Clearly down now.
+        assertEquals(PtzAction.DOWN, PtzJoystick.direction(20f, 30f, 10f, current = PtzAction.RIGHT))
+        // Same axis, other side: follow at once.
+        assertEquals(PtzAction.LEFT, PtzJoystick.direction(-20f, 5f, 10f, current = PtzAction.RIGHT))
+    }
+
+    @Test
     fun transitionSendsNewDirectionOrStop() {
         assertEquals(PtzAction.LEFT, PtzJoystick.transition(null, PtzAction.LEFT))
         assertEquals(PtzAction.UP, PtzJoystick.transition(PtzAction.LEFT, PtzAction.UP))
