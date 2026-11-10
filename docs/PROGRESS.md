@@ -220,3 +220,13 @@
 - Tests: Android 104/104, lint only the 5 existing version notices, release build; iOS `swift test`
   91/91, simulator build with no Swift warnings
 - Next: check both on the S23 after re-flashing the Pi; merge PR #25
+
+## 2026-11-10 — PTZ thumbstick and live timer from the first frame
+- Done: the 3x3 PTZ grid is a round game-controller thumbstick (arrows in the base, knob leans
+  and glows towards the direction, springs back and sends `stop`). A press on the knob sends
+  `stop`; 22 pt dead zone from the landing point plus hysteresis against false moves. The 30 s
+  live limit (spec 011) now counts from the first rendered frame. Android and iOS
+- Commit: see git log, branch feat/ptz-joystick
+- Tests: Android unit tests pass, lint only the existing version notices, debug build; iOS `swift
+  test` 96/96, simulator build with no Swift warnings
+- Next: feel check of the stick and the timer on the S23 and an iPhone

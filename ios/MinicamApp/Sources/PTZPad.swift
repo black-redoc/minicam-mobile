@@ -1,76 +1,160 @@
 import MinicamKit
 import SwiftUI
 
-/// Compass-style 3x3 PTZ grid (`.ptz-grid` in main.css). Holding a direction
-/// moves the camera; releasing sends `stop`. `PTZDispatcher` keeps at most one
-/// request in flight. `glass` draws translucent buttons for the fullscreen overlay (spec 004).
+/// Game-controller thumbstick for PTZ: a round base with the four arrows and a knob that follows
+/// the finger. Pressing the knob sends `stop` at once; dragging it past the dead zone (measured
+/// from where the thumb landed, so a press slightly off-centre is not a move) moves the camera on
+/// the dominant axis. Pressing an arrow moves straight away. Letting go springs the knob back to
+/// the centre and sends `stop` if it was moving.
+/// `PTZDispatcher` keeps at most one request in flight. `glass` draws a translucent base for the
+/// fullscreen overlay (spec 004).
 struct PTZPad: View {
     let api: MinicamAPI
     let camera: String
     var glass = false
     let onError: (Error) -> Void
 
+    private static let padSize = Theme.ptzSize * 3 + 12
+    private static let knobSize: CGFloat = 64
+    private static let travel: CGFloat = 30
+    private static let deadZone: CGFloat = 22
+
     @State private var dispatcher: PTZDispatcher?
-    @State private var pressed: PTZAction?
+    @State private var knob: CGSize = .zero
+    @State private var active: PTZAction?
+    /// Where the glow wedge points; kept after release so it fades out in place.
+    @State private var lastDirection: PTZAction = .up
+    @State private var held = false
+    /// Where the deflection is measured from during this press: the landing point on the knob,
+    /// the centre on the arrow ring.
+    @State private var origin: CGPoint?
 
     var body: some View {
-        Grid(horizontalSpacing: 6, verticalSpacing: 6) {
-            GridRow {
-                Color.clear.frame(width: Theme.ptzSize, height: Theme.ptzSize)
-                button(.up, systemImage: "chevron.up")
-                Color.clear.frame(width: Theme.ptzSize, height: Theme.ptzSize)
-            }
-            GridRow {
-                button(.left, systemImage: "chevron.left")
-                button(.stop, systemImage: "stop.fill")
-                button(.right, systemImage: "chevron.right")
-            }
-            GridRow {
-                Color.clear.frame(width: Theme.ptzSize, height: Theme.ptzSize)
-                button(.down, systemImage: "chevron.down")
-                Color.clear.frame(width: Theme.ptzSize, height: Theme.ptzSize)
-            }
+        ZStack {
+            base
+            arrow(.up, systemImage: "arrowtriangle.up.fill").frame(maxHeight: .infinity, alignment: .top).padding(.top, 10)
+            arrow(.down, systemImage: "arrowtriangle.down.fill").frame(maxHeight: .infinity, alignment: .bottom).padding(.bottom, 10)
+            arrow(.left, systemImage: "arrowtriangle.left.fill").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 12)
+            arrow(.right, systemImage: "arrowtriangle.right.fill").frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 12)
+            stick
+        }
+        .frame(width: Self.padSize, height: Self.padSize)
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { track($0.location) }
+                .onEnded { _ in release() }
+        )
+    }
+
+    // MARK: Drawing
+
+    /// Round well with a recessed ring and a glow wedge towards the active direction.
+    private var base: some View {
+        let edge = glass ? Color.white.opacity(0.25) : Theme.border
+        return ZStack {
+            Circle().fill(glass ? Theme.bg.opacity(0.35) : Theme.surface2)
+            Circle().stroke(edge)
+            Circle()
+                .fill(Color.black.opacity(glass ? 0.18 : 0.22))
+                .overlay(Circle().stroke(edge))
+                .frame(width: Self.padSize * 0.62, height: Self.padSize * 0.62)
+            Circle()
+                .trim(from: 0, to: 70.0 / 360)
+                .stroke(Theme.accent.opacity(0.55), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(Self.angle(of: lastDirection) - 35))
+                .padding(3)
+                .opacity(active == nil ? 0 : 1)
+                .animation(.easeOut(duration: 0.2), value: active)
         }
     }
 
-    private func button(_ action: PTZAction, systemImage: String) -> some View {
-        let isPressed = pressed == action
+    private func arrow(_ action: PTZAction, systemImage: String) -> some View {
+        let on = active == action
         return Image(systemName: systemImage)
-            .font(action == .stop ? .footnote : .title3)
-            .frame(width: Theme.ptzSize, height: Theme.ptzSize)
-            .foregroundStyle(isPressed || glass ? Color.white : Theme.text)
-            // Inside `background` so the press styling never changes the view's identity and
-            // cancels the drag gesture mid-press.
-            .background { surface(action, pressed: isPressed) }
-            .scaleEffect(isPressed ? 0.93 : 1)
-            .animation(.easeOut(duration: 0.08), value: isPressed)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard pressed != action else { return }
-                        pressed = action
-                        dispatch(action)
-                    }
-                    .onEnded { _ in
-                        pressed = nil
-                        if action != .stop { dispatch(.stop) }
-                    }
-            )
+            .font(.system(size: 13))
+            .foregroundStyle(on ? Theme.accentHover : Theme.muted)
+            .scaleEffect(on ? 1.3 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.5), value: on)
             .accessibilityLabel("PTZ \(action.rawValue)")
             .accessibilityAddTraits(.isButton)
+            .accessibilityAction { nudge(action) }
     }
 
-    @ViewBuilder
-    private func surface(_ action: PTZAction, pressed: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.radius)
-        if pressed {
-            shape.fill(Theme.accent.opacity(glass ? 0.75 : 1))
-                .overlay(shape.stroke(glass ? Theme.accentHover : Theme.accent))
-        } else if glass {
-            Color.clear.glassSurface(in: shape)
-        } else {
-            shape.fill(action == .stop ? Color(hex: 0x1F2937) : Theme.surface2)
-                .overlay(shape.stroke(Theme.border))
+    /// The thumbstick cap: domed, with grip rings, leaning towards where it is pushed.
+    private var stick: some View {
+        let on = active != nil
+        let alpha = glass ? 0.92 : 1
+        let top = on ? Theme.accentHover : Color(hex: 0x3A4A63)
+        let bottom = on ? Theme.accent : Color(hex: 0x1F2937)
+        let grip = Color.white.opacity(on ? 0.35 : 0.14)
+        return ZStack {
+            Circle().fill(LinearGradient(colors: [top.opacity(alpha), bottom.opacity(alpha)], startPoint: .top, endPoint: .bottom))
+            Circle().stroke(grip, lineWidth: 1.5).frame(width: Self.knobSize * 0.62, height: Self.knobSize * 0.62)
+            Circle().stroke(grip, lineWidth: 1.5).frame(width: Self.knobSize * 0.38, height: Self.knobSize * 0.38)
+            // Specular highlight near the top of the dome.
+            Circle()
+                .fill(RadialGradient(colors: [.white.opacity(0.28), .clear], center: UnitPoint(x: 0.5, y: 0.3), startRadius: 0, endRadius: Self.knobSize * 0.35))
+            Circle().stroke(on ? Theme.accent : Theme.border, lineWidth: 2)
+        }
+        .frame(width: Self.knobSize, height: Self.knobSize)
+        .shadow(color: .black.opacity(0.45), radius: held ? 2 : 5, y: held ? 1 : 3)
+        .scaleEffect(held ? 0.94 : 1)
+        // Lean the cap towards the push, like a real stick pivoting in its socket.
+        .rotation3DEffect(.degrees(Double(-knob.height / Self.travel) * 14), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
+        .rotation3DEffect(.degrees(Double(knob.width / Self.travel) * 14), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
+        .offset(knob)
+        .animation(.easeOut(duration: 0.12), value: on)
+        .accessibilityHidden(true)
+    }
+
+    // MARK: Input
+
+    private func track(_ location: CGPoint) {
+        let centre = CGPoint(x: Self.padSize / 2, y: Self.padSize / 2)
+        if origin == nil {
+            held = true
+            let onKnob = hypot(location.x - centre.x, location.y - centre.y) <= Self.knobSize / 2
+            origin = onKnob ? location : centre
+            if onKnob { dispatch(.stop) }
+        }
+        let start = origin ?? centre
+        let dx = location.x - start.x
+        let dy = location.y - start.y
+        let distance = (dx * dx + dy * dy).squareRoot()
+        let scale = distance > Self.travel ? Self.travel / distance : 1
+        withAnimation(.interactiveSpring(response: 0.15, dampingFraction: 0.8)) {
+            knob = CGSize(width: dx * scale, height: dy * scale)
+        }
+        let next = PTZJoystick.direction(dx: dx, dy: dy, deadZone: Self.deadZone, current: active)
+        if let command = PTZJoystick.transition(from: active, to: next) { dispatch(command) }
+        active = next
+        if let next { lastDirection = next }
+    }
+
+    private func release() {
+        if active != nil { dispatch(.stop) }
+        active = nil
+        held = false
+        origin = nil
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.45)) { knob = .zero }
+    }
+
+    /// VoiceOver: a short move in one direction, then stop.
+    private func nudge(_ action: PTZAction) {
+        dispatch(action)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            dispatch(.stop)
+        }
+    }
+
+    private static func angle(of action: PTZAction) -> Double {
+        switch action {
+        case .right: 0
+        case .down: 90
+        case .left: 180
+        default: 270
         }
     }
 

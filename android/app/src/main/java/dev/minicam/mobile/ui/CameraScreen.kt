@@ -109,6 +109,8 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     // Spec 011: at most 30 s of streaming per open; then back to the camera list.
     val budget = remember { ViewingBudget() }
     var secondsLeft by remember { mutableIntStateOf(budget.remainingSeconds) }
+    // The time starts on the first rendered frame (MJPEG or fMP4), not while connecting.
+    var firstFrameShown by remember { mutableStateOf(false) }
     DisposableEffect(livePlayer) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
@@ -117,6 +119,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
 
             override fun onRenderedFirstFrame() {
                 hasPicture = true
+                firstFrameShown = true
             }
         }
         livePlayer.player.addListener(listener)
@@ -163,9 +166,10 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             }
         }
     }
-    // The viewing time runs under the same lifecycle rule as the stream, across its restarts.
-    // Leaving the screen closes the stream connection.
-    LaunchedEffect(budget) {
+    // The viewing time runs under the same lifecycle rule as the stream, across its restarts,
+    // from the first rendered frame on. Leaving the screen closes the stream connection.
+    LaunchedEffect(budget, firstFrameShown) {
+        if (!firstFrameShown) return@LaunchedEffect
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             budget.start()
             try {
@@ -183,7 +187,10 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     LaunchedEffect(jpegs) {
         jpegs.filterNotNull().collect { jpeg ->
             withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) }
-                ?.let { frame = it.asImageBitmap() }
+                ?.let {
+                    frame = it.asImageBitmap()
+                    firstFrameShown = true
+                }
         }
     }
     LaunchedEffect(livePlayer) {
