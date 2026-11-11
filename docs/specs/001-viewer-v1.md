@@ -22,6 +22,9 @@ Test names are the same on both platforms (Android: JUnit method names; iOS: Swi
   the latest pending action follows it; a failure is reported and later actions still go out →
   test: `tap_sendsDirectionThenStop`, `whileARequestIsInFlight_onlyTheLatestActionIsQueued`,
   `failure_isReportedAndLaterActionsAreStillSent` (KI-8)
+- [x] AC7c: A held direction is sent again every 500 ms until `stop` or another direction, so the
+  camera keeps turning past its ONVIF default PTZ timeout; nothing follows `stop` → test:
+  `heldDirection_isSentAgainUntilStop`, `newDirection_replacesTheRepeatedOne`
 - [ ] AC8: Access handoff builds the handoff URL with a random `state`, accepts only a callback
   with the same `state`, and extracts the token from the fragment → test:
   `accessHandoff_buildsUrlWithState`, `accessHandoff_rejectsStateMismatch`,

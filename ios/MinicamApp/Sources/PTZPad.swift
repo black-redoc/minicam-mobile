@@ -5,7 +5,8 @@ import SwiftUI
 /// the finger. Pressing the knob sends `stop` at once; dragging it past the dead zone (measured
 /// from where the thumb landed, so a press slightly off-centre is not a move) moves the camera on
 /// the dominant axis. Pressing an arrow moves straight away. Letting go springs the knob back to
-/// the centre and sends `stop` if it was moving.
+/// the centre and sends `stop` if it was moving. While a direction is held the dispatcher keeps
+/// re-sending it, so the camera turns for as long as the thumb stays there.
 /// `PTZDispatcher` keeps at most one request in flight. `glass` draws a translucent base for the
 /// fullscreen overlay (spec 004).
 struct PTZPad: View {
@@ -28,6 +29,9 @@ struct PTZPad: View {
     /// Where the deflection is measured from during this press: the landing point on the knob,
     /// the centre on the arrow ring.
     @State private var origin: CGPoint?
+    /// True while the drag lasts; it also resets when the system cancels the gesture (a scroll
+    /// view taking the touch), where `onEnded` never runs, so the camera still gets `stop`.
+    @GestureState private var dragging = false
 
     var body: some View {
         ZStack {
@@ -42,9 +46,13 @@ struct PTZPad: View {
         .contentShape(Circle())
         .gesture(
             DragGesture(minimumDistance: 0)
+                .updating($dragging) { _, state, _ in state = true }
                 .onChanged { track($0.location) }
                 .onEnded { _ in release() }
         )
+        .onChange(of: dragging) { _, now in
+            if !now, origin != nil { release() }
+        }
     }
 
     // MARK: Drawing

@@ -54,9 +54,17 @@ private func waitUntil(_ condition: () -> Bool) async throws {
 @Suite struct PTZDispatcherTests {
     let lan = try! ServerConfig(parsing: "http://192.168.1.20:8080")
 
-    private func dispatcher(_ transport: PTZTransport, onError: @escaping (Error) -> Void = { _ in }) -> PTZDispatcher {
+    private func dispatcher(
+        _ transport: PTZTransport,
+        repeatEvery: Duration = PTZDispatcher.defaultRepeatEvery,
+        onError: @escaping (Error) -> Void = { _ in }
+    ) -> PTZDispatcher {
         let api = MinicamAPI(config: lan, transport: transport, store: InMemoryCredentialStore())
-        return PTZDispatcher(send: { try await api.ptz(camera: "entrada", action: $0) }, onError: onError)
+        return PTZDispatcher(
+            send: { try await api.ptz(camera: "entrada", action: $0) },
+            onError: onError,
+            repeatEvery: repeatEvery
+        )
     }
 
     @Test func tap_sendsDirectionThenStop() async throws {
@@ -98,5 +106,39 @@ private func waitUntil(_ condition: () -> Bool) async throws {
         try await waitUntil { transport.actions.count == 2 }
         #expect(transport.actions == ["up", "stop"])
         #expect(errors.map { $0 as? MinicamError } == [.server(503)])
+    }
+
+    @Test func heldDirection_isSentAgainUntilStop() async throws {
+        let transport = PTZTransport()
+        let dispatcher = dispatcher(transport, repeatEvery: .milliseconds(40))
+
+        dispatcher.dispatch(.up)
+        try await waitUntil { transport.actions.count >= 3 }
+        dispatcher.dispatch(.stop)
+
+        try await waitUntil { transport.actions.last == "stop" }
+        let sent = transport.actions
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(transport.actions == sent, "nothing after stop")
+        #expect(sent.dropLast().allSatisfy { $0 == "up" })
+    }
+
+    @Test func newDirection_replacesTheRepeatedOne() async throws {
+        let transport = PTZTransport()
+        let dispatcher = dispatcher(transport, repeatEvery: .milliseconds(40))
+
+        dispatcher.dispatch(.up)
+        try await waitUntil { transport.actions.count >= 2 }
+        dispatcher.dispatch(.right)
+        try await waitUntil { transport.actions.filter { $0 == "right" }.count >= 3 }
+        dispatcher.dispatch(.stop)
+
+        try await waitUntil { transport.actions.last == "stop" }
+        let sent = transport.actions
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(transport.actions == sent, "nothing after stop")
+        let firstRight = sent.firstIndex(of: "right")!
+        #expect(sent[..<firstRight].allSatisfy { $0 == "up" })
+        #expect(sent[firstRight...].dropLast().allSatisfy { $0 == "right" })
     }
 }

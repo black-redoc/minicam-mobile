@@ -62,7 +62,8 @@ private val DeadZone = 22.dp
  * the finger. Pressing the knob sends `stop` at once; dragging it past the dead zone (measured
  * from where the thumb landed, so a press slightly off-centre is not a move) moves the camera on
  * the dominant axis. Pressing an arrow moves straight away. Letting go springs the knob back to
- * the centre and sends `stop` if it was moving.
+ * the centre and sends `stop` if it was moving. While a direction is held [PtzDispatcher] keeps
+ * re-sending it, so the camera turns for as long as the thumb stays there.
  * [glass] draws a translucent base for the fullscreen overlay (spec 004).
  */
 @Composable
