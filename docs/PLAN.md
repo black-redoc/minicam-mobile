@@ -6,9 +6,9 @@ allowed to see and drives PTZ. The apps never talk to any service other than the
 minicam host and their Cloudflare Access login page.
 
 ## Current focus
-Milestone: M2.14 - Local / Remote switch · ADR 0013 · Next step: check the switch on the S23 and an
-iPhone (home Wi-Fi and mobile data). M2.13: scan the dashboard QR on real phones. Earlier: M2.10
-manual AC4/AC5; M2.8 HEVC check; M1 device checks (specs/001, 004).
+Milestone: M2.16 - Notification schedule · ADR 0015 · Next step: check the schedule on the S23
+(overnight Mon–Fri range). M2.14: check the Local / Remote switch on an iPhone. M2.13: scan the
+dashboard QR on real phones. Earlier: M2.10 manual AC4/AC5; M2.8 HEVC check; M1 device checks (specs/001, 004).
 
 ## Docs
 [ROADMAP](ROADMAP.md) · [ARCHITECTURE](ARCHITECTURE.md) · [SECURITY](SECURITY.md) ·

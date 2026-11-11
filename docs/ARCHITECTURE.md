@@ -97,6 +97,7 @@ GitHub Actions: `ci.yml` on PRs, `release.yml` publishes installable builds on m
   ([ADR 0012](adr/0012-in-app-qr-scanner.md), decoded on the phone) only fills the form.
   Android also talks to Google (FCM, Firebase Installations) once the user turns on detection
   notifications; payloads are end-to-end encrypted ([ADR 0007](adr/0007-push-notifications-fcm-relay.md)).
+  The phone drops pushes outside its own schedule ([ADR 0015](adr/0015-per-phone-notification-schedule.md)).
 - Credentials (session cookie, Access token) live only in Android Keystore-backed storage / iOS
   Keychain; never in logs, never in plain preferences.
 - One server per phone, with up to two addresses: local (`http`, LAN host) and remote (`https`),

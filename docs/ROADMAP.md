@@ -111,6 +111,14 @@ Scope: remove Admin → Remote access (in-app Cloudflare setup) on Android and i
 - [x] ADR 0014 accepted
 - [x] Android and iOS: menu entry, screen and Cloudflare client removed; tests and builds pass
 
+## M2.16 - Notification schedule on the phone (ADR 0015)
+Scope: Android shows detection pushes only on chosen days and hours, overnight ranges included.
+- [x] ADR 0015 accepted
+- [x] Android: schedule model, push filter and Admin → Detection notifications block, with tests
+- [ ] Checked on the Galaxy S23
+
+Non-goals for M2.16: iOS (no push yet), several windows, a server-side schedule.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)
@@ -120,6 +128,7 @@ Scope: remove Admin → Remote access (in-app Cloudflare setup) on Android and i
 ## Backlog
 - Automatic LAN-first with remote fallback on top of the ADR 0013 switch
 - Optical PTZ zoom buttons (needs `zoom_in`/`zoom_out` ONVIF actions in the minicam server first)
-- iOS push notifications via APNs on the ADR 0007 relay (after joining the Apple Developer Program)
+- iOS push notifications via APNs on the ADR 0007 relay (after joining the Apple Developer Program),
+  with the ADR 0015 schedule
 - Store distribution (Play Store / App Store / TestFlight)
 - Kotlin Multiplatform for shared networking logic (would supersede part of ADR 0001)

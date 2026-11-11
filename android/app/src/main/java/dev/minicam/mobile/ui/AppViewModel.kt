@@ -10,6 +10,7 @@ import dev.minicam.mobile.data.AccessHandoff
 import dev.minicam.mobile.data.CameraSummary
 import dev.minicam.mobile.data.CentralStatusCache
 import dev.minicam.mobile.data.CredentialKey
+import dev.minicam.mobile.data.NotificationScheduleStore
 import dev.minicam.mobile.data.CredentialStore
 import dev.minicam.mobile.data.KeystoreCredentialStore
 import dev.minicam.mobile.data.LanDiscovery
@@ -90,6 +91,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val push = PushRegistration(store, FirebasePush.tokens(application))
     var pushSwitch by mutableStateOf(push.switchState(available = null))
         private set
+
+    /** When this phone shows detection pushes (docs/adr/0015); edited in Admin. */
+    val notificationSchedule = NotificationScheduleStore(store)
 
     /** One-off message about the switch, shown by the screen and then cleared. */
     var pushMessage by mutableStateOf<String?>(null)

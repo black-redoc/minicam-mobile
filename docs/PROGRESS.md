@@ -241,3 +241,11 @@
   with no Swift warnings
 - Next: check on the S23 (long hold on each direction, new sound and vibration, back on a clip)
   and an iPhone
+
+## 2026-11-10 — Notification schedule on the phone (ADR 0015)
+- Done: Admin → Detection notifications has "Schedule on this phone": days (Mon–Fri / Every day
+  presets), from / to in 30-minute steps, overnight ranges belong to their start day. Android
+  drops pushes outside it, in the phone's time zone at `detected_at`. Android only
+- Commit: see git log (feat: per-phone schedule ...), branch feat/notification-schedule
+- Tests: Android 119/119, lint clean for the new files, debug build
+- Next: check on the S23 (Mon–Fri 8 PM – 6 AM); iOS with APNs later
