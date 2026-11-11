@@ -159,3 +159,19 @@ fun nextRecording(items: List<Recording>, current: Recording): Recording? {
     val index = items.indexOfFirst { it.id == current.id }
     return if (index < 0) null else items.getOrNull(index + 1)
 }
+
+/** The clip above [current] in the newest-first list (the next newer one), or null. */
+fun previousRecording(items: List<Recording>, current: Recording): Recording? {
+    val index = items.indexOfFirst { it.id == current.id }
+    return if (index < 0) null else items.getOrNull(index - 1)
+}
+
+/** Spec 008 AC6: "back" in the first seconds of a clip goes to the previous clip. */
+const val PREVIOUS_CLIP_WINDOW_MS = 3_000L
+
+/**
+ * Spec 008 AC6: true when "back" at [positionMs] opens the previous clip instead of starting
+ * the current one over: only within [PREVIOUS_CLIP_WINDOW_MS] and when there is one.
+ */
+fun backOpensPreviousClip(positionMs: Long, hasPrevious: Boolean): Boolean =
+    hasPrevious && positionMs < PREVIOUS_CLIP_WINDOW_MS

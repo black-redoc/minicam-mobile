@@ -82,11 +82,13 @@ import dev.minicam.mobile.data.MinicamException
 import dev.minicam.mobile.data.Recording
 import dev.minicam.mobile.data.RecordingPage
 import dev.minicam.mobile.data.VideoZoom
+import dev.minicam.mobile.data.backOpensPreviousClip
 import dev.minicam.mobile.data.deleteRecording
 import dev.minicam.mobile.data.downloadRecording
 import dev.minicam.mobile.data.formatClipDuration
 import dev.minicam.mobile.data.formatClipSize
 import dev.minicam.mobile.data.nextRecording
+import dev.minicam.mobile.data.previousRecording
 import dev.minicam.mobile.data.recordingDays
 import dev.minicam.mobile.data.recordingFileName
 import dev.minicam.mobile.data.recordingVideoUrl
@@ -158,8 +160,21 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     // Spec 008 AC5: "next" plays the clip below, loading the next page from the last one.
     val hasNext = selected?.let { nextRecording(items.orEmpty(), it) != null || nextBefore != null } == true
     val currentHasNext by rememberUpdatedState(hasNext)
+    // Spec 008 AC6: "back" in the first seconds opens the clip above.
+    val hasPrevious = selected?.let { previousRecording(items.orEmpty(), it) != null } == true
+    val currentHasPrevious by rememberUpdatedState(hasPrevious)
     val controlsPlayer = remember(player) {
-        ClipNavigationPlayer(player, hasNext = { currentHasNext }) {
+        ClipNavigationPlayer(
+            player,
+            hasNext = { currentHasNext },
+            hasPrevious = { currentHasPrevious },
+            onPrevious = {
+                selected?.let { previousRecording(items.orEmpty(), it) }?.let {
+                    selected = it
+                    shownRecording = it
+                }
+            },
+        ) {
             scope.launch {
                 val current = selected ?: return@launch
                 if (nextRecording(items.orEmpty(), current) == null && nextBefore != null) load(reset = false)
@@ -498,13 +513,16 @@ private fun DefaultTimeBar.styleProgress() {
 }
 
 /**
- * Spec 008 AC5/AC6: the controls' "previous" button starts the clip over instead of going to
- * another clip, and "next" asks for the clip below in the list through [onNext].
+ * Spec 008 AC5/AC6: the controls' "previous" button starts the clip over, except in its first
+ * seconds, when it asks for the clip above through [onPrevious]; "next" asks for the clip below
+ * in the list through [onNext].
  */
 @OptIn(UnstableApi::class)
 private class ClipNavigationPlayer(
     player: Player,
     private val hasNext: () -> Boolean,
+    private val hasPrevious: () -> Boolean,
+    private val onPrevious: () -> Unit,
     private val onNext: () -> Unit,
 ) : ForwardingPlayer(player) {
     override fun isCommandAvailable(command: Int): Boolean = when (command) {
@@ -520,7 +538,9 @@ private class ClipNavigationPlayer(
         .removeIf(COMMAND_SEEK_TO_NEXT, !hasNext())
         .build()
 
-    override fun seekToPrevious() = seekTo(0)
+    override fun seekToPrevious() {
+        if (backOpensPreviousClip(currentPosition, hasPrevious())) onPrevious() else seekTo(0)
+    }
 
     override fun seekToNext() {
         if (hasNext()) onNext()

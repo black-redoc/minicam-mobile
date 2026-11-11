@@ -172,4 +172,19 @@ import Testing
         #expect(nextRecording(items, after: items[1]) == nil)
         #expect(nextRecording(items, after: recording(9, "2026-10-22T12:00:00+00:00")) == nil)
     }
+
+    @Test func previousRecording_isTheOneAbove() {
+        let items = [recording(3, "2026-10-22T14:00:00+00:00"), recording(2, "2026-10-22T13:00:00+00:00")]
+
+        #expect(previousRecording(items, before: items[1])?.id == 3)
+        #expect(previousRecording(items, before: items[0]) == nil)
+        #expect(previousRecording(items, before: recording(9, "2026-10-22T12:00:00+00:00")) == nil)
+    }
+
+    @Test func back_opensPreviousClipOnlyInTheFirstSeconds() {
+        #expect(backOpensPreviousClip(position: 0, hasPrevious: true))
+        #expect(backOpensPreviousClip(position: previousClipWindow - 0.01, hasPrevious: true))
+        #expect(!backOpensPreviousClip(position: previousClipWindow, hasPrevious: true), "later it starts the clip over")
+        #expect(!backOpensPreviousClip(position: 0, hasPrevious: false), "the newest clip starts over")
+    }
 }

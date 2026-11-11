@@ -55,7 +55,7 @@ final class ClipPlayback {
         isPlaying ? pause() : play()
     }
 
-    /// Spec 008 AC6: back to 0:00. A clip that had ended plays again; a paused one stays paused.
+    /// Back to 0:00 (spec 008 AC6, after the first seconds). A clip that had ended plays again; a paused one stays paused.
     func restart() {
         let ended = duration > 0 && currentTime >= duration - 0.25
         seek(to: 0)
@@ -105,14 +105,16 @@ struct PlayerLayerView: UIViewRepresentable {
 /// The video with minicam-styled controls: play/pause, time, fullscreen and a time bar whose
 /// played part is the brand sky, clearly apart from the buffered and remaining track (AC10).
 /// Tapping the video shows or hides the controls; they hide by themselves while playing.
-/// "Back" starts the clip over and "next" asks for the clip below; zoom buttons show with the
-/// controls (spec 008).
+/// "Back" starts the clip over (in its first seconds it opens the clip above) and "next" asks
+/// for the clip below; zoom buttons show with the controls (spec 008).
 struct ClipPlayerView: View {
     let playback: ClipPlayback
     let isFullscreen: Bool
     @Binding var zoom: VideoZoom
     let hasNext: Bool
     let onNext: () -> Void
+    let hasPrevious: Bool
+    let onPrevious: () -> Void
     let onFullscreen: (Bool) -> Void
     @State private var controlsVisible = true
     @State private var hideTask: Task<Void, Never>?
@@ -139,8 +141,13 @@ struct ClipPlayerView: View {
     private var controls: some View {
         ZStack {
             HStack(spacing: 28) {
-                GlassIconButton(label: "Back to start", systemImage: "backward.end.fill", size: 40) {
-                    playback.restart()
+                GlassIconButton(label: "Back", systemImage: "backward.end.fill", size: 40) {
+                    // Spec 008 AC6: the first seconds go to the clip above, later start over.
+                    if backOpensPreviousClip(position: playback.currentTime, hasPrevious: hasPrevious) {
+                        onPrevious()
+                    } else {
+                        playback.restart()
+                    }
                     scheduleHide()
                 }
                 GlassIconButton(

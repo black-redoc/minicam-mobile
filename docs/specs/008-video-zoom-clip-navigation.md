@@ -20,8 +20,10 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
   list is newest first, so the next older clip); on the last loaded clip it loads the next page
   first; it is disabled when there is no clip after the current one → test:
   `nextRecording_isTheOneBelow` + manual
-- [ ] AC6: The player's "back" button seeks the current clip to 0:00 and keeps it playing; it
-  never switches to another clip → manual
+- [ ] AC6: The player's "back" button seeks the current clip to 0:00 and keeps it playing; within
+  the first 3 s of the clip it opens the clip above instead (the next newer one), and on the
+  newest clip it always starts over → test: `previousRecording_isTheOneAbove`,
+  `back_opensPreviousClipOnlyInTheFirstSeconds` + manual
 
 ## Design
 Pure state in the data layer: `VideoZoom` (scale steps, pan as a fraction of the view size so
