@@ -40,6 +40,7 @@ import dev.minicam.mobile.data.saveNotificationSettings
 import dev.minicam.mobile.data.setPermission
 import dev.minicam.mobile.data.setWanAccess
 import dev.minicam.mobile.data.userAccess
+import dev.minicam.mobile.push.PushSwitch
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
 import dev.minicam.mobile.ui.Card
@@ -221,6 +222,8 @@ private fun NotificationsSection(viewModel: AppViewModel, api: MinicamApi) {
             }
         }
         FormMessage(error, if (saved) "Saved." else null)
+        // Only pushes are filtered, so builds without Firebase have nothing to schedule.
+        if (viewModel.pushSwitch != PushSwitch.HIDDEN) NotificationScheduleBlock(viewModel.notificationSchedule)
     }
 }
 

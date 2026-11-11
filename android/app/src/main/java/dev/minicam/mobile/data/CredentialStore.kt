@@ -29,6 +29,9 @@ enum class CredentialKey(val id: String) {
 
     /** The email of the last successful sign-in, prefilled on the login screen; kept on logout. */
     LAST_EMAIL("last_email"),
+
+    /** When this phone shows detection pushes (JSON, [NotificationScheduleStore]); kept on logout. */
+    NOTIFICATION_SCHEDULE("notification_schedule"),
 }
 
 /**
