@@ -234,8 +234,10 @@
 ## 2026-11-10 — PTZ hold-to-turn and shotgun detection sound
 - Done: a held joystick direction is re-sent every 500 ms, so the camera keeps turning past its
   ONVIF default PTZ timeout until release or a new direction; iOS sends `stop` when the system
-  cancels the drag. Android detections play the Pixabay shotgun sound (`detections_v4`, three buzzes)
+  cancels the drag. Android detections play the Pixabay shotgun sound (`detections_v4`, three buzzes).
+  Recordings "back" opens the clip above within the first 3 s, otherwise starts the clip over
 - Commit: see git log, branch feat/ptz-hold-and-shotgun-sound
-- Tests: Android unit tests, lint and debug build pass; iOS `swift test` 98/98, simulator build
+- Tests: Android unit tests, lint and debug build pass; iOS `swift test` 100/100, simulator build
   with no Swift warnings
-- Next: check on the S23 (long hold on each direction, new sound and vibration) and an iPhone
+- Next: check on the S23 (long hold on each direction, new sound and vibration, back on a clip)
+  and an iPhone
