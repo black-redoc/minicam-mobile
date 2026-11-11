@@ -42,9 +42,9 @@ vars (CI secrets): `MINICAM_FIREBASE_PROJECT_ID`, `MINICAM_FIREBASE_APP_ID`,
 `MINICAM_FIREBASE_API_KEY`, `MINICAM_FIREBASE_SENDER_ID` (from the Firebase console's
 `google-services.json`, which is never committed). Without them the switch is hidden. Delivery
 also needs the minicam device paired with minicam-admin and its `FCM_SERVICE_ACCOUNT` secret.
-The detection sound `res/raw/detection_reload.wav` is synthesized (no third-party audio): change
-`android/tools/detection_sound.py`, run it from the repo root and commit both. A new sound needs a
-new channel id in `DetectionNotifications`, since Android keeps a channel's first sound and vibration.
+The detection sound `res/raw/detection_shotgun.mp3` is "Cinematic shotgun with reload" by Dragon
+Studio from Pixabay (Pixabay Content License). A new sound needs a new channel id in
+`DetectionNotifications`, since Android keeps a channel's first sound and vibration.
 
 ## Conventions
 - Package / bundle id: `dev.minicam.mobile`. Callback scheme: `minicam://access-callback`.
