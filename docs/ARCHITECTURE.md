@@ -44,7 +44,9 @@ ios/
    leaves the foreground. Audio only after the speaker button, never remembered.
 6. PTZ: press a direction → `POST /api/ptz/{name}/{dir}`; release → `POST …/stop`. Only one PTZ
    request in flight; actions pressed meanwhile wait in a one-slot queue (latest wins) and a
-   started request is never cancelled, so a quick tap still reaches the server (KI-8).
+   started request is never cancelled, so a quick tap still reaches the server (KI-8). A held
+   direction is re-sent every 500 ms (minicam's `ContinuousMove` has no timeout, so the camera
+   would stop after its default one); `stop` or a new direction ends the repeat.
 7. Admins only (ADR 0004): the camera list menu opens Camera settings, AI detection and Admin,
    which call minicam's admin JSON API (`/api/cameras`, `/api/detection/*`, `/api/auth/users`,
    `/api/auth/permissions`, `/api/auth/wan-access`, `/api/notifications/settings`). A string

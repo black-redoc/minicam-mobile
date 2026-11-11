@@ -11,7 +11,9 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -189,5 +191,22 @@ class RecordingsApiTest {
         assertEquals(2, nextRecording(items, items[0])?.id)
         assertNull(nextRecording(items, items[1]))
         assertNull(nextRecording(items, recording(9, "2026-10-22T12:00:00+00:00")))
+    }
+
+    @Test
+    fun previousRecording_isTheOneAbove() {
+        val items = listOf(recording(3, "2026-10-22T14:00:00+00:00"), recording(2, "2026-10-22T13:00:00+00:00"))
+
+        assertEquals(3, previousRecording(items, items[1])?.id)
+        assertNull(previousRecording(items, items[0]))
+        assertNull(previousRecording(items, recording(9, "2026-10-22T12:00:00+00:00")))
+    }
+
+    @Test
+    fun back_opensPreviousClipOnlyInTheFirstSeconds() {
+        assertTrue(backOpensPreviousClip(0, hasPrevious = true))
+        assertTrue(backOpensPreviousClip(PREVIOUS_CLIP_WINDOW_MS - 1, hasPrevious = true))
+        assertFalse("later it starts the clip over", backOpensPreviousClip(PREVIOUS_CLIP_WINDOW_MS, hasPrevious = true))
+        assertFalse("the newest clip starts over", backOpensPreviousClip(0, hasPrevious = false))
     }
 }

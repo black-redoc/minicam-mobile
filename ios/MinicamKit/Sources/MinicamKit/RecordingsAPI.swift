@@ -227,3 +227,18 @@ public func nextRecording(_ items: [Recording], after current: Recording) -> Rec
     guard let index = items.firstIndex(where: { $0.id == current.id }), index + 1 < items.count else { return nil }
     return items[index + 1]
 }
+
+/// The clip above `current` in the newest-first list (the next newer one), or nil.
+public func previousRecording(_ items: [Recording], before current: Recording) -> Recording? {
+    guard let index = items.firstIndex(where: { $0.id == current.id }), index > 0 else { return nil }
+    return items[index - 1]
+}
+
+/// Spec 008 AC6: "back" in the first seconds of a clip goes to the previous clip.
+public let previousClipWindow: Double = 3
+
+/// Spec 008 AC6: true when "back" at `position` seconds opens the previous clip instead of
+/// starting the current one over: only within `previousClipWindow` and when there is one.
+public func backOpensPreviousClip(position: Double, hasPrevious: Bool) -> Bool {
+    hasPrevious && position < previousClipWindow
+}

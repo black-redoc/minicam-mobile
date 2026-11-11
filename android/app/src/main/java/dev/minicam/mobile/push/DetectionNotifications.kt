@@ -18,11 +18,11 @@ import dev.minicam.mobile.R
 object DetectionNotifications {
     const val EXTRA_CAMERA = "dev.minicam.mobile.extra.CAMERA"
     // Android never changes a created channel's sound or vibration, so each change needs a new id.
-    private const val CHANNEL_ID = "detections_v3"
-    private val OLD_CHANNEL_IDS = listOf("detections", "detections_v2")
+    private const val CHANNEL_ID = "detections_v4"
+    private val OLD_CHANNEL_IDS = listOf("detections", "detections_v2", "detections_v3")
 
-    /** Off/on pairs in ms: one buzz per clack of the reload sound. */
-    internal val VIBRATION_PATTERN = longArrayOf(0, 120, 160, 200)
+    /** Off/on pairs in ms: a buzz per reload clack, then a long one for the shot. */
+    internal val VIBRATION_PATTERN = longArrayOf(20, 100, 40, 100, 340, 500)
 
     fun show(context: Context, push: DetectionPush) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -32,7 +32,7 @@ object DetectionNotifications {
         }
         val manager = context.getSystemService(NotificationManager::class.java)
         OLD_CHANNEL_IDS.forEach(manager::deleteNotificationChannel)
-        val sound = Uri.parse("android.resource://${context.packageName}/${R.raw.detection_reload}")
+        val sound = Uri.parse("android.resource://${context.packageName}/${R.raw.detection_shotgun}")
         val audio = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_NOTIFICATION)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)

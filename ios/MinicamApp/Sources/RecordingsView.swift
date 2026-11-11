@@ -163,6 +163,12 @@ struct RecordingsView: View {
             zoom: $zoom,
             hasNext: hasNext,
             onNext: { Task { await playNext() } },
+            hasPrevious: selected.map { previousRecording(items ?? [], before: $0) != nil } ?? false,
+            onPrevious: {
+                if let current = selected, let previous = previousRecording(items ?? [], before: current) {
+                    selected = previous
+                }
+            },
             onFullscreen: { self.isFullscreen = $0 }
         )
     }

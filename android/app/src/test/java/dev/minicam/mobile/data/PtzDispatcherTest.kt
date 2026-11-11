@@ -33,9 +33,22 @@ class PtzDispatcherTest {
         server.close()
     }
 
-    private fun dispatcher(): PtzDispatcher {
+    private fun dispatcher(repeatEveryMs: Long = PtzDispatcher.REPEAT_EVERY_MS): PtzDispatcher {
         val api = MinicamApi(ServerConfig.parse(server.url("/").toString()), InMemoryCredentialStore())
-        return PtzDispatcher(scope, { api.ptz("entrada", it) }, { synchronized(errors) { errors += it } })
+        return PtzDispatcher(scope, { api.ptz("entrada", it) }, { synchronized(errors) { errors += it } }, repeatEveryMs)
+    }
+
+    private fun alwaysOk() {
+        server.dispatcher = object : QueueDispatcher() {
+            override fun dispatch(request: RecordedRequest) = MockResponse.Builder().code(200).body("{}").build()
+        }
+    }
+
+    /** Requests up to and including the first `stop`. */
+    private fun takeUntilStop(): List<String> {
+        val actions = mutableListOf<String>()
+        while (actions.lastOrNull() != "stop" && actions.size < 100) actions += takeActions(1)
+        return actions
     }
 
     private fun takeActions(count: Int): List<String> = List(count) {
@@ -87,10 +100,10 @@ class PtzDispatcherTest {
         server.enqueue(MockResponse.Builder().code(200).body("{}").build())
         val failed = CountDownLatch(1)
         val api = MinicamApi(ServerConfig.parse(server.url("/").toString()), InMemoryCredentialStore())
-        val dispatcher = PtzDispatcher(scope, { api.ptz("entrada", it) }) {
+        val dispatcher = PtzDispatcher(scope, { api.ptz("entrada", it) }, onError = {
             synchronized(errors) { errors += it }
             failed.countDown()
-        }
+        })
 
         dispatcher.dispatch(PtzAction.UP)
         assertTrue(failed.await(5, TimeUnit.SECONDS))
@@ -98,5 +111,38 @@ class PtzDispatcherTest {
 
         assertEquals(listOf("up", "stop"), takeActions(2))
         assertEquals(listOf(MinicamException.Rejected("PTZ offline")), synchronized(errors) { errors.toList() })
+    }
+
+    @Test
+    fun heldDirection_isSentAgainUntilStop() {
+        alwaysOk()
+        val dispatcher = dispatcher(repeatEveryMs = 40)
+
+        dispatcher.dispatch(PtzAction.UP)
+        assertEquals(listOf("up", "up", "up"), takeActions(3))
+        dispatcher.dispatch(PtzAction.STOP)
+
+        val rest = takeUntilStop()
+        assertEquals("stop", rest.last())
+        assertTrue(rest.dropLast(1).all { it == "up" })
+        assertNull("nothing after stop", server.takeRequest(300, TimeUnit.MILLISECONDS))
+    }
+
+    @Test
+    fun newDirection_replacesTheRepeatedOne() {
+        alwaysOk()
+        val dispatcher = dispatcher(repeatEveryMs = 40)
+
+        dispatcher.dispatch(PtzAction.UP)
+        assertEquals(listOf("up", "up"), takeActions(2))
+        dispatcher.dispatch(PtzAction.RIGHT)
+        var actions = takeActions(1)
+        while (actions.last() == "up") actions = takeActions(1)
+        assertEquals(listOf("right", "right", "right"), actions + takeActions(2))
+        dispatcher.dispatch(PtzAction.STOP)
+
+        val rest = takeUntilStop()
+        assertTrue(rest.dropLast(1).all { it == "right" })
+        assertNull("nothing after stop", server.takeRequest(300, TimeUnit.MILLISECONDS))
     }
 }
