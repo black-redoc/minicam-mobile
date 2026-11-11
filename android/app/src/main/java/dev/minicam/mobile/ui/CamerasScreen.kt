@@ -95,8 +95,13 @@ fun CamerasScreen(viewModel: AppViewModel) {
                 items(viewModel.cameras, key = { it.name }) { camera ->
                     Box(Modifier.fillMaxWidth().clickable { viewModel.selectedCamera = camera }) {
                         Card(Modifier.fillMaxWidth()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                VideoCameraIcon()
                                 Text(camera.name, color = CamColors.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                                ChevronRightIcon()
                             }
                         }
                     }
