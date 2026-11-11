@@ -199,3 +199,41 @@ fun SpeakerIcon(on: Boolean, modifier: Modifier = Modifier, color: Color = Color
         }
     }
 }
+
+/** Video camera outline (body + lens wedge) for the camera list rows, like the iOS `video` symbol. */
+@Composable
+fun VideoCameraIcon(modifier: Modifier = Modifier, color: Color = CamColors.Accent) {
+    Canvas(modifier.size(width = 22.dp, height = 16.dp)) {
+        val stroke = 1.8.dp.toPx()
+        val inset = stroke / 2
+        val w = size.width
+        val h = size.height
+        drawRoundRect(
+            color,
+            topLeft = Offset(inset, h * 0.14f),
+            size = Size(w * 0.66f - stroke, h * 0.72f),
+            cornerRadius = CornerRadius(3.dp.toPx()),
+            style = Stroke(stroke),
+        )
+        val lens = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.70f, h * 0.42f)
+            lineTo(w - inset, h * 0.22f)
+            lineTo(w - inset, h * 0.78f)
+            lineTo(w * 0.70f, h * 0.58f)
+            close()
+        }
+        drawPath(lens, color, style = Stroke(stroke, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+    }
+}
+
+/** Tail-less right chevron (">") marking a row that opens another screen. */
+@Composable
+fun ChevronRightIcon(modifier: Modifier = Modifier, color: Color = CamColors.Muted) {
+    Canvas(modifier.size(width = 8.dp, height = 14.dp)) {
+        val stroke = 2.dp.toPx()
+        val inset = stroke / 2
+        val tip = Offset(size.width - inset, size.height / 2)
+        drawLine(color, Offset(inset, inset), tip, stroke, StrokeCap.Round)
+        drawLine(color, Offset(inset, size.height - inset), tip, stroke, StrokeCap.Round)
+    }
+}
