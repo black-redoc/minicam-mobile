@@ -85,6 +85,7 @@ import dev.minicam.mobile.data.DetectionTrack
 import dev.minicam.mobile.data.Detections
 import dev.minicam.mobile.data.Recording
 import dev.minicam.mobile.data.RecordingPage
+import dev.minicam.mobile.data.RecordingCache
 import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.data.backOpensPreviousClip
 import dev.minicam.mobile.data.deleteRecording
@@ -112,7 +113,9 @@ import java.time.format.FormatStyle
 import kotlin.math.hypot
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /** The desktop Recordings page (minicam `recordings.html`): clips by day, player, download, delete. */
 @Composable
@@ -358,6 +361,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                         items = items?.filter { it.id != recording.id }
                         tracks.remove(recording.id)
                         if (selected?.id == recording.id) selected = null
+                        withContext(Dispatchers.IO) { RecordingCache.remove(context, api, recording.id) }
                     }
                 }
             },
@@ -500,7 +504,9 @@ private fun rememberClipPlayer(viewModel: AppViewModel, api: MinicamApi, onError
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val player = remember(api) {
-        val dataSource = OkHttpDataSource.Factory(api.client).setDefaultRequestProperties(api.authHeaders())
+        val network = OkHttpDataSource.Factory(api.client).setDefaultRequestProperties(api.authHeaders())
+        // Played clips are kept on disk and play again without downloading (ADR 0016).
+        val dataSource = RecordingCache.dataSource(context, network)
         ExoPlayer.Builder(context).setMediaSourceFactory(DefaultMediaSourceFactory(dataSource)).build()
     }
     val reportError by rememberUpdatedState(onError)

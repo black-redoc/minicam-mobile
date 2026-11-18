@@ -20,6 +20,7 @@ import dev.minicam.mobile.data.ModelCatalogCache
 import dev.minicam.mobile.data.Network
 import dev.minicam.mobile.data.PairLink
 import dev.minicam.mobile.data.PendingPairLink
+import dev.minicam.mobile.data.RecordingCache
 import dev.minicam.mobile.data.ServerAddresses
 import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
@@ -32,6 +33,7 @@ import dev.minicam.mobile.data.setupStatus
 import dev.minicam.mobile.push.FirebasePush
 import dev.minicam.mobile.push.PushRegistration
 import dev.minicam.mobile.push.PushSwitch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -413,9 +415,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         forgetSessionData()
     }
 
-    /** Nothing of this account outlives its session: the cached model catalog (ADR 0016). */
+    /** Nothing of this account outlives its session: cached catalog and clips (ADR 0016). */
     private fun forgetSessionData() {
         modelCatalogCache.clear()
+        val context = getApplication<Application>()
+        viewModelScope.launch(Dispatchers.IO) { RecordingCache.clear(context) }
     }
 
     private fun launchBusy(work: suspend () -> Unit) {
