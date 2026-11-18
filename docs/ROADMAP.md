@@ -128,6 +128,15 @@ catalog, scrolls the clip list forever and adds new clips after a detection push
 
 Non-goals for M2.17: iOS, boxes in downloaded clips or on the web Recordings page.
 
+## M2.18 - Settings: language and minicam updates (ADR 0017, minicam ADR 0013)
+Scope: Settings on Android and iOS with the app language (phone, English, Español) for every
+screen, and for admins the device's minicam version with a signed one-tap update.
+- [x] ADR 0017 accepted; minicam updates itself from signed releases (minicam ADR 0013)
+- [x] Android and iOS: `tr` + Spanish dictionaries, Settings, update notice and flow, tests
+- [ ] Checked on the Galaxy S23 and an iPhone (language; update a Pi between two tags)
+
+Non-goals for M2.18: more languages, translated server messages, automatic updates.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)

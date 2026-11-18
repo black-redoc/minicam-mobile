@@ -23,19 +23,19 @@ struct LoginView: View {
 
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(model.creatingAdmin ? "Create admin account" : "Sign in")
+                        Text(model.creatingAdmin ? tr("Create admin account") : tr("Sign in"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.text)
                         Text(model.creatingAdmin
-                            ? "No account exists on this device yet. The account you create becomes the administrator."
-                            : "Use your minicam account.")
+                            ? tr("No account exists on this device yet. The account you create becomes the administrator.")
+                            : tr("Use your minicam account."))
                             .font(.caption)
                             .foregroundStyle(Theme.muted)
                     }
 
                     // Switch, or add the missing address, instead of retyping (docs/adr/0013).
                     NetworkSwitch()
-                    field("Server") {
+                    field(tr("Server")) {
                         TextField("https://cam.example.com", text: $model.serverURLText)
                             .keyboardType(.URL)
                             .textContentType(.URL)
@@ -44,19 +44,19 @@ struct LoginView: View {
                     discoveryList
 
                     if model.needsAccessLogin {
-                        Button("Continue with Cloudflare Access") {
+                        Button(tr("Continue with Cloudflare Access")) {
                             Task { await accessLogin() }
                         }
                         .buttonStyle(PrimaryButtonStyle())
-                        Text("This server is outside your network. Cloudflare Access verifies you first.")
+                        Text(tr("This server is outside your network. Cloudflare Access verifies you first."))
                             .font(.caption)
                             .foregroundStyle(Theme.muted)
                     } else if model.creatingAdmin, status == nil {
-                        Text("Can't check this device. Setting it up only works on its home network (Local), at its local address.")
+                        Text(tr("Can't check this device. Setting it up only works on its home network (Local), at its local address."))
                             .font(.caption)
                             .foregroundStyle(Theme.muted)
                     } else if model.creatingAdmin, status?.state == .configured {
-                        Text("This device already has an administrator: sign in. To set it up again, reset or re-flash it.")
+                        Text(tr("This device already has an administrator: sign in. To set it up again, reset or re-flash it."))
                             .font(.caption)
                             .foregroundStyle(Theme.muted)
                     } else if model.creatingAdmin, status?.state == .restartNeeded {
@@ -75,7 +75,7 @@ struct LoginView: View {
                     // Always offered (e.g. after re-flashing the device); the setup form re-checks the
                     // device and only a device with no account yet can be set up.
                     if !model.needsAccessLogin {
-                        Button(model.creatingAdmin ? "I already have an account: sign in" : "New device? Create admin account") {
+                        Button(model.creatingAdmin ? tr("I already have an account: sign in") : tr("New device? Create admin account")) {
                             Task { await model.chooseCreateAdmin(!model.creatingAdmin) }
                         }
                         .font(.footnote)
@@ -109,19 +109,19 @@ struct LoginView: View {
     }
 
     @ViewBuilder private var signInForm: some View {
-        field("Email") {
+        field(tr("Email")) {
             TextField("", text: $email)
                 .keyboardType(.emailAddress)
                 .textContentType(.username)
                 .accessibilityIdentifier("email")
         }
-        field("Password") {
+        field(tr("Password")) {
             PasswordField(placeholder: "", text: $password, identifier: "password")
         }
         Button {
             Task { await model.login(email: email, password: password) }
         } label: {
-            if model.isBusy { ProgressView().tint(Theme.onAccent) } else { Text("Sign in") }
+            if model.isBusy { ProgressView().tint(Theme.onAccent) } else { Text(tr("Sign in")) }
         }
         .buttonStyle(PrimaryButtonStyle())
         .disabled(model.isBusy || email.isEmpty || password.isEmpty)
@@ -130,10 +130,10 @@ struct LoginView: View {
 
     @ViewBuilder private func setupForm(needsCode: Bool) -> some View {
         if needsCode {
-            Text("To prove you are next to the device, ask it for a code: its green LED blinks 4 digits.")
+            Text(tr("To prove you are next to the device, ask it for a code: its green LED blinks 4 digits."))
                 .font(.caption)
                 .foregroundStyle(Theme.muted)
-            Button("Blink a code on the device") {
+            Button(tr("Blink a code on the device")) {
                 Task { await model.requestSetupCode() }
             }
             .buttonStyle(.bordered)
@@ -141,7 +141,7 @@ struct LoginView: View {
             if let message = model.setupCodeMessage {
                 Text(message).font(.caption).foregroundStyle(Theme.muted)
             }
-            field("Code from the LED") {
+            field(tr("Code from the LED")) {
                 TextField("", text: $setupCode)
                     .keyboardType(.numberPad)
                     .textContentType(.oneTimeCode)
@@ -152,19 +152,19 @@ struct LoginView: View {
                     }
             }
         }
-        field("Email") {
+        field(tr("Email")) {
             TextField("", text: $email)
                 .keyboardType(.emailAddress)
                 .textContentType(.username)
         }
-        field("Password (min. 8 characters)") {
+        field(tr("Password (min. 8 characters)")) {
             PasswordField(placeholder: "", text: $password, contentType: .newPassword)
         }
-        field("Confirm password") {
+        field(tr("Confirm password")) {
             PasswordField(placeholder: "", text: $confirm, contentType: .newPassword)
         }
         if !confirm.isEmpty, confirm != password {
-            Text("Passwords do not match.").font(.caption).foregroundStyle(Theme.danger)
+            Text(tr("Passwords do not match.")).font(.caption).foregroundStyle(Theme.danger)
         }
         Button {
             Task {
@@ -175,7 +175,7 @@ struct LoginView: View {
                 )
             }
         } label: {
-            if model.isBusy { ProgressView().tint(Theme.onAccent) } else { Text("Create account") }
+            if model.isBusy { ProgressView().tint(Theme.onAccent) } else { Text(tr("Create account")) }
         }
         .buttonStyle(PrimaryButtonStyle())
         .disabled(
@@ -186,15 +186,15 @@ struct LoginView: View {
 
     /// "Find minicam on my network": devices answering `_minicam._tcp` on the Wi-Fi.
     @ViewBuilder private var discoveryList: some View {
-        Button(searching ? "Stop searching" : "Find minicam on my network") { searching.toggle() }
+        Button(searching ? tr("Stop searching") : tr("Find minicam on my network")) { searching.toggle() }
             .buttonStyle(.bordered)
         if searching {
             if model.discovery.denied {
-                Text("Allow local network access for minicam in Settings → Privacy & Security → Local Network.")
+                Text(tr("Allow local network access for minicam in Settings → Privacy & Security → Local Network."))
                     .font(.caption)
                     .foregroundStyle(Theme.muted)
             } else if model.discovery.servers.isEmpty {
-                Text("Searching… The phone must be on the same Wi-Fi as the device.")
+                Text(tr("Searching… The phone must be on the same Wi-Fi as the device."))
                     .font(.caption)
                     .foregroundStyle(Theme.muted)
             }
@@ -235,7 +235,7 @@ struct LoginView: View {
         } catch ASWebAuthenticationSessionError.canceledLogin {
             return
         } catch {
-            model.errorMessage = "Cloudflare Access login failed. Try again."
+            model.errorMessage = tr("Cloudflare Access login failed. Try again.")
         }
     }
 }

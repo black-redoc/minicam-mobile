@@ -117,7 +117,7 @@ struct Badge: View {
 
 /// A primary action row: full-width sky button with a spinner while busy.
 struct SaveButton: View {
-    var label = "Save"
+    var label = tr("Save")
     let busy: Bool
     var enabled = true
     let action: () -> Void

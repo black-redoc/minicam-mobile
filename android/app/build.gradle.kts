@@ -63,6 +63,15 @@ android {
         buildConfig = true
     }
 
+    // Unit tests expect English texts and formats whatever the build machine's language is
+    // (the app's "phone language" is the JVM default in tests, docs/adr/0017).
+    testOptions {
+        unitTests.all {
+            it.systemProperty("user.language", "en")
+            it.systemProperty("user.country", "US")
+        }
+    }
+
     lint {
         // Suggests androidx.core-ktx helpers; not worth a dependency (docs/DEPENDENCIES.md).
         disable += "UseKtx"

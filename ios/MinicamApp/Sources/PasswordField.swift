@@ -1,3 +1,4 @@
+import MinicamKit
 import SwiftUI
 
 /// A secure field with an eye button that shows what was typed (like the Android fields).
@@ -29,7 +30,7 @@ struct PasswordField: View {
                     .foregroundStyle(Theme.muted)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(revealed ? "Hide password" : "Show password")
+            .accessibilityLabel(revealed ? tr("Hide password") : tr("Show password"))
         }
     }
 }

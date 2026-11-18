@@ -1,5 +1,6 @@
 package dev.minicam.mobile.data
 
+import dev.minicam.mobile.i18n.tr
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
@@ -40,8 +41,8 @@ data class NotificationSchedule(
     val summary: String
         get() {
             val hours = when {
-                startMinute == endMinute -> "all day"
-                overnight -> "${formatMinute(startMinute)} – ${formatMinute(endMinute)} (next day)"
+                startMinute == endMinute -> tr("all day")
+                overnight -> tr("%1\$s – %2\$s (next day)", formatMinute(startMinute), formatMinute(endMinute))
                 else -> "${formatMinute(startMinute)} – ${formatMinute(endMinute)}"
             }
             return "${formatDays(days)} · $hours"
@@ -63,7 +64,7 @@ data class NotificationSchedule(
         fun formatMinute(minute: Int): String {
             val hour = minute / 60
             val hour12 = if (hour % 12 == 0) 12 else hour % 12
-            return "%d:%02d %s".format(hour12, minute % 60, if (hour < 12) "AM" else "PM")
+            return "%d:%02d %s".format(hour12, minute % 60, if (hour < 12) tr("AM") else tr("PM"))
         }
 
         fun dayLabel(day: Int): String = DAY_LABELS[day - 1]
@@ -72,15 +73,15 @@ data class NotificationSchedule(
         fun formatDays(days: Set<Int>): String {
             val sorted = days.filter { it in 1..7 }.sorted()
             return when {
-                sorted.isEmpty() -> "No days"
-                sorted.size == 7 -> "Every day"
+                sorted.isEmpty() -> tr("No days")
+                sorted.size == 7 -> tr("Every day")
                 sorted.size >= 3 && sorted.last() - sorted.first() == sorted.size - 1 ->
                     "${dayLabel(sorted.first())}–${dayLabel(sorted.last())}"
                 else -> sorted.joinToString(", ") { dayLabel(it) }
             }
         }
 
-        private val DAY_LABELS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        private val DAY_LABELS get() = listOf(tr("Mon"), tr("Tue"), tr("Wed"), tr("Thu"), tr("Fri"), tr("Sat"), tr("Sun"))
 
         /** Every [DayOfWeek] in Monday-first order, for the day chips. */
         val ALL_DAYS: List<Int> = DayOfWeek.entries.map { it.value }

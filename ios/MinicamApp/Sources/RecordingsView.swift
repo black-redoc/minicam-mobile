@@ -33,7 +33,7 @@ struct RecordingsView: View {
         ZStack {
             if isFullscreen { fullscreenPlayer } else { list }
         }
-        .navigationTitle("Recordings")
+        .navigationTitle(tr("Recordings"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .statusBarHidden(isFullscreen)
@@ -60,15 +60,15 @@ struct RecordingsView: View {
                     if let selected {
                         clipActions(selected).transition(.opacity)
                     }
-                    Picker("Camera", selection: $camera) {
-                        Text("All cameras").tag(String?.none)
+                    Picker(tr("Camera"), selection: $camera) {
+                        Text(tr("All cameras")).tag(String?.none)
                         ForEach(model.cameras) { Text($0.name).tag(String?.some($0.name)) }
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
                     Spacer(minLength: 0)
                 }
-                Text("Event recordings".uppercased())
+                Text(tr("Event recordings").uppercased())
                     .font(.caption2.weight(.semibold))
                     .tracking(1.5)
                     .foregroundStyle(Theme.muted)
@@ -82,15 +82,15 @@ struct RecordingsView: View {
                     if let error { FormMessage(error: error) }
                     if let items, items.isEmpty {
                         Text(camera == nil
-                            ? "No recordings yet. Clips appear here when a camera detects one of its classes."
-                            : "No recordings for this camera yet.")
+                            ? tr("No recordings yet. Clips appear here when a camera detects one of its classes.")
+                            : tr("No recordings for this camera yet."))
                             .font(.callout)
                             .foregroundStyle(Theme.muted)
                     } else if items == nil, error == nil {
                         ClipListSkeleton()
                     }
 
-                    ForEach(recordingDays(items ?? [])) { day in
+                    ForEach(recordingDays(items ?? [], locale: I18n.locale)) { day in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(day.label).font(.caption.weight(.medium)).foregroundStyle(Theme.muted)
                             VStack(spacing: 0) {
@@ -110,7 +110,7 @@ struct RecordingsView: View {
                         Button {
                             Task { await load(reset: false) }
                         } label: {
-                            if loading { ProgressView() } else { Text("Load more").font(.callout.weight(.medium)) }
+                            if loading { ProgressView() } else { Text(tr("Load more")).font(.callout.weight(.medium)) }
                         }
                         .frame(maxWidth: .infinity)
                         .disabled(loading)
@@ -124,15 +124,15 @@ struct RecordingsView: View {
         .background(Theme.bg.ignoresSafeArea())
         .task(id: camera) { await load(reset: true) }
         .confirmationDialog(
-            "Delete recording?",
+            tr("Delete recording?"),
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(tr("Delete"), role: .destructive) {
                 if let recording = pendingDelete { Task { await delete(recording) } }
             }
         } message: {
-            Text("The clip is deleted from this device for every user.")
+            Text(tr("The clip is deleted from this device for every user."))
         }
         // The downloaded MP4 lives in the temp dir only while the share sheet is open (SECURITY.md).
         .sheet(item: $sharedFile) { file in
@@ -181,7 +181,7 @@ struct RecordingsView: View {
 
     private func clipDetails(_ recording: Recording) -> some View {
         let details: [String?] = [
-            "\(recordingDays([recording])[0].label), \(recording.started.formatted(date: .omitted, time: .standard))",
+            "\(recordingDays([recording], locale: I18n.locale)[0].label), \(recording.started.formatted(Date.FormatStyle(date: .omitted, time: .standard).locale(I18n.locale)))",
             formatClipDuration(recording.durationSeconds),
             formatClipSize(recording.sizeBytes),
             recording.classes.isEmpty ? nil : recording.classes.joined(separator: ", "),
@@ -197,13 +197,13 @@ struct RecordingsView: View {
             Button {
                 Task { await download(recording) }
             } label: {
-                if downloading { ProgressView() } else { Label("Download", systemImage: "arrow.down.to.line") }
+                if downloading { ProgressView() } else { Label(tr("Download"), systemImage: "arrow.down.to.line") }
             }
             .disabled(downloading)
             // Admins only; the server's `require_admin` enforces it either way.
             if model.user?.isAdmin == true {
                 Button(role: .destructive) { pendingDelete = recording } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label(tr("Delete"), systemImage: "trash")
                 }
                 .foregroundStyle(Theme.danger)
             }
@@ -262,7 +262,7 @@ struct RecordingsView: View {
         let item = AVPlayerItem(asset: asset)
         playback.load(item)
         for await status in item.publisher(for: \.status).values where status == .failed {
-            playError = "Can't play this clip."
+            playError = tr("Can't play this clip.")
         }
     }
 
@@ -292,7 +292,7 @@ private struct ClipRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(recording.started.formatted(date: .omitted, time: .standard))
+            Text(recording.started.formatted(Date.FormatStyle(date: .omitted, time: .standard).locale(I18n.locale)))
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(selected ? Theme.accentHover : Theme.text)
             VStack(alignment: .leading, spacing: 4) {

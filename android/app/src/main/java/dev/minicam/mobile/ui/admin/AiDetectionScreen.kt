@@ -29,6 +29,7 @@ import dev.minicam.mobile.data.fetchModel
 import dev.minicam.mobile.data.installCatalogModel
 import dev.minicam.mobile.data.modelCatalog
 import dev.minicam.mobile.data.saveDetectionSettings
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
 import dev.minicam.mobile.ui.PrimaryButton
@@ -78,7 +79,7 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
             viewModel.modelCatalogCache.get(server, refresh) { api.modelCatalog() }
         }?.let {
             catalog = it
-            catalogStatus = if (it.assets.isEmpty()) "The catalog is empty." else null
+            catalogStatus = if (it.assets.isEmpty()) tr("The catalog is empty.") else null
         }
     }
 
@@ -105,14 +106,14 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
         success = null
         val url = modelUrl.trim()
         if (!url.startsWith("https://")) {
-            error = "Enter an https:// model URL first."
+            error = tr("Enter an https:// model URL first.")
             return
         }
         scope.launch {
             fetching = true
             viewModel.attempt({ error = it }) { api.fetchModel(url) }?.let {
                 modelPath = it
-                success = "Model downloaded. Tap Save to activate it."
+                success = tr("Model downloaded. Tap Save to activate it.")
             }
             fetching = false
         }
@@ -124,11 +125,11 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
         val threshold = confidence.trim().replace(',', '.').toDoubleOrNull()
         val inferenceFps = fps.trim().replace(',', '.').toDoubleOrNull()
         if (threshold == null || threshold !in 0.0..1.0) {
-            error = "Confidence threshold must be between 0 and 1."
+            error = tr("Confidence threshold must be between 0 and 1.")
             return
         }
         if (inferenceFps == null || inferenceFps <= 0) {
-            error = "Inference FPS must be greater than 0."
+            error = tr("Inference FPS must be greater than 0.")
             return
         }
         val settings = DetectionSettings(backend, modelPath.trim(), threshold, inferenceFps)
@@ -136,18 +137,18 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
             saving = true
             viewModel.attempt({ error = it }) { api.saveDetectionSettings(settings) }?.let {
                 populate(it)
-                success = "Settings saved."
+                success = tr("Settings saved.")
                 loadCatalog()
             }
             saving = false
         }
     }
 
-    AdminScaffold("AI detection", onBack = { viewModel.screen = Screen.CAMERAS }) {
-        Section("Model catalog", trailing = catalog?.release?.takeIf { it.isNotEmpty() }?.let { "Release $it" }) {
+    AdminScaffold(tr("AI detection"), onBack = { viewModel.screen = Screen.CAMERAS }) {
+        Section(tr("Model catalog"), trailing = catalog?.release?.takeIf { it.isNotEmpty() }?.let { tr("Release %s", it) }) {
             Hint(
-                "Ready-to-use YOLO models from minicam-models. Raspberry Pi 5: pick an n model " +
-                    "(int8 is fastest). x86 PC: an s model. Installing verifies the file's checksum and activates it.",
+                tr("Ready-to-use YOLO models from minicam-models. Raspberry Pi 5: pick an n model " +
+                    "(int8 is fastest). x86 PC: an s model. Installing verifies the file's checksum and activates it."),
             )
             catalogStatus?.let { Text(it, color = CamColors.Muted, fontSize = 12.sp) }
             if (catalog == null && catalogStatus == null) RowsSkeleton()
@@ -158,32 +159,32 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
             FormMessage(catalogError)
         }
 
-        Section("AI detection") {
+        Section(tr("AI detection")) {
             if (!loaded && error == null) {
                 FormSkeleton(fields = 4)
             } else {
                 OptionPicker(
-                    "Backend",
-                    listOf(DetectionBackend.NONE to "None", DetectionBackend.ONNX to "ONNX (CPU)"),
+                    tr("Backend"),
+                    listOf(DetectionBackend.NONE to tr("None"), DetectionBackend.ONNX to tr("ONNX (CPU)")),
                     backend,
                 ) { backend = it }
-                CamTextField("Confidence threshold", confidence, { confidence = it }, keyboardType = KeyboardType.Decimal)
-                CamTextField("Inference FPS", fps, { fps = it }, keyboardType = KeyboardType.Decimal)
-                CamTextField("Model path", modelPath, { modelPath = it }, placeholder = "/absolute/path/to/model.onnx", monospace = true)
+                CamTextField(tr("Confidence threshold"), confidence, { confidence = it }, keyboardType = KeyboardType.Decimal)
+                CamTextField(tr("Inference FPS"), fps, { fps = it }, keyboardType = KeyboardType.Decimal)
+                CamTextField(tr("Model path"), modelPath, { modelPath = it }, placeholder = "/absolute/path/to/model.onnx", monospace = true)
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CamTextField(
-                        "Or fetch from URL",
+                        tr("Or fetch from URL"),
                         modelUrl,
                         { modelUrl = it },
                         keyboardType = KeyboardType.Uri,
                         placeholder = "https://…/yolo11n-int8.onnx",
                         modifier = Modifier.weight(1f),
                     )
-                    SecondaryButton("Fetch", busy = fetching, modifier = Modifier.padding(bottom = 8.dp), onClick = ::fetch)
+                    SecondaryButton(tr("Fetch"), busy = fetching, modifier = Modifier.padding(bottom = 8.dp), onClick = ::fetch)
                 }
-                Hint("1. Install a catalog model, or fetch one from a URL. 2. Set it as the active backend and save.")
+                Hint(tr("1. Install a catalog model, or fetch one from a URL. 2. Set it as the active backend and save."))
                 FormMessage(error, success)
-                PrimaryButton("Save", busy = saving, onClick = ::save)
+                PrimaryButton(tr("Save"), busy = saving, onClick = ::save)
             }
             if (!loaded) FormMessage(error)
         }
@@ -203,9 +204,9 @@ private fun CatalogRow(asset: CatalogAsset, installing: Boolean, enabled: Boolea
             )
         }
         if (asset.active) {
-            Badge("Active", CamColors.Success)
+            Badge(tr("Active"), CamColors.Success)
         } else {
-            SecondaryButton(if (asset.installed) "Activate" else "Install & activate", enabled = enabled, busy = installing, onClick = onInstall)
+            SecondaryButton(if (asset.installed) tr("Activate") else tr("Install & activate"), enabled = enabled, busy = installing, onClick = onInstall)
         }
     }
 }

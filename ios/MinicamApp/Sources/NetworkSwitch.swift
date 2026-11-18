@@ -9,8 +9,8 @@ struct NetworkSwitch: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            segment(.local, label: "Local", address: model.localAddress)
-            segment(.remote, label: "Remote", address: model.remoteAddress)
+            segment(.local, label: tr("Local"), address: model.localAddress)
+            segment(.remote, label: tr("Remote"), address: model.remoteAddress)
         }
         .frame(height: 36)
         .background(Theme.bg)
@@ -37,7 +37,7 @@ struct NetworkSwitch: View {
         }
         .buttonStyle(.plain)
         .disabled(selected)
-        .accessibilityLabel(address == nil ? "Add \(label.lowercased()) address" : label)
+        .accessibilityLabel(address == nil ? (network == .local ? tr("Add local address") : tr("Add remote address")) : label)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
@@ -56,8 +56,8 @@ private struct AddAddressSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
                 Text(local
-                    ? "The address of this same minicam on your home Wi-Fi."
-                    : "The Cloudflare address of this same minicam, used away from home.")
+                    ? tr("The address of this same minicam on your home Wi-Fi.")
+                    : tr("The Cloudflare address of this same minicam, used away from home."))
                     .font(.footnote)
                     .foregroundStyle(Theme.muted)
                 TextField(local ? "http://192.168.1.20:8080" : "https://cam.example.com", text: $text)
@@ -74,12 +74,12 @@ private struct AddAddressSheet: View {
             }
             .padding(16)
             .background(Theme.bg)
-            .navigationTitle(local ? "Add local address" : "Add remote address")
+            .navigationTitle(local ? tr("Add local address") : tr("Add remote address"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(tr("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save and switch") {
+                    Button(tr("Save and switch")) {
                         Task {
                             error = await model.addAddress(text, network: network)
                             if error == nil { dismiss() }
@@ -95,7 +95,7 @@ private struct AddAddressSheet: View {
 
     /// "Find minicam on my network", as on the login screen.
     @ViewBuilder private var discovery: some View {
-        Button(searching ? "Stop searching" : "Find minicam on my network") { searching.toggle() }
+        Button(searching ? tr("Stop searching") : tr("Find minicam on my network")) { searching.toggle() }
             .buttonStyle(.bordered)
         if searching {
             ForEach(model.discovery.servers) { server in

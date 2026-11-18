@@ -105,6 +105,7 @@ import dev.minicam.mobile.data.recordingFileName
 import dev.minicam.mobile.data.recordingVideoUrl
 import dev.minicam.mobile.data.recordings
 import dev.minicam.mobile.data.shouldLoadMore
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.admin.AdminScaffold
 import dev.minicam.mobile.ui.admin.ConfirmDialog
 import dev.minicam.mobile.ui.admin.FormMessage
@@ -283,7 +284,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                 resolver.openOutputStream(uri)?.use { api.downloadRecording(recording.id, it) }
                     ?: throw MinicamException.InvalidResponse
             }
-            if (done == null) runCatching { DocumentsContract.deleteDocument(resolver, uri) } else notice = "Saved."
+            if (done == null) runCatching { DocumentsContract.deleteDocument(resolver, uri) } else notice = tr("Saved.")
             downloading = null
         }
     }
@@ -346,20 +347,20 @@ fun RecordingsScreen(viewModel: AppViewModel) {
             ) {
                 val recording = selected ?: shownRecording ?: return@AnimatedVisibility
                 Row(Modifier.padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SecondaryButton("Download", busy = downloading != null) {
+                    SecondaryButton(tr("Download"), busy = downloading != null) {
                         downloading = recording
                         saveAs.launch(recordingFileName(recording))
                     }
                     // Admins only; the server's `require_admin` enforces it either way.
-                    if (isAdmin) SecondaryButton("Delete", danger = true) { pendingDelete = recording }
+                    if (isAdmin) SecondaryButton(tr("Delete"), danger = true) { pendingDelete = recording }
                 }
             }
             CameraFilter(viewModel.cameras.map { it.name }, camera) { camera = it }
         }
-        SectionTitle("Event recordings", Modifier.padding(top = 16.dp))
+        SectionTitle(tr("Event recordings"), Modifier.padding(top = 16.dp))
     }
 
-    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }, fixedTop = fixedTop, scrollState = listScroll) {
+    AdminScaffold(tr("Recordings"), onBack = { viewModel.screen = Screen.CAMERAS }, fixedTop = fixedTop, scrollState = listScroll) {
         FormMessage(error, notice)
 
         val list = items
@@ -367,9 +368,9 @@ fun RecordingsScreen(viewModel: AppViewModel) {
             list == null -> if (error == null) ClipListSkeleton()
             list.isEmpty() -> Hint(
                 if (camera != null) {
-                    "No recordings for this camera yet."
+                    tr("No recordings for this camera yet.")
                 } else {
-                    "No recordings yet. Clips appear here when a camera detects one of its classes."
+                    tr("No recordings yet. Clips appear here when a camera detects one of its classes.")
                 },
             )
             else -> recordingDays(list).forEach { day ->
@@ -388,7 +389,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
             }
         }
         if (nextBefore != null) {
-            SecondaryButton("Load more", Modifier.align(Alignment.CenterHorizontally), busy = loading) {
+            SecondaryButton(tr("Load more"), Modifier.align(Alignment.CenterHorizontally), busy = loading) {
                 scope.launch { load(reset = false) }
             }
         }
@@ -396,9 +397,9 @@ fun RecordingsScreen(viewModel: AppViewModel) {
 
     pendingDelete?.let { recording ->
         ConfirmDialog(
-            title = "Delete recording?",
-            message = "The clip is deleted from this device for every user.",
-            confirmLabel = "Delete",
+            title = tr("Delete recording?"),
+            message = tr("The clip is deleted from this device for every user."),
+            confirmLabel = tr("Delete"),
             onConfirm = {
                 scope.launch {
                     error = null
@@ -525,11 +526,11 @@ private fun ClipDetails(recording: Recording) {
 private fun CameraFilter(cameras: List<String>, selected: String?, onSelect: (String?) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        SecondaryButton("${selected ?: "All cameras"}  ▾") { open = true }
+        SecondaryButton("${selected ?: tr("All cameras")}  ▾") { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.background(CamColors.Surface)) {
             (listOf<String?>(null) + cameras).forEach { camera ->
                 DropdownMenuItem(
-                    text = { Text(camera ?: "All cameras", color = if (camera == selected) CamColors.AccentHover else CamColors.Text) },
+                    text = { Text(camera ?: tr("All cameras"), color = if (camera == selected) CamColors.AccentHover else CamColors.Text) },
                     onClick = {
                         open = false
                         onSelect(camera)
@@ -567,7 +568,7 @@ private fun rememberClipPlayer(viewModel: AppViewModel, api: MinicamApi, onError
                         401 -> viewModel.describe(MinicamException.Unauthorized)
                         in 300..399 -> viewModel.describe(MinicamException.AccessRequired)
                         404 -> viewModel.describe(MinicamException.NotFound)
-                        else -> "Can't play this clip."
+                        else -> tr("Can't play this clip.")
                     },
                 )
             }

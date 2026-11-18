@@ -25,6 +25,7 @@ import dev.minicam.mobile.data.StepState
 import dev.minicam.mobile.data.centralStatus
 import dev.minicam.mobile.data.connectToDashboard
 import dev.minicam.mobile.data.unpairFromCentral
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
 import dev.minicam.mobile.ui.PrimaryButton
@@ -106,11 +107,11 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
         error = null
         success = null
         if (dashboard == null) {
-            error = "Enter the dashboard's https:// address, e.g. https://admin.example.com"
+            error = tr("Enter the dashboard's https:// address, e.g. https://admin.example.com")
             return
         }
         if (pairing == null) {
-            error = "The code has 8 letters and digits, like ABCD-EFGH."
+            error = tr("The code has 8 letters and digits, like ABCD-EFGH.")
             return
         }
         scope.launch {
@@ -124,8 +125,8 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
                 progress = null
             } else {
                 viewModel.attempt({}) { api.centralStatus() }?.let(::keep)
-                success = "WAN access is now managed in the dashboard." +
-                    (result.wanUrl?.let { " From outside your home network, sign in at $it" } ?: "")
+                success = tr("WAN access is now managed in the dashboard.") +
+                    (result.wanUrl?.let { tr(" From outside your home network, sign in at %s", it) } ?: "")
             }
             busy = false
         }
@@ -138,56 +139,56 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
             busy = true
             viewModel.attempt({ error = it }) { api.unpairFromCentral() }?.let {
                 keep(it)
-                success = "Disconnected. WAN access is managed on the device again."
+                success = tr("Disconnected. WAN access is managed on the device again.")
             }
             busy = false
         }
     }
 
-    AdminScaffold("Connect to dashboard", onBack = { viewModel.screen = Screen.CAMERAS }) {
-        Section("Status") {
+    AdminScaffold(tr("Connect to dashboard"), onBack = { viewModel.screen = Screen.CAMERAS }) {
+        Section(tr("Status")) {
             val current = status
             when {
-                away && current == null -> Hint("Not checked yet: open this screen once on your home network.")
+                away && current == null -> Hint(tr("Not checked yet: open this screen once on your home network."))
                 current == null && error == null -> RowsSkeleton(rows = 1, trailing = false)
                 current != null && current.connected -> {
-                    Text("Connected", color = CamColors.Text, fontSize = 14.sp)
+                    Text(tr("Connected"), color = CamColors.Text, fontSize = 14.sp)
                     current.url?.let { Hint(it) }
-                    Hint(current.lastSyncedAt?.let { "Last sync: $it (UTC)" } ?: "Waiting for the first sync…")
+                    Hint(current.lastSyncedAt?.let { tr("Last sync: %s (UTC)", it) } ?: tr("Waiting for the first sync…"))
                     if (current.managedInEnv) {
-                        Hint("Set in the device's .env file: change it there.")
+                        Hint(tr("Set in the device's .env file: change it there."))
                     }
                 }
-                current != null -> Text("Not connected", color = CamColors.Text, fontSize = 14.sp)
+                current != null -> Text(tr("Not connected"), color = CamColors.Text, fontSize = 14.sp)
             }
-            saved?.let { Hint("As of ${checkedAt(it.savedAt)}, on your home network.") }
+            saved?.let { Hint(tr("As of %s, on your home network.", checkedAt(it.savedAt))) }
         }
 
         progress?.let { current ->
-            Section("Progress") {
-                ProgressRow("Dashboard", current.dashboard, current.dashboardText)
-                ProgressRow("Remote access", current.remoteAccess, current.remoteAccessText)
+            Section(tr("Progress")) {
+                ProgressRow(tr("Dashboard"), current.dashboard, current.dashboardText)
+                ProgressRow(tr("Remote access"), current.remoteAccess, current.remoteAccessText)
             }
         }
 
         if (away) {
-            Hint("To connect, pair again or disconnect, switch to your home network (Local).")
+            Hint(tr("To connect, pair again or disconnect, switch to your home network (Local)."))
         } else if (status?.managedInEnv != true) {
-            Section(if (status?.connected == true) "Pair again (new token)" else "Connect") {
+            Section(if (status?.connected == true) tr("Pair again (new token)") else tr("Connect")) {
                 Hint(
-                    "In the dashboard open Sites, press \"Pair device\" on this device's site and type the " +
+                    tr("In the dashboard open Sites, press \"Pair device\" on this device's site and type the " +
                         "code it shows (valid once, for 10 minutes), or scan its QR with the phone's camera. " +
                         "The device fetches its own token and, if the dashboard offers it, its remote access: " +
-                        "nothing secret is copied by hand.",
+                        "nothing secret is copied by hand."),
                 )
                 linkHost?.let { host ->
-                    Text("Connect this device to $host?", color = CamColors.Text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    Hint("Only continue if you opened this code from your own dashboard: it decides who can watch from outside.")
+                    Text(tr("Connect this device to %s?", host), color = CamColors.Text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Hint(tr("Only continue if you opened this code from your own dashboard: it decides who can watch from outside."))
                 }
-                SecondaryButton("Scan QR code", enabled = !busy) { scanning = true }
-                CamTextField("Dashboard address", url, { url = it }, keyboardType = KeyboardType.Uri)
+                SecondaryButton(tr("Scan QR code"), enabled = !busy) { scanning = true }
+                CamTextField(tr("Dashboard address"), url, { url = it }, keyboardType = KeyboardType.Uri)
                 CamTextField(
-                    "Pairing code",
+                    tr("Pairing code"),
                     code,
                     { code = PairingCode.clean(it) },
                     keyboardType = KeyboardType.Ascii,
@@ -196,13 +197,13 @@ fun CentralDashboardScreen(viewModel: AppViewModel) {
                     visualTransformation = PairingCodeTransformation,
                 )
                 PrimaryButton(
-                    if (status?.connected == true) "Pair again" else "Connect",
+                    if (status?.connected == true) tr("Pair again") else tr("Connect"),
                     enabled = !busy && code.isNotBlank(),
                     busy = busy,
                     onClick = ::pair,
                 )
                 if (status?.connected == true) {
-                    SecondaryButton("Disconnect", enabled = !busy, danger = true, onClick = ::unpair)
+                    SecondaryButton(tr("Disconnect"), enabled = !busy, danger = true, onClick = ::unpair)
                 }
             }
         }

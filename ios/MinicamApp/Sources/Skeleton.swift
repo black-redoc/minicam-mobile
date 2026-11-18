@@ -1,3 +1,4 @@
+import MinicamKit
 import SwiftUI
 
 /// Placeholder shape for content that is still loading (spec 007): `surface2` with a `border`
@@ -45,6 +46,6 @@ struct SkeletonBlock: View {
 extension View {
     /// Groups placeholders so VoiceOver announces them once as "Loading".
     func skeletonGroup() -> some View {
-        accessibilityElement(children: .ignore).accessibilityLabel("Loading")
+        accessibilityElement(children: .ignore).accessibilityLabel(tr("Loading"))
     }
 }

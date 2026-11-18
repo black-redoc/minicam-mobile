@@ -33,6 +33,20 @@ final class AppModel {
     /// The signed-in navigation stack, so a QR link can open "Connect to dashboard".
     var path = NavigationPath()
 
+    /// The app language (docs/adr/0017). The root view is rebuilt when it changes, so every
+    /// text built with `tr` follows at once.
+    var language: AppLanguage = I18n.language {
+        didSet { I18n.language = language }
+    }
+
+    /// Admins: the device's minicam version and whether a newer release can be installed.
+    private(set) var systemUpdate: SystemUpdate?
+    /// An update started from this phone, while it runs and once it ends.
+    private(set) var updateProgress: UpdateProgress?
+    var updateError: String?
+    private(set) var checkingUpdate = false
+    private var updateTask: Task<Void, Never>?
+
     /// `_minicam._tcp` browser for "Find minicam on my network".
     let discovery = LanDiscovery()
 
@@ -88,9 +102,9 @@ final class AppModel {
 
     private static func addressError(_ error: Error) -> String {
         if case ServerConfigError.insecureRemoteHost = error {
-            return "Plain http:// is only allowed on your local network. Use https://."
+            return tr("Plain http:// is only allowed on your local network. Use https://.")
         }
-        return "Enter a valid server address, e.g. https://cam.example.com"
+        return tr("Enter a valid server address, e.g. https://cam.example.com")
     }
 
     /// Uses the other saved address of the same server (docs/adr/0013). Nothing is sent to the
@@ -120,8 +134,8 @@ final class AppModel {
         }
         guard config.network == network else {
             return network == .local
-                ? "A local address starts with http://, e.g. http://192.168.1.20:8080"
-                : "A remote address starts with https://"
+                ? tr("A local address starts with http://, e.g. http://192.168.1.20:8080")
+                : tr("A remote address starts with https://")
         }
         addresses.add(config)
         await switchNetwork(to: network)
@@ -138,7 +152,7 @@ final class AppModel {
                 Task { await refresh() }
             }
         } catch {
-            errorMessage = "Cloudflare Access login failed. Try again."
+            errorMessage = tr("Cloudflare Access login failed. Try again.")
         }
     }
 
@@ -184,9 +198,12 @@ final class AppModel {
         guard let api = applyServerURL() else { return }
         await run {
             let claim = try await api.requestSetupCode()
-            self.setupCodeMessage = "The green LED is blinking a \(claim.digits)-digit code. Count the blinks of "
-                + "each digit; a longer pause separates digits, an even longer one starts again. It is valid "
-                + "for \(claim.expiresIn / 60) minutes."
+            self.setupCodeMessage = tr(
+                "The green LED is blinking a %1$d-digit code. Count the blinks of each digit; a longer pause "
+                    + "separates digits, an even longer one starts again. It is valid for %2$d minutes.",
+                claim.digits,
+                claim.expiresIn / 60
+            )
         }
     }
 
@@ -207,7 +224,7 @@ final class AppModel {
     /// dashboard" with the form filled in; it never sends anything by itself.
     func openPairLink(_ url: URL) {
         guard let link = PairLink.parse(url) else {
-            errorMessage = "That link is not a minicam dashboard code."
+            errorMessage = tr("That link is not a minicam dashboard code.")
             return
         }
         pendingPairLink.store(link)
@@ -220,8 +237,10 @@ final class AppModel {
         if phase == .signedIn, api?.config.isWAN == false, user?.isAdmin == true {
             path = NavigationPath([AdminRoute.centralDashboard])
         } else {
-            errorMessage = "To use the dashboard code, sign in as an admin while you're on the device's "
-                + "home network. The code is kept for 10 minutes."
+            errorMessage = tr(
+                "To use the dashboard code, sign in as an admin while you're on the device's "
+                    + "home network. The code is kept for 10 minutes."
+            )
         }
     }
 
@@ -231,6 +250,60 @@ final class AppModel {
         offerPairLink()
         cameras = try await api.cameras()
         camerasLoaded = true
+        if user?.isAdmin == true { Task { await checkForUpdate() } }
+    }
+
+    /// Admins: asks the device for its version and the latest release (the device asks GitHub
+    /// at most every 6 hours; `refresh` asks it to check now). Quiet unless `refresh`.
+    func checkForUpdate(refresh: Bool = false) async {
+        guard let api, user?.isAdmin == true, updateTask == nil, !checkingUpdate else { return }
+        checkingUpdate = true
+        defer { checkingUpdate = false }
+        if refresh { updateError = nil }
+        do {
+            systemUpdate = try await api.systemUpdate(refresh: refresh)
+        } catch is CancellationError {
+        } catch {
+            if refresh { updateError = describe(error) }
+        }
+    }
+
+    /// Installs the offered release and follows it until the device runs it (or gives up).
+    func installUpdate() {
+        guard let api, let version = systemUpdate?.latest, updateTask == nil else { return }
+        updateError = nil
+        updateTask = Task {
+            defer { updateTask = nil }
+            do {
+                systemUpdate = try await api.startUpdate(version: version)
+            } catch {
+                updateError = describe(error)
+                return
+            }
+            let tracker = UpdateTracker(target: version, startedAt: Date())
+            var progress = UpdateProgress.running(target: version, state: "requested", message: nil)
+            updateProgress = progress
+            while progress.isRunning, !Task.isCancelled {
+                try? await Task.sleep(for: UpdateTracker.pollInterval)
+                do {
+                    // minicam is restarting: no answer for a while is expected.
+                    guard let status = try await api.systemUpdate() else { throw MinicamError.invalidResponse }
+                    systemUpdate = status
+                    progress = tracker.progress(after: status, at: Date())
+                } catch {
+                    progress = tracker.progressWhenUnreachable(at: Date())
+                }
+                updateProgress = progress
+            }
+        }
+    }
+
+    private func forgetUpdate() {
+        updateTask?.cancel()
+        updateTask = nil
+        systemUpdate = nil
+        updateProgress = nil
+        updateError = nil
     }
 
     func refresh() async {
@@ -246,6 +319,7 @@ final class AppModel {
         path = NavigationPath()
         phase = .signedOut
         centralStatus.clear()
+        forgetUpdate()
         await api?.logout()
     }
 
@@ -259,24 +333,24 @@ final class AppModel {
     func describe(_ error: Error) -> String {
         switch error {
         case MinicamError.invalidCredentials:
-            return "Invalid email or password"
+            return tr("Invalid email or password")
         case MinicamError.unauthorized:
             signOutLocally()
-            return "Your session expired. Sign in again."
+            return tr("Your session expired. Sign in again.")
         case MinicamError.accessRequired:
             store.set(nil, for: .accessToken)
             signOutLocally()
-            return "Sign in with Cloudflare Access again."
+            return tr("Sign in with Cloudflare Access again.")
         case MinicamError.rateLimited:
-            return "Too many attempts. Wait a few minutes."
+            return tr("Too many attempts. Wait a few minutes.")
         case let MinicamError.forbidden(detail), let MinicamError.rejected(detail):
             return detail
         case MinicamError.notFound:
-            return "Not found or not allowed."
+            return tr("Not found or not allowed.")
         case let MinicamError.server(code):
-            return "The server failed (\(code))."
+            return tr("The server failed (%d).", code)
         default:
-            return "Can't reach the server."
+            return tr("Can't reach the server.")
         }
     }
 
@@ -297,6 +371,7 @@ final class AppModel {
         camerasLoaded = false
         user = nil
         phase = .signedOut
+        forgetUpdate()
     }
 
     private func run(_ work: @escaping () async throws -> Void) async {

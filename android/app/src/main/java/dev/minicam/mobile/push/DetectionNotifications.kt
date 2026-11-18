@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import dev.minicam.mobile.MainActivity
 import dev.minicam.mobile.R
+import dev.minicam.mobile.i18n.tr
 
 /** System notifications for detections; a tap opens that camera (spec 012 AC10). */
 object DetectionNotifications {
@@ -38,8 +39,8 @@ object DetectionNotifications {
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Detections", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Objects detected on your cameras"
+            NotificationChannel(CHANNEL_ID, tr("Detections"), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = tr("Objects detected on your cameras")
                 setSound(sound, audio)
                 enableVibration(true)
                 vibrationPattern = VIBRATION_PATTERN

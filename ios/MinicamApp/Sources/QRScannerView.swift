@@ -1,4 +1,5 @@
 import AVFoundation
+import MinicamKit
 import SwiftUI
 
 /// Full-screen QR scanner (docs/adr/0012): AVFoundation, QR only, decoded on the phone, no network.
@@ -21,15 +22,15 @@ struct QRScannerSheet: View {
             case .notDetermined:
                 ProgressView()
             default:
-                Text("minicam needs the camera only to read the dashboard's QR. Allow it in Settings → minicam → Camera, or type the code instead.")
+                Text(tr("minicam needs the camera only to read the dashboard's QR. Allow it in Settings → minicam → Camera, or type the code instead."))
                     .font(.callout).foregroundStyle(Theme.text).padding(24)
                     .frame(maxHeight: .infinity)
             }
             VStack(spacing: 12) {
                 if access == .authorized {
-                    Text("Point the camera at the QR in the dashboard").font(.callout).foregroundStyle(Theme.text)
+                    Text(tr("Point the camera at the QR in the dashboard")).font(.callout).foregroundStyle(Theme.text)
                 }
-                Button("Cancel") { dismiss() }.buttonStyle(.bordered)
+                Button(tr("Cancel")) { dismiss() }.buttonStyle(.bordered)
             }
             .padding(24)
         }

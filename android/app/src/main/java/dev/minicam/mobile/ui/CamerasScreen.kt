@@ -6,7 +6,9 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,9 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Switch
@@ -35,11 +40,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.push.PushSwitch
 import dev.minicam.mobile.ui.theme.CamColors
+import dev.minicam.mobile.ui.theme.CamDimens
 
 @Composable
 fun CamerasScreen(viewModel: AppViewModel) {
@@ -50,7 +64,7 @@ fun CamerasScreen(viewModel: AppViewModel) {
         if (granted) {
             viewModel.setPushEnabled(true)
         } else {
-            viewModel.pushMessage = "Notifications are blocked. Allow them for minicam in Android Settings."
+            viewModel.pushMessage = tr("Notifications are blocked. Allow them for minicam in Android Settings.")
         }
     }
     LaunchedEffect(viewModel.pushMessage) {
@@ -66,8 +80,10 @@ fun CamerasScreen(viewModel: AppViewModel) {
     }
 
     Column(Modifier.fillMaxSize().background(CamColors.Bg).safeDrawingPadding()) {
+        val update = viewModel.systemUpdate?.takeIf { it.updateAvailable }
         Header(
             isAdmin = viewModel.user?.isAdmin == true,
+            updateAvailable = update != null,
             onRefresh = viewModel::refresh,
             onOpen = { viewModel.screen = it },
             onLogout = viewModel::logout,
@@ -75,13 +91,17 @@ fun CamerasScreen(viewModel: AppViewModel) {
             onPushToggle = onPushToggle,
         )
         NetworkSwitch(viewModel, Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
+        // Admins: a newer minicam is out (docs/adr/0017); the update itself is in Settings.
+        update?.latest?.let { latest ->
+            UpdateBanner(latest) { viewModel.screen = Screen.SETTINGS }
+        }
 
         if (viewModel.cameras.isEmpty() && !viewModel.camerasLoaded && viewModel.errorMessage == null) {
             CameraListSkeleton()
         } else if (viewModel.cameras.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    viewModel.errorMessage ?: "No cameras yet. Ask an admin to grant you one.",
+                    viewModel.errorMessage ?: tr("No cameras yet. Ask an admin to grant you one."),
                     color = CamColors.Muted,
                     fontSize = 14.sp,
                 )
@@ -131,6 +151,7 @@ private fun CameraListSkeleton() {
 @Composable
 private fun Header(
     isAdmin: Boolean,
+    updateAvailable: Boolean,
     onRefresh: () -> Unit,
     onOpen: (Screen) -> Unit,
     onLogout: () -> Unit,
@@ -144,7 +165,8 @@ private fun Header(
     ) {
         BrandTitle()
         Box(Modifier.weight(1f))
-        TextButton(onClick = onRefresh) { Text("Refresh", color = CamColors.Muted, fontSize = 13.sp) }
+        TextButton(onClick = onRefresh) { Text(tr("Refresh"), color = CamColors.Muted, fontSize = 13.sp) }
+        SettingsButton(updateAvailable) { onOpen(Screen.SETTINGS) }
         Box {
             TextButton(onClick = { menuOpen = true }) { Text("⋮", color = CamColors.Muted, fontSize = 18.sp) }
             DropdownMenu(
@@ -153,7 +175,7 @@ private fun Header(
                 modifier = Modifier.background(CamColors.Surface),
             ) {
                 DropdownMenuItem(
-                    text = { Text("Recordings", color = CamColors.Text) },
+                    text = { Text(tr("Recordings"), color = CamColors.Text) },
                     onClick = {
                         menuOpen = false
                         onOpen(Screen.RECORDINGS)
@@ -161,10 +183,10 @@ private fun Header(
                 )
                 if (isAdmin) {
                     listOf(
-                        Screen.CAMERA_SETTINGS to "Camera settings",
-                        Screen.AI_DETECTION to "AI detection",
-                        Screen.ADMIN to "Admin",
-                        Screen.CENTRAL_DASHBOARD to "Connect to dashboard",
+                        Screen.CAMERA_SETTINGS to tr("Camera settings"),
+                        Screen.AI_DETECTION to tr("AI detection"),
+                        Screen.ADMIN to tr("Admin"),
+                        Screen.CENTRAL_DASHBOARD to tr("Connect to dashboard"),
                     ).forEach { (screen, label) ->
                         DropdownMenuItem(
                             text = { Text(label, color = CamColors.Text) },
@@ -182,10 +204,10 @@ private fun Header(
                         enabled = available,
                         text = {
                             Column {
-                                Text("Notifications on this phone", color = CamColors.Text)
+                                Text(tr("Notifications on this phone"), color = CamColors.Text)
                                 if (!available) {
                                     Text(
-                                        "Needs the device connected to the dashboard.",
+                                        tr("Needs the device connected to the dashboard."),
                                         color = CamColors.Muted,
                                         fontSize = 11.sp,
                                     )
@@ -207,7 +229,7 @@ private fun Header(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Log out", color = CamColors.Danger) },
+                    text = { Text(tr("Log out"), color = CamColors.Danger) },
                     onClick = {
                         menuOpen = false
                         onLogout()
@@ -217,4 +239,66 @@ private fun Header(
         }
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(CamColors.Surface))
+}
+
+/** The gear that opens Settings, with a dot while an update is waiting (docs/adr/0017). */
+@Composable
+private fun SettingsButton(dot: Boolean, onClick: () -> Unit) {
+    val label = if (dot) tr("Settings, update available") else tr("Settings")
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .clickable(onClickLabel = label, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        GearIcon()
+        if (dot) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 8.dp, end = 8.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(CamColors.Success),
+            )
+        }
+    }
+}
+
+/** A cog drawn with the theme's muted stroke, like the other line icons. */
+@Composable
+private fun GearIcon() {
+    Canvas(Modifier.size(20.dp)) {
+        val stroke = 1.6.dp.toPx()
+        val center = Offset(size.width / 2, size.height / 2)
+        val outer = size.minDimension / 2
+        for (i in 0 until 8) {
+            val angle = Math.toRadians(i * 45.0)
+            val dir = Offset(kotlin.math.cos(angle).toFloat(), kotlin.math.sin(angle).toFloat())
+            drawLine(CamColors.Muted, center + dir * (outer * 0.62f), center + dir * outer, stroke * 1.6f, StrokeCap.Round)
+        }
+        drawCircle(CamColors.Muted, outer * 0.62f, center, style = Stroke(stroke))
+        drawCircle(CamColors.Muted, outer * 0.26f, center, style = Stroke(stroke))
+    }
+}
+
+/** "minicam vX is available": opens Settings, where the admin installs it. */
+@Composable
+private fun UpdateBanner(version: String, onOpen: () -> Unit) {
+    Row(
+        Modifier
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(CamDimens.Radius))
+            .background(CamColors.Success.copy(alpha = 0.12f))
+            .border(1.dp, CamColors.Success.copy(alpha = 0.4f), RoundedCornerShape(CamDimens.Radius))
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(tr("minicam %s is available", version), color = CamColors.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Text(tr("Update"), color = CamColors.Success, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+    }
 }

@@ -1,5 +1,6 @@
 package dev.minicam.mobile.data
 
+import dev.minicam.mobile.i18n.tr
 import java.net.URI
 import java.net.URLDecoder
 
@@ -11,7 +12,7 @@ data class PairLink(val url: String, val code: String) {
     override fun toString() = "PairLink(url=$url)"
 
     companion object {
-        const val NOT_A_PAIR_QR = "That QR is not a minicam dashboard code."
+        val NOT_A_PAIR_QR: String get() = tr("That QR is not a minicam dashboard code.")
 
         /** A value read by the in-app scanner (docs/adr/0012): only a pair link is accepted. */
         fun fromScan(raw: String?): PairLink? = raw?.trim()?.takeIf { it.length <= 512 }?.let(::parse)
@@ -82,17 +83,17 @@ data class ConnectProgress(
 /** What the Remote access row shows for the pairing answer, before any polling. */
 fun ConnectProgress.afterPairing(status: CentralStatus): ConnectProgress {
     val site = status.site?.let { "${it.name} (${it.hostname})" }
-    val paired = copy(dashboard = StepState.DONE, dashboardText = site?.let { "Connected as $it" } ?: "Connected")
+    val paired = copy(dashboard = StepState.DONE, dashboardText = site?.let { tr("Connected as %s", it) } ?: tr("Connected"))
     val tunnel = status.tunnel
-        ?: return paired.copy(remoteAccess = StepState.SKIPPED, remoteAccessText = "This dashboard does not set up remote access.")
+        ?: return paired.copy(remoteAccess = StepState.SKIPPED, remoteAccessText = tr("This dashboard does not set up remote access."))
     return when (tunnel.state) {
         "installing" -> paired.copy(
             remoteAccess = StepState.WORKING,
-            remoteAccessText = "Setting up https://${tunnel.hostname}… (about a minute)" +
-                if (tunnel.replaced) " It replaces the remote access set up from this app." else "",
+            remoteAccessText = tr("Setting up https://%s… (about a minute)", tunnel.hostname) +
+                if (tunnel.replaced) tr(" It replaces the remote access set up from this app.") else "",
         )
         "skipped" -> paired.copy(remoteAccess = StepState.SKIPPED, remoteAccessText = tunnel.message)
-        else -> paired.copy(remoteAccess = StepState.FAILED, remoteAccessText = tunnel.message ?: "Remote access was not set up.")
+        else -> paired.copy(remoteAccess = StepState.FAILED, remoteAccessText = tunnel.message ?: tr("Remote access was not set up."))
     }
 }
 
@@ -100,10 +101,10 @@ fun ConnectProgress.afterPairing(status: CentralStatus): ConnectProgress {
 fun ConnectProgress.withTunnel(status: TunnelStatus): ConnectProgress = when (status.state) {
     TunnelState.RUNNING -> copy(
         remoteAccess = StepState.DONE,
-        remoteAccessText = "Ready at https://${status.hostname}",
+        remoteAccessText = tr("Ready at https://%s", status.hostname),
         wanUrl = status.hostname?.let { "https://$it" },
     )
-    TunnelState.ERROR -> copy(remoteAccess = StepState.FAILED, remoteAccessText = status.message ?: "The tunnel did not start.")
+    TunnelState.ERROR -> copy(remoteAccess = StepState.FAILED, remoteAccessText = status.message ?: tr("The tunnel did not start."))
     else -> copy(remoteAccess = StepState.WORKING)
 }
 

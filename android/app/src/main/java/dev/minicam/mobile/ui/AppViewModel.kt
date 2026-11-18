@@ -26,22 +26,31 @@ import dev.minicam.mobile.data.ServerAddresses
 import dev.minicam.mobile.data.ServerConfig
 import dev.minicam.mobile.data.ServerConfigException
 import dev.minicam.mobile.data.SetupStatus
+import dev.minicam.mobile.data.SystemUpdate
+import dev.minicam.mobile.data.UpdateProgress
+import dev.minicam.mobile.data.UpdateTracker
 import dev.minicam.mobile.data.User
 import dev.minicam.mobile.data.mobilePushStatus
 import dev.minicam.mobile.data.network
 import dev.minicam.mobile.data.requestSetupCode
 import dev.minicam.mobile.data.setupStatus
+import dev.minicam.mobile.data.startUpdate
+import dev.minicam.mobile.data.systemUpdate
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.push.FirebasePush
 import dev.minicam.mobile.push.PushRegistration
 import dev.minicam.mobile.push.PushSwitch
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * Top-level screens besides login and the camera view. Recordings is for everyone (ADR 0005);
  * the admin ones need `is_admin` (ADR 0004).
  */
-enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, CENTRAL_DASHBOARD }
+enum class Screen { CAMERAS, RECORDINGS, CAMERA_SETTINGS, AI_DETECTION, ADMIN, CENTRAL_DASHBOARD, SETTINGS }
 
 /** App-wide state: which server, whether we have a session, the camera list. */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -49,6 +58,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var api: MinicamApi? by mutableStateOf(null)
         private set
+
+    /** Admins: the device's minicam version and whether a newer release can be installed (ADR 0017). */
+    var systemUpdate by mutableStateOf<SystemUpdate?>(null)
+        private set
+
+    /** An update started from this phone, while it runs and once it ends. */
+    var updateProgress by mutableStateOf<UpdateProgress?>(null)
+        private set
+    var updateError by mutableStateOf<String?>(null)
+    var checkingUpdate by mutableStateOf(false)
+        private set
+    private var updateJob: Job? = null
 
     /** The YOLO model catalog, fetched once per session (ADR 0016). */
     val modelCatalogCache = ModelCatalogCache()
@@ -152,8 +173,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun addressError(e: ServerConfigException) = when (e.reason) {
         ServerConfigException.Reason.INSECURE_REMOTE_HOST ->
-            "Plain http:// is only allowed on your local network. Use https://."
-        else -> "Enter a valid server address, e.g. https://cam.example.com"
+            tr("Plain http:// is only allowed on your local network. Use https://.")
+        else -> tr("Enter a valid server address, e.g. https://cam.example.com")
     }
 
     /**
@@ -184,9 +205,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (config.network != network) {
             return if (network == Network.LOCAL) {
-                "A local address starts with http://, e.g. http://192.168.1.20:8080"
+                tr("A local address starts with http://, e.g. http://192.168.1.20:8080")
             } else {
-                "A remote address starts with https://"
+                tr("A remote address starts with https://")
             }
         }
         addresses.add(config)
@@ -214,7 +235,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     refresh()
                 }
             }
-            .onFailure { errorMessage = "Cloudflare Access login failed. Try again." }
+            .onFailure { errorMessage = tr("Cloudflare Access login failed. Try again.") }
     }
 
     /** Prefilled on the login screen, so signing back in only needs the password. */
@@ -238,7 +259,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun openPairLink(link: String) {
         val parsed = PairLink.parse(link)
         if (parsed == null) {
-            errorMessage = "That link is not a minicam dashboard code."
+            errorMessage = tr("That link is not a minicam dashboard code.")
             return
         }
         pendingPairLink.store(parsed)
@@ -253,8 +274,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             selectedCamera = null
             screen = Screen.CENTRAL_DASHBOARD
         } else {
-            errorMessage = "To use the dashboard code, sign in as an admin while you're on the device's " +
-                "home network. The code is kept for 10 minutes."
+            errorMessage = tr("To use the dashboard code, sign in as an admin while you're on the device's " +
+                "home network. The code is kept for 10 minutes.")
         }
     }
 
@@ -292,9 +313,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val api = applyServerUrl() ?: return
         launchBusy {
             val claim = api.requestSetupCode()
-            setupCodeMessage = "The green LED is blinking a ${claim.digits}-digit code. " +
-                "Count the blinks of each digit; a longer pause separates digits, an even longer one starts " +
-                "again. It is valid for ${claim.expiresIn / 60} minutes."
+            setupCodeMessage = tr(
+                "The green LED is blinking a %1\$d-digit code. " +
+                    "Count the blinks of each digit; a longer pause separates digits, an even longer one starts " +
+                    "again. It is valid for %2\$d minutes.",
+                claim.digits,
+                claim.expiresIn / 60,
+            )
         }
     }
 
@@ -320,6 +345,62 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             offerPairLink()
             cameras = api.cameras()
             onCamerasLoaded(api, newSession = false)
+            checkForUpdate()
+        }
+    }
+
+    /**
+     * Admins: asks the device for its version and the latest release (the device asks GitHub
+     * at most every 6 hours; [refresh] asks it to check now). Quiet unless [refresh].
+     */
+    fun checkForUpdate(refresh: Boolean = false) {
+        val api = api ?: return
+        if (user?.isAdmin != true || updateJob?.isActive == true) return
+        viewModelScope.launch {
+            checkingUpdate = true
+            if (refresh) updateError = null
+            try {
+                systemUpdate = api.systemUpdate(refresh)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                if (refresh) updateError = describe(e)
+            } finally {
+                checkingUpdate = false
+            }
+        }
+    }
+
+    /** Installs the offered release and follows it until the device runs it (or gives up). */
+    fun installUpdate() {
+        val api = api ?: return
+        val version = systemUpdate?.latest ?: return
+        if (updateJob?.isActive == true) return
+        updateError = null
+        updateJob = viewModelScope.launch {
+            try {
+                systemUpdate = api.startUpdate(version)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                updateError = describe(e)
+                return@launch
+            }
+            val tracker = UpdateTracker(version, System.currentTimeMillis())
+            var progress: UpdateProgress = UpdateProgress.Running(version, "requested", null)
+            updateProgress = progress
+            while (progress is UpdateProgress.Running) {
+                delay(UpdateTracker.POLL_MILLIS)
+                val now = System.currentTimeMillis()
+                progress = try {
+                    val status = api.systemUpdate() ?: throw MinicamException.InvalidResponse
+                    systemUpdate = status
+                    tracker.onStatus(status, now)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    // minicam is restarting: no answer for a while is expected.
+                    tracker.onUnreachable(now)
+                }
+                updateProgress = progress
+            }
         }
     }
 
@@ -355,7 +436,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (on) push.enable(api) else push.disable(api)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                pushMessage = "Could not turn on notifications. ${describe(e)}"
+                pushMessage = tr("Could not turn on notifications. %s", describe(e))
             }
             pushSwitch = push.switchState(available = true)
         }
@@ -388,23 +469,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * so every screen gets the same behavior (spec 001 AC4).
      */
     fun describe(error: Throwable): String = when (error) {
-        MinicamException.InvalidCredentials -> "Invalid email or password"
+        MinicamException.InvalidCredentials -> tr("Invalid email or password")
         MinicamException.Unauthorized -> {
             signOutLocally()
-            "Your session expired. Sign in again."
+            tr("Your session expired. Sign in again.")
         }
         MinicamException.AccessRequired -> {
             store.set(CredentialKey.ACCESS_TOKEN, null)
             accessTokenPresent = false
             signOutLocally()
-            "Sign in with Cloudflare Access again."
+            tr("Sign in with Cloudflare Access again.")
         }
-        MinicamException.RateLimited -> "Too many attempts. Wait a few minutes."
+        MinicamException.RateLimited -> tr("Too many attempts. Wait a few minutes.")
         is MinicamException.Forbidden -> error.detail
         is MinicamException.Rejected -> error.detail
-        MinicamException.NotFound -> "Not found or not allowed."
-        is MinicamException.Server -> "The server failed (${error.code})."
-        else -> "Can't reach the server."
+        MinicamException.NotFound -> tr("Not found or not allowed.")
+        is MinicamException.Server -> tr("The server failed (%d).", error.code)
+        else -> tr("Can't reach the server.")
     }
 
     private fun signOutLocally() {
@@ -416,8 +497,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         forgetSessionData()
     }
 
-    /** Nothing of this account outlives its session: cached catalog and clips (ADR 0016). */
+    /** Nothing of this account outlives its session: update state, cached catalog and clips (ADR 0016). */
     private fun forgetSessionData() {
+        updateJob?.cancel()
+        systemUpdate = null
+        updateProgress = null
+        updateError = null
         modelCatalogCache.clear()
         PendingClips.clear()
         val context = getApplication<Application>()

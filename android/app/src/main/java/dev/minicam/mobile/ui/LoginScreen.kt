@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.DeviceSetupState
 import dev.minicam.mobile.data.SetupCode
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import kotlinx.coroutines.delay
 
@@ -74,16 +75,16 @@ fun LoginScreen(viewModel: AppViewModel) {
         Card(Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    if (viewModel.creatingAdmin) "Create admin account" else "Sign in",
+                    if (viewModel.creatingAdmin) tr("Create admin account") else tr("Sign in"),
                     color = CamColors.Text,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                 )
                 Text(
                     if (viewModel.creatingAdmin) {
-                        "No account exists on this device yet. The account you create becomes the administrator."
+                        tr("No account exists on this device yet. The account you create becomes the administrator.")
                     } else {
-                        "Use your minicam account."
+                        tr("Use your minicam account.")
                     },
                     color = CamColors.Muted,
                     fontSize = 12.sp,
@@ -92,7 +93,7 @@ fun LoginScreen(viewModel: AppViewModel) {
 
             // Switch, or add the missing address, instead of retyping (docs/adr/0013).
             NetworkSwitch(viewModel)
-            CamTextField("Server", viewModel.serverUrlText, { viewModel.serverUrlText = it }, keyboardType = KeyboardType.Uri)
+            CamTextField(tr("Server"), viewModel.serverUrlText, { viewModel.serverUrlText = it }, keyboardType = KeyboardType.Uri)
             DiscoveryList(
                 searching = searching,
                 servers = discovered.map { it.name to it.baseUrl },
@@ -105,67 +106,67 @@ fun LoginScreen(viewModel: AppViewModel) {
 
             when {
                 viewModel.needsAccessLogin -> {
-                    PrimaryButton("Continue with Cloudflare Access", enabled = true) {
+                    PrimaryButton(tr("Continue with Cloudflare Access"), enabled = true) {
                         viewModel.startAccessLogin()?.let { url ->
                             CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
                         }
                     }
                     Text(
-                        "This server is outside your network. Cloudflare Access verifies you first.",
+                        tr("This server is outside your network. Cloudflare Access verifies you first."),
                         color = CamColors.Muted,
                         fontSize = 12.sp,
                     )
                 }
                 viewModel.creatingAdmin && status == null -> Text(
-                    "Can't check this device. Setting it up only works on its home network (Local), " +
-                        "at its local address.",
+                    tr("Can't check this device. Setting it up only works on its home network (Local), " +
+                        "at its local address."),
                     color = CamColors.Muted,
                     fontSize = 12.sp,
                 )
                 viewModel.creatingAdmin && status?.state == DeviceSetupState.CONFIGURED -> Text(
-                    "This device already has an administrator: sign in. To set it up again, reset or re-flash it.",
+                    tr("This device already has an administrator: sign in. To set it up again, reset or re-flash it."),
                     color = CamColors.Muted,
                     fontSize = 12.sp,
                 )
                 viewModel.creatingAdmin && status?.state == DeviceSetupState.RESTART_NEEDED -> Text(
-                    "Setup is only open for 30 minutes after the device starts. Unplug the device's " +
-                        "power, plug it back in, wait a minute and try again.",
+                    tr("Setup is only open for 30 minutes after the device starts. Unplug the device's " +
+                        "power, plug it back in, wait a minute and try again."),
                     color = CamColors.Muted,
                     fontSize = 12.sp,
                 )
                 viewModel.creatingAdmin -> {
                     if (needsCode) {
                         Text(
-                            "To prove you are next to the device, ask it for a code: its green LED blinks 4 digits.",
+                            tr("To prove you are next to the device, ask it for a code: its green LED blinks 4 digits."),
                             color = CamColors.Muted,
                             fontSize = 12.sp,
                         )
-                        SecondaryButton("Blink a code on the device", enabled = !viewModel.busy) {
+                        SecondaryButton(tr("Blink a code on the device"), enabled = !viewModel.busy) {
                             viewModel.requestSetupCode()
                         }
                         viewModel.setupCodeMessage?.let { Text(it, color = CamColors.Muted, fontSize = 12.sp) }
                         CamTextField(
-                            "Code from the LED",
+                            tr("Code from the LED"),
                             setupCode,
                             { setupCode = it.filter(Char::isDigit).take(4) },
                             keyboardType = KeyboardType.NumberPassword,
                             monospace = true,
                         )
                     }
-                    CamTextField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
+                    CamTextField(tr("Email"), email, { email = it }, keyboardType = KeyboardType.Email)
                     CamTextField(
-                        "Password (min. 8 characters)",
+                        tr("Password (min. 8 characters)"),
                         password,
                         { password = it },
                         keyboardType = KeyboardType.Password,
                         secret = true,
                     )
-                    CamTextField("Confirm password", confirm, { confirm = it }, keyboardType = KeyboardType.Password, secret = true)
+                    CamTextField(tr("Confirm password"), confirm, { confirm = it }, keyboardType = KeyboardType.Password, secret = true)
                     if (confirm.isNotEmpty() && confirm != password) {
-                        Text("Passwords do not match.", color = CamColors.Danger, fontSize = 12.sp)
+                        Text(tr("Passwords do not match."), color = CamColors.Danger, fontSize = 12.sp)
                     }
                     PrimaryButton(
-                        label = "Create account",
+                        label = tr("Create account"),
                         enabled = !viewModel.busy && email.isNotBlank() && password.length >= 8 &&
                             password == confirm && (!needsCode || SetupCode.isValid(setupCode)),
                         busy = viewModel.busy,
@@ -174,10 +175,10 @@ fun LoginScreen(viewModel: AppViewModel) {
                     }
                 }
                 else -> {
-                    CamTextField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
-                    CamTextField("Password", password, { password = it }, keyboardType = KeyboardType.Password, secret = true)
+                    CamTextField(tr("Email"), email, { email = it }, keyboardType = KeyboardType.Email)
+                    CamTextField(tr("Password"), password, { password = it }, keyboardType = KeyboardType.Password, secret = true)
                     PrimaryButton(
-                        label = "Sign in",
+                        label = tr("Sign in"),
                         enabled = !viewModel.busy && email.isNotBlank() && password.isNotEmpty(),
                         busy = viewModel.busy,
                     ) { viewModel.login(email.trim(), password) }
@@ -189,7 +190,7 @@ fun LoginScreen(viewModel: AppViewModel) {
             if (!viewModel.needsAccessLogin) {
                 TextButton(onClick = { viewModel.chooseCreateAdmin(!viewModel.creatingAdmin) }) {
                     Text(
-                        if (viewModel.creatingAdmin) "I already have an account: sign in" else "New device? Create admin account",
+                        if (viewModel.creatingAdmin) tr("I already have an account: sign in") else tr("New device? Create admin account"),
                         color = CamColors.AccentHover,
                         fontSize = 13.sp,
                     )
@@ -210,10 +211,10 @@ internal fun DiscoveryList(
     onPick: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SecondaryButton(if (searching) "Stop searching" else "Find minicam on my network", onClick = onToggle)
+        SecondaryButton(if (searching) tr("Stop searching") else tr("Find minicam on my network"), onClick = onToggle)
         if (searching && servers.isEmpty()) {
             Text(
-                "Searching… The phone must be on the same Wi-Fi as the device.",
+                tr("Searching… The phone must be on the same Wi-Fi as the device."),
                 color = CamColors.Muted,
                 fontSize = 12.sp,
             )

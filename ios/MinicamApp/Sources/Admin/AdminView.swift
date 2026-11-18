@@ -29,19 +29,19 @@ struct AdminView: View {
 
     var body: some View {
         Form {
-            Section("Create user") {
-                LabeledField(label: "Email") {
+            Section(tr("Create user")) {
+                LabeledField(label: tr("Email")) {
                     TextField("", text: $email).keyboardType(.emailAddress).textContentType(.username)
                 }
-                LabeledField(label: "Password") {
-                    PasswordField(placeholder: "At least 8 characters", text: $password, contentType: .newPassword)
+                LabeledField(label: tr("Password")) {
+                    PasswordField(placeholder: tr("At least 8 characters"), text: $password, contentType: .newPassword)
                 }
-                Toggle("Admin", isOn: $isAdmin)
+                Toggle(tr("Admin"), isOn: $isAdmin)
                 FormMessage(error: createError)
             }
             .adminRow()
             Section {
-                SaveButton(label: "Create", busy: creating, enabled: !email.isEmpty && password.count >= 8) {
+                SaveButton(label: tr("Create"), busy: creating, enabled: !email.isEmpty && password.count >= 8) {
                     Task { await createUser() }
                 }
             }
@@ -49,10 +49,10 @@ struct AdminView: View {
             notificationsSection
             recordingsSection
 
-            Section("Users & camera permissions") {
+            Section(tr("Users & camera permissions")) {
                 if let usersError { FormMessage(error: usersError) }
                 if let users {
-                    if users.isEmpty { Text("No users yet.").foregroundStyle(Theme.muted) }
+                    if users.isEmpty { Text(tr("No users yet.")).foregroundStyle(Theme.muted) }
                 } else if usersError == nil {
                     ForEach(0..<3, id: \.self) { SkeletonRow(index: $0) }
                 }
@@ -61,7 +61,7 @@ struct AdminView: View {
             ForEach(users ?? []) { access in userSection(access) }
         }
         .adminForm()
-        .navigationTitle("Admin")
+        .navigationTitle(tr("Admin"))
         .task {
             async let settings: Void = loadNotifications()
             async let recordingSettings: Void = loadRecordings()
@@ -71,36 +71,36 @@ struct AdminView: View {
         }
         .refreshable { await loadUsers() }
         .confirmationDialog(
-            "Delete \"\(pendingDelete?.user.email ?? "")\"?",
+            tr("Delete \"%s\"?", pendingDelete?.user.email ?? ""),
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(tr("Delete"), role: .destructive) {
                 if let access = pendingDelete { Task { await deleteUser(access) } }
             }
         } message: {
-            Text("This also revokes their sessions and camera permissions.")
+            Text(tr("This also revokes their sessions and camera permissions."))
         }
     }
 
     @ViewBuilder private var notificationsSection: some View {
         Section {
             if let current = notifications {
-                Toggle("Notify on detections for all cameras", isOn: Binding(
+                Toggle(tr("Notify on detections for all cameras"), isOn: Binding(
                     get: { current.enabled },
                     set: {
                         notifications?.enabled = $0
                         notificationsSaved = false
                     }
                 ))
-                LabeledField(label: "Cooldown per camera (seconds)") {
+                LabeledField(label: tr("Cooldown per camera (seconds)")) {
                     TextField("60", text: $cooldown).keyboardType(.numberPad)
                 }
-                FormMessage(error: notificationsError, success: notificationsSaved ? "Saved." : nil)
+                FormMessage(error: notificationsError, success: notificationsSaved ? tr("Saved.") : nil)
                 Button {
                     Task { await saveNotifications() }
                 } label: {
-                    if savingNotifications { ProgressView() } else { Text("Save") }
+                    if savingNotifications { ProgressView() } else { Text(tr("Save")) }
                 }
                 .disabled(savingNotifications)
             } else if let notificationsError {
@@ -110,7 +110,7 @@ struct AdminView: View {
                 FieldSkeletonRow(index: 1)
             }
         } header: {
-            Text("Detection notifications")
+            Text(tr("Detection notifications"))
         } footer: {
             Text("""
                 Notifies users who can view a camera when one of its selected detection classes is seen. \
@@ -124,7 +124,7 @@ struct AdminView: View {
     @ViewBuilder private var recordingsSection: some View {
         Section {
             if let current = recordings {
-                Toggle("Record a clip while a camera detects one of its classes", isOn: Binding(
+                Toggle(tr("Record a clip while a camera detects one of its classes"), isOn: Binding(
                     get: { current.enabled },
                     set: {
                         recordings?.enabled = $0
@@ -132,12 +132,12 @@ struct AdminView: View {
                     }
                 ))
                 HStack {
-                    Text("Storage limit").foregroundStyle(Theme.text)
+                    Text(tr("Storage limit")).foregroundStyle(Theme.text)
                     Spacer()
                     Menu {
                         // Limits the disk can't hold stay visible but can't be chosen, like the web.
                         ForEach(current.options, id: \.gb) { option in
-                            Button(option.available ? "\(option.gb) GB" : "\(option.gb) GB · Not enough space") {
+                            Button(option.available ? "\(option.gb) GB" : "\(option.gb) GB · \(tr("Not enough space"))") {
                                 recordings?.maxStorageGB = option.gb
                                 recordingsSaved = false
                             }
@@ -147,16 +147,16 @@ struct AdminView: View {
                         Label("\(current.maxStorageGB) GB", systemImage: "chevron.up.chevron.down")
                             .labelStyle(.titleAndIcon)
                     }
-                    .accessibilityLabel("Storage limit, \(current.maxStorageGB) GB")
+                    .accessibilityLabel("\(tr("Storage limit")), \(current.maxStorageGB) GB")
                 }
-                Text("Recordings use \(formatStorageBytes(current.usedBytes)) · \(formatStorageBytes(current.freeBytes)) free on disk")
+                Text(tr("Recordings use %1$s · %2$s free on disk", formatStorageBytes(current.usedBytes), formatStorageBytes(current.freeBytes)))
                     .font(.caption)
                     .foregroundStyle(Theme.muted)
-                FormMessage(error: recordingsError, success: recordingsSaved ? "Saved." : nil)
+                FormMessage(error: recordingsError, success: recordingsSaved ? tr("Saved.") : nil)
                 Button {
                     Task { await saveRecordings() }
                 } label: {
-                    if savingRecordings { ProgressView() } else { Text("Save") }
+                    if savingRecordings { ProgressView() } else { Text(tr("Save")) }
                 }
                 .disabled(savingRecordings)
             } else if let recordingsError {
@@ -166,7 +166,7 @@ struct AdminView: View {
                 FieldSkeletonRow(index: 1)
             }
         } header: {
-            Text("Event recordings")
+            Text(tr("Event recordings"))
         } footer: {
             Text("""
                 Clips start about 3 seconds before a detection and stop about 5 seconds after the last one. \
@@ -184,31 +184,31 @@ struct AdminView: View {
                 Spacer()
                 // The server refuses to delete yourself; don't offer it.
                 if access.user.id != model.user?.id {
-                    Button("Delete", role: .destructive) { pendingDelete = access }
+                    Button(tr("Delete"), role: .destructive) { pendingDelete = access }
                         .buttonStyle(.borderless)
                         .foregroundStyle(Theme.danger)
                 }
             }
-            Toggle("WAN access", isOn: Binding(
+            Toggle(tr("WAN access"), isOn: Binding(
                 get: { access.wanAccess },
                 set: { on in Task { await setWAN(access, on) } }
             ))
             if cameras.isEmpty {
-                Text("No cameras configured yet.").font(.caption).foregroundStyle(Theme.muted)
+                Text(tr("No cameras configured yet.")).font(.caption).foregroundStyle(Theme.muted)
             } else {
                 HStack {
-                    Text("Camera")
+                    Text(tr("Camera"))
                     Spacer()
-                    Text("View").frame(width: 56)
-                    Text("PTZ").frame(width: 56)
-                    Text("Listen").frame(width: 56)
+                    Text(tr("View")).frame(width: 56)
+                    Text(tr("PTZ")).frame(width: 56)
+                    Text(tr("Listen")).frame(width: 56)
                 }
                 .font(.caption)
                 .foregroundStyle(Theme.muted)
                 ForEach(cameras, id: \.self) { camera in permissionRow(access, camera) }
             }
         } footer: {
-            Text("WAN access: viewing streams and PTZ from outside the local network, through Cloudflare Access. Listen: hearing the camera's microphone in the live view; it needs View too.")
+            Text(tr("WAN access: viewing streams and PTZ from outside the local network, through Cloudflare Access. Listen: hearing the camera's microphone in the live view; it needs View too."))
         }
         .adminRow()
     }
@@ -330,7 +330,7 @@ struct AdminView: View {
         guard let api = model.api, var settings = notifications else { return }
         notificationsError = nil
         guard let seconds = Int(cooldown.trimmingCharacters(in: .whitespaces)), (1...86400).contains(seconds) else {
-            notificationsError = "Cooldown must be between 1 and 86400 seconds."
+            notificationsError = tr("Cooldown must be between 1 and 86400 seconds.")
             return
         }
         settings.cooldownSeconds = seconds

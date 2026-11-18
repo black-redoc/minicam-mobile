@@ -81,6 +81,7 @@ import dev.minicam.mobile.data.StreamFormat
 import dev.minicam.mobile.data.StreamStatus
 import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.data.ViewingBudget
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 import kotlin.math.roundToInt
@@ -205,7 +206,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     val speaker: @Composable (Modifier, Dp) -> Unit = { modifier, size ->
         if (canHear) {
             GlassIconButton(
-                label = if (audioOn) "Turn audio off" else "Turn audio on",
+                label = if (audioOn) tr("Turn audio off") else tr("Turn audio on"),
                 onClick = { audioOn = !audioOn },
                 modifier = modifier,
                 size = size,
@@ -252,7 +253,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = { viewModel.selectedCamera = null }) { Text("‹ Cameras", color = CamColors.Muted) }
+            TextButton(onClick = { viewModel.selectedCamera = null }) { Text(tr("‹ Cameras"), color = CamColors.Muted) }
             Text(
                 camera.name,
                 color = CamColors.Text,
@@ -279,7 +280,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                 ZoomButtons(zoom, onZoom = { zoom = it }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
                 speaker(Modifier.align(Alignment.BottomStart).padding(10.dp), 40.dp)
                 GlassIconButton(
-                    label = "Enter fullscreen",
+                    label = tr("Enter fullscreen"),
                     onClick = { fullscreen = true },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
                     size = 40.dp,
@@ -315,7 +316,7 @@ private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatu
                     factory = {
                         // AndroidView sets the layout params; the throwaway parent only resolves the XML's.
                         (LayoutInflater.from(it).inflate(R.layout.live_player_view, FrameLayout(it), false) as PlayerView).apply {
-                            contentDescription = "Live camera feed"
+                            contentDescription = tr("Live camera feed")
                         }
                     },
                     update = { it.player = live.player },
@@ -329,7 +330,7 @@ private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatu
             frame?.let {
                 Image(
                     it,
-                    contentDescription = "Live camera feed",
+                    contentDescription = tr("Live camera feed"),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize().zoomed(zoom),
                 )
@@ -353,7 +354,7 @@ private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatu
 private fun ViewingCountdown(seconds: Int, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(50)
     Text(
-        "Closes in $seconds s",
+        tr("Closes in %d s", seconds),
         color = if (seconds <= 10) CamColors.Danger else Color.White,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
@@ -413,14 +414,14 @@ private fun FullscreenCamera(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                GlassIconButton(label = "Exit fullscreen", onClick = onExit) { FullscreenIcon(exit = true) }
+                GlassIconButton(label = tr("Exit fullscreen"), onClick = onExit) { FullscreenIcon(exit = true) }
                 StatusBadge(status)
                 ViewingCountdown(secondsLeft)
             }
 
             if (canUsePtz && !showPtz) {
                 GlassIconButton(
-                    label = "Show PTZ controls",
+                    label = tr("Show PTZ controls"),
                     onClick = { onShowPtz(true) },
                     modifier = Modifier.align(Alignment.TopEnd),
                 ) { GamepadIcon() }
@@ -454,7 +455,7 @@ private fun PtzCircle(onClose: () -> Unit, ptzPad: @Composable () -> Unit) {
     Box(Modifier.size(diameter)) {
         Box(Modifier.fillMaxSize().glass(CircleShape), contentAlignment = Alignment.Center) { ptzPad() }
         GlassIconButton(
-            label = "Hide PTZ controls",
+            label = tr("Hide PTZ controls"),
             onClick = onClose,
             modifier = Modifier
                 .align(Alignment.TopEnd)

@@ -35,6 +35,7 @@ import dev.minicam.mobile.data.deleteCamera
 import dev.minicam.mobile.data.detectionClasses
 import dev.minicam.mobile.data.discoverCameras
 import dev.minicam.mobile.data.saveCamera
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
 import dev.minicam.mobile.ui.Card
@@ -78,13 +79,13 @@ private fun CameraList(viewModel: AppViewModel, api: MinicamApi, onEdit: (Camera
     }
     LaunchedEffect(api) { load() }
 
-    AdminScaffold("Camera settings", onBack = { viewModel.screen = Screen.CAMERAS }) {
-        PrimaryButton("Add camera") { onEdit(null) }
+    AdminScaffold(tr("Camera settings"), onBack = { viewModel.screen = Screen.CAMERAS }) {
+        PrimaryButton(tr("Add camera")) { onEdit(null) }
         FormMessage(error)
         val list = cameras
         when {
             list == null -> if (error == null) ListSkeleton()
-            list.isEmpty() -> Hint("No cameras configured yet.")
+            list.isEmpty() -> Hint(tr("No cameras configured yet."))
             else -> list.forEach { camera ->
                 Card(Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -92,8 +93,8 @@ private fun CameraList(viewModel: AppViewModel, api: MinicamApi, onEdit: (Camera
                             Text(camera.name, color = CamColors.Text, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(camera.host, color = CamColors.Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        SecondaryButton("Edit") { onEdit(camera) }
-                        SecondaryButton("Delete", danger = true) { pendingDelete = camera.name }
+                        SecondaryButton(tr("Edit")) { onEdit(camera) }
+                        SecondaryButton(tr("Delete"), danger = true) { pendingDelete = camera.name }
                     }
                 }
             }
@@ -102,9 +103,9 @@ private fun CameraList(viewModel: AppViewModel, api: MinicamApi, onEdit: (Camera
 
     pendingDelete?.let { name ->
         ConfirmDialog(
-            title = "Delete camera",
-            message = "Delete camera \"$name\"?",
-            confirmLabel = "Delete",
+            title = tr("Delete camera"),
+            message = tr("Delete camera \"%s\"?", name),
+            confirmLabel = tr("Delete"),
             onConfirm = {
                 scope.launch {
                     error = null
@@ -142,7 +143,7 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(api) {
-        viewModel.attempt({ classesError = "Could not load detection classes." }) { api.detectionClasses() }
+        viewModel.attempt({ classesError = tr("Could not load detection classes.") }) { api.detectionClasses() }
             ?.let { availableClasses = it }
     }
 
@@ -151,9 +152,9 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
         val onvif = onvifPort.trim().toIntOrNull()
         val ch = channel.trim().toIntOrNull()
         error = when {
-            name.isBlank() || host.isBlank() -> "Name and host are required."
-            rtsp == null || rtsp !in 1..65535 || onvif == null || onvif !in 1..65535 -> "Ports must be between 1 and 65535."
-            ch == null || ch < 1 -> "Channel must be 1 or more."
+            name.isBlank() || host.isBlank() -> tr("Name and host are required.")
+            rtsp == null || rtsp !in 1..65535 || onvif == null || onvif !in 1..65535 -> tr("Ports must be between 1 and 65535.")
+            ch == null || ch < 1 -> tr("Channel must be 1 or more.")
             else -> null
         }
         if (error != null) return
@@ -181,18 +182,18 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
         }
     }
 
-    AdminScaffold(if (camera == null) "Add camera" else "Edit camera", onBack = onDone) {
+    AdminScaffold(if (camera == null) tr("Add camera") else tr("Edit camera"), onBack = onDone) {
         Card(Modifier.fillMaxWidth()) {
-            CamTextField("Name", name, { name = it }, placeholder = "my-camera")
-            if (camera != null) Hint("Rename requires all connected streams to switch to the new name.")
+            CamTextField(tr("Name"), name, { name = it }, placeholder = "my-camera")
+            if (camera != null) Hint(tr("Rename requires all connected streams to switch to the new name."))
 
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CamTextField("Host / IP", host, { host = it }, keyboardType = KeyboardType.Uri, placeholder = "192.168.1.x", modifier = Modifier.weight(1f))
-                SecondaryButton("Search", busy = discovering, modifier = Modifier.padding(bottom = 8.dp)) {
+                CamTextField(tr("Host / IP"), host, { host = it }, keyboardType = KeyboardType.Uri, placeholder = "192.168.1.x", modifier = Modifier.weight(1f))
+                SecondaryButton(tr("Search"), busy = discovering, modifier = Modifier.padding(bottom = 8.dp)) {
                     scope.launch {
                         discovering = true
                         discoverError = null
-                        discovered = viewModel.attempt({ discoverError = "Discovery failed. Check network connectivity." }) {
+                        discovered = viewModel.attempt({ discoverError = tr("Discovery failed. Check network connectivity.") }) {
                             api.discoverCameras()
                         }
                         discovering = false
@@ -203,22 +204,22 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
                 DiscoveryResults(discovering, discovered, discoverError, onUse = { host = it })
             }
 
-            CamTextField("RTSP port", rtspPort, { rtspPort = it }, keyboardType = KeyboardType.Number, placeholder = "554")
-            CamTextField("ONVIF port", onvifPort, { onvifPort = it }, keyboardType = KeyboardType.Number, placeholder = "8000")
-            CamTextField("Username", user, { user = it })
+            CamTextField(tr("RTSP port"), rtspPort, { rtspPort = it }, keyboardType = KeyboardType.Number, placeholder = "554")
+            CamTextField(tr("ONVIF port"), onvifPort, { onvifPort = it }, keyboardType = KeyboardType.Number, placeholder = "8000")
+            CamTextField(tr("Username"), user, { user = it })
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                CamTextField("Password", password, { password = it }, keyboardType = KeyboardType.Password, secret = true, placeholder = "Leave blank to keep current")
-                Hint("Leave blank to keep the existing password.")
+                CamTextField(tr("Password"), password, { password = it }, keyboardType = KeyboardType.Password, secret = true, placeholder = tr("Leave blank to keep current"))
+                Hint(tr("Leave blank to keep the existing password."))
             }
-            CamTextField("Channel", channel, { channel = it }, keyboardType = KeyboardType.Number, placeholder = "1")
+            CamTextField(tr("Channel"), channel, { channel = it }, keyboardType = KeyboardType.Number, placeholder = "1")
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Object detection", color = CamColors.Muted, fontSize = 12.sp)
+                Text(tr("Object detection"), color = CamColors.Muted, fontSize = 12.sp)
                 val classes = availableClasses
                 when {
                     classesError != null -> Text(classesError!!, color = CamColors.Danger, fontSize = 12.sp)
                     classes == null -> ChecklistSkeleton()
-                    classes.isEmpty() -> Hint("No detection backend configured on this device.")
+                    classes.isEmpty() -> Hint(tr("No detection backend configured on this device."))
                     // Show at most MaxVisibleClasses rows; the rest scroll inside the list.
                     else -> Column(Modifier.heightIn(max = ClassRowHeight * MaxVisibleClasses).verticalScroll(rememberScrollState())) {
                         classes.forEach { cls ->
@@ -232,19 +233,19 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OptionPicker(
-                    "Detection notifications",
+                    tr("Detection notifications"),
                     listOf(
-                        NotificationMode.INHERIT to "Use global setting (Admin)",
-                        NotificationMode.ON to "On for this camera",
-                        NotificationMode.OFF to "Off for this camera",
+                        NotificationMode.INHERIT to tr("Use global setting (Admin)"),
+                        NotificationMode.ON to tr("On for this camera"),
+                        NotificationMode.OFF to tr("Off for this camera"),
                     ),
                     notifications,
                 ) { notifications = it }
-                Hint("Notifies when any of the detection classes above is seen.")
+                Hint(tr("Notifies when any of the detection classes above is seen."))
             }
 
             FormMessage(error)
-            PrimaryButton("Save", busy = saving, onClick = ::save)
+            PrimaryButton(tr("Save"), busy = saving, onClick = ::save)
         }
     }
 }
@@ -252,11 +253,11 @@ private fun CameraForm(viewModel: AppViewModel, api: MinicamApi, camera: CameraC
 @Composable
 private fun DiscoveryResults(busy: Boolean, cameras: List<DiscoveredCamera>?, error: String?, onUse: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle("Found on network")
+        SectionTitle(tr("Found on network"))
         when {
-            busy -> Spinner("Searching for cameras on the network…")
+            busy -> Spinner(tr("Searching for cameras on the network…"))
             error != null -> Text(error, color = CamColors.Danger, fontSize = 13.sp)
-            cameras.isNullOrEmpty() -> Hint("No cameras found on the network.")
+            cameras.isNullOrEmpty() -> Hint(tr("No cameras found on the network."))
             else -> cameras.forEachIndexed { index, found ->
                 if (index > 0) HorizontalDivider(color = CamColors.Border)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -264,7 +265,7 @@ private fun DiscoveryResults(busy: Boolean, cameras: List<DiscoveredCamera>?, er
                         Text(found.host, color = CamColors.Text, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
                         Text(found.name, color = CamColors.Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    SecondaryButton("Use") { onUse(found.host) }
+                    SecondaryButton(tr("Use")) { onUse(found.host) }
                 }
             }
         }
