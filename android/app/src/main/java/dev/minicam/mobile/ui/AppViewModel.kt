@@ -16,6 +16,7 @@ import dev.minicam.mobile.data.KeystoreCredentialStore
 import dev.minicam.mobile.data.LanDiscovery
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.MinicamException
+import dev.minicam.mobile.data.ModelCatalogCache
 import dev.minicam.mobile.data.Network
 import dev.minicam.mobile.data.PairLink
 import dev.minicam.mobile.data.PendingPairLink
@@ -45,6 +46,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var api: MinicamApi? by mutableStateOf(null)
         private set
+
+    /** The YOLO model catalog, fetched once per session (ADR 0016). */
+    val modelCatalogCache = ModelCatalogCache()
     var signedIn by mutableStateOf(false)
         private set
     var cameras by mutableStateOf(emptyList<CameraSummary>())
@@ -365,6 +369,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         signedIn = false
         if (pushSwitch != PushSwitch.HIDDEN) pushSwitch = PushSwitch.UNAVAILABLE
         centralStatus.clear()
+        forgetSessionData()
         // Both clear their local state before they first suspend: nothing waits on the network.
         viewModelScope.launch { api?.logout() }
         viewModelScope.launch { push.onLogout() }
@@ -405,6 +410,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         selectedCamera = null
         screen = Screen.CAMERAS
         user = null
+        forgetSessionData()
+    }
+
+    /** Nothing of this account outlives its session: the cached model catalog (ADR 0016). */
+    private fun forgetSessionData() {
+        modelCatalogCache.clear()
     }
 
     private fun launchBusy(work: suspend () -> Unit) {

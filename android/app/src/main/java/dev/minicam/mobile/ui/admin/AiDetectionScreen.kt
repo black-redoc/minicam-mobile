@@ -71,8 +71,12 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
         loaded = true
     }
 
-    suspend fun loadCatalog() {
-        viewModel.attempt({ catalogStatus = it }) { api.modelCatalog() }?.let {
+    // Cached for the session (ADR 0016); an install refreshes the "installed" marks.
+    suspend fun loadCatalog(refresh: Boolean = false) {
+        val server = api.config.baseUrl.toString()
+        viewModel.attempt({ catalogStatus = it }) {
+            viewModel.modelCatalogCache.get(server, refresh) { api.modelCatalog() }
+        }?.let {
             catalog = it
             catalogStatus = if (it.assets.isEmpty()) "The catalog is empty." else null
         }
@@ -89,7 +93,7 @@ fun AiDetectionScreen(viewModel: AppViewModel) {
             catalogError = null
             val done = viewModel.attempt({ catalogError = it }) { api.installCatalogModel(asset.name) }
             if (done != null) {
-                loadCatalog()
+                loadCatalog(refresh = true)
                 viewModel.attempt({ error = it }) { api.detectionSettings() }?.let(::populate)
             }
             installing = null
