@@ -54,7 +54,9 @@ ios/
 8. Recordings (ADR 0005): `GET /api/recordings` pages clips of viewable cameras; the player
    streams `/api/recordings/{id}/video` (HTTP Range) with the same auth headers; download
    fetches `?download=true` in-app. Admins: `DELETE /api/recordings/{id}` and
-   `GET/PUT /api/recordings/settings` on the Admin screen.
+   `GET/PUT /api/recordings/settings` on the Admin screen. Android (ADR 0016): the list scrolls
+   forever and, after a detection push, polls the newest page until the clip shows; the player
+   reads through a Media3 disk cache and draws `GET /api/recordings/{id}/detections` boxes.
 9. Remote access is set up only by the central dashboard (ADR 0014, supersedes ADR 0009); the
    app just polls `GET /api/system/tunnel` while connecting to it.
 10. Central dashboard (admins, LAN only, ADR 0010): the admin types the dashboard address and the

@@ -119,6 +119,15 @@ Scope: Android shows detection pushes only on chosen days and hours, overnight r
 
 Non-goals for M2.16: iOS (no push yet), several windows, a server-side schedule.
 
+## M2.17 - Recordings: boxes, caches, live list (ADR 0016, minicam ADR 0012)
+Scope: Android draws the YOLO boxes over recorded clips, caches played clips and the model
+catalog, scrolls the clip list forever and adds new clips after a detection push.
+- [x] ADR 0016 accepted; minicam saves and serves each clip's boxes (minicam ADR 0012)
+- [x] Android: boxes overlay, catalog cache, clip disk cache, infinite scroll, push pickup, tests
+- [ ] Checked on the Galaxy S23
+
+Non-goals for M2.17: iOS, boxes in downloaded clips or on the web Recordings page.
+
 ## M3 - Comfort
 - [ ] Grid view (several cameras at once), mirroring the desktop grid (camera name at the
   top-left of each cell, in the FPS label style, minicam 1177ff3)
@@ -130,5 +139,6 @@ Non-goals for M2.16: iOS (no push yet), several windows, a server-side schedule.
 - Optical PTZ zoom buttons (needs `zoom_in`/`zoom_out` ONVIF actions in the minicam server first)
 - iOS push notifications via APNs on the ADR 0007 relay (after joining the Apple Developer Program),
   with the ADR 0015 schedule
+- iOS: recording boxes, clip cache, catalog cache and infinite list (ADR 0016)
 - Store distribution (Play Store / App Store / TestFlight)
 - Kotlin Multiplatform for shared networking logic (would supersede part of ADR 0001)

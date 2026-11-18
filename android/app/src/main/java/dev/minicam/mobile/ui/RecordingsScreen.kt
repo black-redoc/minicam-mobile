@@ -23,8 +23,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,14 +46,17 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -79,8 +84,12 @@ import androidx.media3.ui.PlayerView
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.R
 import dev.minicam.mobile.data.MinicamException
+import dev.minicam.mobile.data.DetectionTrack
+import dev.minicam.mobile.data.Detections
 import dev.minicam.mobile.data.Recording
 import dev.minicam.mobile.data.RecordingPage
+import dev.minicam.mobile.data.PendingClips
+import dev.minicam.mobile.data.RecordingCache
 import dev.minicam.mobile.data.VideoZoom
 import dev.minicam.mobile.data.backOpensPreviousClip
 import dev.minicam.mobile.data.deleteRecording
@@ -90,9 +99,12 @@ import dev.minicam.mobile.data.formatClipSize
 import dev.minicam.mobile.data.nextRecording
 import dev.minicam.mobile.data.previousRecording
 import dev.minicam.mobile.data.recordingDays
+import dev.minicam.mobile.data.mergeNewest
+import dev.minicam.mobile.data.recordingDetections
 import dev.minicam.mobile.data.recordingFileName
 import dev.minicam.mobile.data.recordingVideoUrl
 import dev.minicam.mobile.data.recordings
+import dev.minicam.mobile.data.shouldLoadMore
 import dev.minicam.mobile.ui.admin.AdminScaffold
 import dev.minicam.mobile.ui.admin.ConfirmDialog
 import dev.minicam.mobile.ui.admin.FormMessage
@@ -106,6 +118,11 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.hypot
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
 
 /** The desktop Recordings page (minicam `recordings.html`): clips by day, player, download, delete. */
 @Composable
@@ -129,6 +146,12 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     var zoom by remember { mutableStateOf(VideoZoom()) }
     // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
     val player = rememberClipPlayer(viewModel, api) { playError = it }
+    // ADR 0016: each clip's detection boxes, fetched once per clip, drawn at the play position.
+    val tracks = remember(api) { mutableMapOf<Int, DetectionTrack>() }
+    var track by remember { mutableStateOf(DetectionTrack.EMPTY) }
+    var boxes by remember { mutableStateOf<Detections?>(null) }
+    val listScroll = rememberScrollState()
+    var generation by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(player, selected?.id) {
         playError = null
@@ -144,18 +167,75 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         }
     }
 
+    LaunchedEffect(api, selected?.id) {
+        track = DetectionTrack.EMPTY
+        val id = selected?.id ?: return@LaunchedEffect
+        // No boxes is fine: the clip still plays (older server, network blip).
+        track = tracks[id] ?: try {
+            api.recordingDetections(id).also { tracks[id] = it }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            DetectionTrack.EMPTY
+        }
+    }
+    LaunchedEffect(player, track) {
+        boxes = null
+        if (track.frames.isEmpty()) return@LaunchedEffect
+        while (true) {
+            boxes = track.at(player.currentPosition / 1000.0)
+            delay(BOX_REFRESH_MILLIS)
+        }
+    }
+
+    // A reset (new filter, gap after new clips) wins over a page still loading for the old list.
     suspend fun load(reset: Boolean) {
-        if (loading) return
+        if (loading && !reset) return
+        val run = if (reset) ++generation else generation
         loading = true
         error = null
-        viewModel.attempt({ error = it }) { api.recordings(camera, if (reset) null else nextBefore) }
-            ?.let { page: RecordingPage ->
-                items = if (reset) page.items else items.orEmpty() + page.items
-                nextBefore = page.nextBefore
-            }
+        val page = viewModel.attempt({ if (run == generation) error = it }) {
+            api.recordings(camera, if (reset) null else nextBefore)
+        }
+        if (run != generation) return
+        page?.let { page: RecordingPage ->
+            items = if (reset) page.items else items.orEmpty() + page.items
+            nextBefore = page.nextBefore
+        }
         loading = false
     }
     LaunchedEffect(api, camera) { load(reset = true) }
+
+    // Infinite scroll: the next page loads near the end, also when a delete shortens the list.
+    // The cursor and the size are part of the key, so a list still short after a page (or a
+    // delete) asks again instead of looking unchanged.
+    LaunchedEffect(api, camera) {
+        snapshotFlow {
+            val wanted = items != null && error == null &&
+                shouldLoadMore(listScroll.value, listScroll.maxValue, hasMore = nextBefore != null, loading = loading)
+            Triple(wanted, nextBefore, items?.size)
+        }.collect { (wanted) -> if (wanted) load(reset = false) }
+    }
+
+    // A detection push names a clip that is saved later: ask for the newest ones until it shows.
+    LaunchedEffect(api, camera) {
+        PendingClips.pending.collectLatest { pending ->
+            while (pending.isNotEmpty()) {
+                delay(PendingClips.POLL_MILLIS)
+                val current = items ?: continue
+                val page = try {
+                    api.recordings(camera)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    null
+                }
+                if (page != null) {
+                    val merged = mergeNewest(current, page.items)
+                    if (merged == null) load(reset = true) else if (merged !== current) items = merged
+                }
+                PendingClips.resolve(page?.items.orEmpty())
+            }
+        }
+    }
 
     // Spec 008 AC5: "next" plays the clip below, loading the next page from the last one.
     val hasNext = selected?.let { nextRecording(items.orEmpty(), it) != null || nextBefore != null } == true
@@ -220,6 +300,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                 zoom = zoom,
                 onZoom = { zoom = it },
                 onPan = onPan,
+                detections = boxes,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -245,6 +326,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                     zoom = zoom,
                     onZoom = { zoom = it },
                     onPan = onPan,
+                    detections = boxes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
@@ -277,7 +359,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
         SectionTitle("Event recordings", Modifier.padding(top = 16.dp))
     }
 
-    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }, fixedTop = fixedTop) {
+    AdminScaffold("Recordings", onBack = { viewModel.screen = Screen.CAMERAS }, fixedTop = fixedTop, scrollState = listScroll) {
         FormMessage(error, notice)
 
         val list = items
@@ -322,8 +404,11 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                     error = null
                     notice = null
                     if (viewModel.attempt({ error = it }) { api.deleteRecording(recording.id) } != null) {
+                        // The list tops itself up through the infinite scroll if it got short.
                         items = items?.filter { it.id != recording.id }
+                        tracks.remove(recording.id)
                         if (selected?.id == recording.id) selected = null
+                        withContext(Dispatchers.IO) { RecordingCache.remove(context, api, recording.id) }
                     }
                 }
             },
@@ -337,6 +422,9 @@ fun RecordingsScreen(viewModel: AppViewModel) {
  * curve, so they start and end together; slow enough to follow.
  */
 private fun <T> playerAnimation() = tween<T>(durationMillis = 500, easing = FastOutSlowInEasing)
+
+/** How often the boxes follow the playback position. */
+private const val BOX_REFRESH_MILLIS = 100L
 
 private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
 
@@ -463,7 +551,9 @@ private fun rememberClipPlayer(viewModel: AppViewModel, api: MinicamApi, onError
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val player = remember(api) {
-        val dataSource = OkHttpDataSource.Factory(api.client).setDefaultRequestProperties(api.authHeaders())
+        val network = OkHttpDataSource.Factory(api.client).setDefaultRequestProperties(api.authHeaders())
+        // Played clips are kept on disk and play again without downloading (ADR 0016).
+        val dataSource = RecordingCache.dataSource(context, network)
         ExoPlayer.Builder(context).setMediaSourceFactory(DefaultMediaSourceFactory(dataSource)).build()
     }
     val reportError by rememberUpdatedState(onError)
@@ -547,6 +637,20 @@ private class ClipNavigationPlayer(
     }
 }
 
+/**
+ * The clip's boxes over the picture (ADR 0016): a layer the size of the fitted video, zoomed and
+ * panned like the video surface in [applyZoom], so the boxes stay on their objects.
+ */
+@Composable
+private fun BoxScope.ClipBoxes(detections: Detections, zoom: VideoZoom) {
+    if (detections.width <= 0 || detections.height <= 0) return
+    Box(Modifier.matchParentSize().clipToBounds(), contentAlignment = Alignment.Center) {
+        Box(Modifier.aspectRatio(detections.width.toFloat() / detections.height).zoomed(zoom)) {
+            DetectionOverlay(detections)
+        }
+    }
+}
+
 /** Scales and moves the video surface by [zoom]; the content frame clips it to the picture. */
 @OptIn(UnstableApi::class)
 private fun PlayerView.applyZoom(zoom: VideoZoom) {
@@ -608,6 +712,7 @@ private fun ClipVideo(
     zoom: VideoZoom,
     onZoom: (VideoZoom) -> Unit,
     onPan: (Float, Float) -> Unit,
+    detections: Detections?,
     modifier: Modifier,
 ) {
     val toggle by rememberUpdatedState(onFullscreen)
@@ -640,6 +745,7 @@ private fun ClipVideo(
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )
+        detections?.let { ClipBoxes(it, zoom) }
         AnimatedVisibility(
             visible = controlsVisible,
             modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),

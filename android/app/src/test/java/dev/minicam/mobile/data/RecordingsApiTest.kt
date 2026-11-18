@@ -64,6 +64,32 @@ class RecordingsApiTest {
     }
 
     @Test
+    fun detections_parsesTheTrack() = runTest {
+        enqueue(
+            200,
+            """{"version": 1, "width": 640, "height": 360, "frames": [
+                {"t": 1.5, "boxes": [{"label": "person", "confidence": 0.87, "color": "#ff0000",
+                  "x1": 10, "y1": 20, "x2": 110, "y2": 220}]},
+                {"t": 4.0, "boxes": []}]}""",
+        )
+
+        val track = api().recordingDetections(42)
+
+        assertEquals("/api/recordings/42/detections", server.takeRequest().target)
+        assertEquals(640, track.width)
+        assertEquals(360, track.height)
+        assertEquals(listOf(1.5, 4.0), track.frames.map { it.t })
+        assertEquals(DetectionBox("person", 0.87f, "#ff0000", 10f, 20f, 110f, 220f), track.frames[0].boxes.single())
+    }
+
+    @Test
+    fun detections_olderServerMeansNoBoxes() = runTest {
+        enqueue(404, """{"detail": "Not Found"}""")
+
+        assertEquals(DetectionTrack.EMPTY, api().recordingDetections(42))
+    }
+
+    @Test
     fun recordings_sendsFilters() = runTest {
         enqueue(200, """{"items": [], "next_before": null}""")
 

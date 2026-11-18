@@ -249,3 +249,13 @@
 - Commit: see git log (feat: per-phone schedule ...), branch feat/notification-schedule
 - Tests: Android 119/119, lint clean for the new files, debug build
 - Next: check on the S23 (Mon–Fri 8 PM – 6 AM); iOS with APNs later
+
+## 2026-11-18 — Recordings: boxes, caches and live list (ADR 0016)
+- Done: recorded clips show the YOLO boxes (minicam ADR 0012 track, drawn at the play position,
+  zoom-aware); the model catalog is fetched once per session; played clips go through a 512 MB
+  Media3 disk cache; the clip list scrolls forever and, after a detection push, polls the newest
+  page until the clip shows. Android only
+- Commit: see git log, branch feat/recording-boxes-and-cache (minicam: feat/recording-detections)
+- Tests: Android 145/145, lint only the existing version notices, debug and release builds;
+  minicam 1312 passed, coverage 99.66 %
+- Next: check on the S23 against minicam `feat/recording-detections`; iOS in the Backlog
