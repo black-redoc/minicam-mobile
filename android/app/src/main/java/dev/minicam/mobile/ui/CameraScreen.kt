@@ -366,7 +366,7 @@ private fun ViewingCountdown(seconds: Int, modifier: Modifier = Modifier) {
  * class colour, the label and confidence on a tab above the box, like the server's MJPEG boxes.
  */
 @Composable
-private fun DetectionOverlay(detections: Detections) {
+internal fun DetectionOverlay(detections: Detections) {
     val measurer = rememberTextMeasurer()
     Canvas(Modifier.fillMaxSize()) {
         val stroke = 2.dp.toPx()

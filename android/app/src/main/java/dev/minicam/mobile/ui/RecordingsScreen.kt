@@ -25,6 +25,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -79,6 +81,8 @@ import androidx.media3.ui.PlayerView
 import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.R
 import dev.minicam.mobile.data.MinicamException
+import dev.minicam.mobile.data.DetectionTrack
+import dev.minicam.mobile.data.Detections
 import dev.minicam.mobile.data.Recording
 import dev.minicam.mobile.data.RecordingPage
 import dev.minicam.mobile.data.VideoZoom
@@ -90,6 +94,7 @@ import dev.minicam.mobile.data.formatClipSize
 import dev.minicam.mobile.data.nextRecording
 import dev.minicam.mobile.data.previousRecording
 import dev.minicam.mobile.data.recordingDays
+import dev.minicam.mobile.data.recordingDetections
 import dev.minicam.mobile.data.recordingFileName
 import dev.minicam.mobile.data.recordingVideoUrl
 import dev.minicam.mobile.data.recordings
@@ -106,6 +111,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.hypot
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 
 /** The desktop Recordings page (minicam `recordings.html`): clips by day, player, download, delete. */
 @Composable
@@ -129,6 +136,10 @@ fun RecordingsScreen(viewModel: AppViewModel) {
     var zoom by remember { mutableStateOf(VideoZoom()) }
     // One player for both layouts, so entering or leaving fullscreen doesn't restart the clip.
     val player = rememberClipPlayer(viewModel, api) { playError = it }
+    // ADR 0016: each clip's detection boxes, fetched once per clip, drawn at the play position.
+    val tracks = remember(api) { mutableMapOf<Int, DetectionTrack>() }
+    var track by remember { mutableStateOf(DetectionTrack.EMPTY) }
+    var boxes by remember { mutableStateOf<Detections?>(null) }
 
     LaunchedEffect(player, selected?.id) {
         playError = null
@@ -141,6 +152,26 @@ fun RecordingsScreen(viewModel: AppViewModel) {
             player.setMediaItem(MediaItem.fromUri(api.recordingVideoUrl(recording.id).toString()))
             player.prepare()
             player.playWhenReady = true
+        }
+    }
+
+    LaunchedEffect(api, selected?.id) {
+        track = DetectionTrack.EMPTY
+        val id = selected?.id ?: return@LaunchedEffect
+        // No boxes is fine: the clip still plays (older server, network blip).
+        track = tracks[id] ?: try {
+            api.recordingDetections(id).also { tracks[id] = it }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            DetectionTrack.EMPTY
+        }
+    }
+    LaunchedEffect(player, track) {
+        boxes = null
+        if (track.frames.isEmpty()) return@LaunchedEffect
+        while (true) {
+            boxes = track.at(player.currentPosition / 1000.0)
+            delay(BOX_REFRESH_MILLIS)
         }
     }
 
@@ -220,6 +251,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                 zoom = zoom,
                 onZoom = { zoom = it },
                 onPan = onPan,
+                detections = boxes,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -245,6 +277,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                     zoom = zoom,
                     onZoom = { zoom = it },
                     onPan = onPan,
+                    detections = boxes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
@@ -323,6 +356,7 @@ fun RecordingsScreen(viewModel: AppViewModel) {
                     notice = null
                     if (viewModel.attempt({ error = it }) { api.deleteRecording(recording.id) } != null) {
                         items = items?.filter { it.id != recording.id }
+                        tracks.remove(recording.id)
                         if (selected?.id == recording.id) selected = null
                     }
                 }
@@ -337,6 +371,9 @@ fun RecordingsScreen(viewModel: AppViewModel) {
  * curve, so they start and end together; slow enough to follow.
  */
 private fun <T> playerAnimation() = tween<T>(durationMillis = 500, easing = FastOutSlowInEasing)
+
+/** How often the boxes follow the playback position. */
+private const val BOX_REFRESH_MILLIS = 100L
 
 private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
 
@@ -547,6 +584,20 @@ private class ClipNavigationPlayer(
     }
 }
 
+/**
+ * The clip's boxes over the picture (ADR 0016): a layer the size of the fitted video, zoomed and
+ * panned like the video surface in [applyZoom], so the boxes stay on their objects.
+ */
+@Composable
+private fun BoxScope.ClipBoxes(detections: Detections, zoom: VideoZoom) {
+    if (detections.width <= 0 || detections.height <= 0) return
+    Box(Modifier.matchParentSize().clipToBounds(), contentAlignment = Alignment.Center) {
+        Box(Modifier.aspectRatio(detections.width.toFloat() / detections.height).zoomed(zoom)) {
+            DetectionOverlay(detections)
+        }
+    }
+}
+
 /** Scales and moves the video surface by [zoom]; the content frame clips it to the picture. */
 @OptIn(UnstableApi::class)
 private fun PlayerView.applyZoom(zoom: VideoZoom) {
@@ -608,6 +659,7 @@ private fun ClipVideo(
     zoom: VideoZoom,
     onZoom: (VideoZoom) -> Unit,
     onPan: (Float, Float) -> Unit,
+    detections: Detections?,
     modifier: Modifier,
 ) {
     val toggle by rememberUpdatedState(onFullscreen)
@@ -640,6 +692,7 @@ private fun ClipVideo(
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )
+        detections?.let { ClipBoxes(it, zoom) }
         AnimatedVisibility(
             visible = controlsVisible,
             modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
