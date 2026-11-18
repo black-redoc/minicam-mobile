@@ -19,6 +19,7 @@ import dev.minicam.mobile.data.MinicamException
 import dev.minicam.mobile.data.ModelCatalogCache
 import dev.minicam.mobile.data.Network
 import dev.minicam.mobile.data.PairLink
+import dev.minicam.mobile.data.PendingClips
 import dev.minicam.mobile.data.PendingPairLink
 import dev.minicam.mobile.data.RecordingCache
 import dev.minicam.mobile.data.ServerAddresses
@@ -418,6 +419,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Nothing of this account outlives its session: cached catalog and clips (ADR 0016). */
     private fun forgetSessionData() {
         modelCatalogCache.clear()
+        PendingClips.clear()
         val context = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) { RecordingCache.clear(context) }
     }

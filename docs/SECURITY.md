@@ -44,6 +44,9 @@ password session, and the server pins the redirect target (no open redirect).
   AVURLAsset, URLSession); never handed to `DownloadManager`, a browser or another app.
 - Downloads go only where the user picks (Android SAF) or to the app's temp dir, removed after
   the share sheet closes (iOS).
+- Played clips are cached (Android, ADR 0016) only in the app-private `cacheDir` (no backup, no
+  other app can read it), 512 MB LRU; a deleted clip leaves the cache and sign-out empties it.
+- Detection boxes and the model catalog are kept in memory only, dropped on sign-out.
 
 ## Live fMP4 and audio (ADR 0006)
 - fMP4 parsers treat server bytes as untrusted: every box and sample size is checked against the

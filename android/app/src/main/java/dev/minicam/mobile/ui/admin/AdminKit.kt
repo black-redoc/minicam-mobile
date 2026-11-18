@@ -1,6 +1,7 @@
 package dev.minicam.mobile.ui.admin
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -78,6 +79,7 @@ fun AdminScaffold(
     title: String,
     onBack: () -> Unit,
     fixedTop: (@Composable ColumnScope.() -> Unit)? = null,
+    scrollState: ScrollState = rememberScrollState(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -94,7 +96,7 @@ fun AdminScaffold(
         Box(Modifier.fillMaxWidth().height(1.dp).background(CamColors.Surface))
         fixedTop?.let { Column(Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp), content = it) }
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content,
         )
