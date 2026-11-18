@@ -259,3 +259,13 @@
 - Tests: Android 145/145, lint only the existing version notices, debug and release builds;
   minicam 1312 passed, coverage 99.66 %
 - Next: check on the S23 against minicam `feat/recording-detections`; iOS in the Backlog
+
+## 2026-11-18 — Settings: language and minicam updates (ADR 0017)
+- Done: every text of the Android and iOS apps goes through `tr` with Spanish dictionaries (same
+  keys); Settings with the language picker (phone / English / Español); admins see the device's
+  minicam version, a gear dot and banner for a new release, and update it with one tap
+  (minicam ADR 0013, signed with minisign)
+- Commit: see git log, branch feat/settings-i18n-and-updates (minicam: feat/ota-updates)
+- Tests: Android 158/158, lint only the existing version notices, debug and release builds;
+  iOS `swift test` 113/113, simulator build with no Swift warnings; minicam 1358 passed
+- Next: flash a Pi with the first image that has the helper, tag the next release, update it

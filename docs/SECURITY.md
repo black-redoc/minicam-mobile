@@ -48,6 +48,12 @@ password session, and the server pins the redirect target (no open redirect).
   other app can read it), 512 MB LRU; a deleted clip leaves the cache and sign-out empties it.
 - Detection boxes and the model catalog are kept in memory only, dropped on sign-out.
 
+## Settings and minicam updates (ADR 0017)
+- The app never downloads or verifies minicam itself: it only asks the device to install the
+  release the device offered (`POST /api/system/update`, admin). The device's root helper checks
+  the minisign signature against its pinned key (minicam ADR 0013).
+- The language choice is not sensitive; it is stored in plain app preferences.
+
 ## Live fMP4 and audio (ADR 0006)
 - fMP4 parsers treat server bytes as untrusted: every box and sample size is checked against the
   message; a bad message is dropped (fallback to MJPEG), never a crash or an out-of-bounds read.

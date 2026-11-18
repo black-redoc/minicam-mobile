@@ -16,7 +16,8 @@ struct MinicamApp: App {
                     CamerasView()
                 }
             }
-            // Dates follow the app language too (docs/adr/0017).
+            // A new language rebuilds every screen, so all texts follow at once (docs/adr/0017).
+            .id(model.language)
             .environment(\.locale, I18n.locale)
             .environment(model)
             // The dashboard's QR (docs/adr/0011); the Access callback uses its own session.

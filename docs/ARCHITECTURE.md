@@ -57,14 +57,17 @@ ios/
    `GET/PUT /api/recordings/settings` on the Admin screen. Android (ADR 0016): the list scrolls
    forever and, after a detection push, polls the newest page until the clip shows; the player
    reads through a Media3 disk cache and draws `GET /api/recordings/{id}/detections` boxes.
-9. Remote access is set up only by the central dashboard (ADR 0014, supersedes ADR 0009); the
+9. Settings (ADR 0017): app language through `tr` and per-platform Spanish dictionaries; admins see
+   `GET /api/system/update` and start `POST /api/system/update`, then poll until the device runs
+   the new version.
+10. Remote access is set up only by the central dashboard (ADR 0014, supersedes ADR 0009); the
    app just polls `GET /api/system/tunnel` while connecting to it.
-10. Central dashboard (admins, LAN only, ADR 0010): the admin types the dashboard address and the
+11. Central dashboard (admins, LAN only, ADR 0010): the admin types the dashboard address and the
     one-time code from its "Pair device"; `POST /api/system/central` makes minicam exchange the
     code for its device token itself. `DELETE` disconnects. The last status read on the LAN is kept
     in the credential store (`CentralStatusCache`) and shown away from home, where minicam does not
     answer it; cleared on logout.
-11. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
+12. Any `401` → clear the session, back to login. A Cloudflare redirect/`403` on a WAN host →
    re-run the Access login.
 
 ## Backend contract

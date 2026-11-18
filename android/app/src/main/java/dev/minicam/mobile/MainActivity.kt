@@ -13,6 +13,7 @@ import dev.minicam.mobile.ui.CamerasScreen
 import dev.minicam.mobile.ui.LoginScreen
 import dev.minicam.mobile.ui.RecordingsScreen
 import dev.minicam.mobile.ui.Screen
+import dev.minicam.mobile.ui.SettingsScreen
 import dev.minicam.mobile.ui.admin.AdminScreen
 import dev.minicam.mobile.ui.admin.AiDetectionScreen
 import dev.minicam.mobile.ui.admin.CameraSettingsScreen
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
                     viewModel.screen == Screen.AI_DETECTION -> AiDetectionScreen(viewModel)
                     viewModel.screen == Screen.ADMIN -> AdminScreen(viewModel)
                     viewModel.screen == Screen.CENTRAL_DASHBOARD -> CentralDashboardScreen(viewModel)
+                    viewModel.screen == Screen.SETTINGS -> SettingsScreen(viewModel)
                     else -> CamerasScreen(viewModel)
                 }
             }

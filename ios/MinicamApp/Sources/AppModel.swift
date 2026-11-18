@@ -33,6 +33,20 @@ final class AppModel {
     /// The signed-in navigation stack, so a QR link can open "Connect to dashboard".
     var path = NavigationPath()
 
+    /// The app language (docs/adr/0017). The root view is rebuilt when it changes, so every
+    /// text built with `tr` follows at once.
+    var language: AppLanguage = I18n.language {
+        didSet { I18n.language = language }
+    }
+
+    /// Admins: the device's minicam version and whether a newer release can be installed.
+    private(set) var systemUpdate: SystemUpdate?
+    /// An update started from this phone, while it runs and once it ends.
+    private(set) var updateProgress: UpdateProgress?
+    var updateError: String?
+    private(set) var checkingUpdate = false
+    private var updateTask: Task<Void, Never>?
+
     /// `_minicam._tcp` browser for "Find minicam on my network".
     let discovery = LanDiscovery()
 
@@ -236,6 +250,60 @@ final class AppModel {
         offerPairLink()
         cameras = try await api.cameras()
         camerasLoaded = true
+        if user?.isAdmin == true { Task { await checkForUpdate() } }
+    }
+
+    /// Admins: asks the device for its version and the latest release (the device asks GitHub
+    /// at most every 6 hours; `refresh` asks it to check now). Quiet unless `refresh`.
+    func checkForUpdate(refresh: Bool = false) async {
+        guard let api, user?.isAdmin == true, updateTask == nil, !checkingUpdate else { return }
+        checkingUpdate = true
+        defer { checkingUpdate = false }
+        if refresh { updateError = nil }
+        do {
+            systemUpdate = try await api.systemUpdate(refresh: refresh)
+        } catch is CancellationError {
+        } catch {
+            if refresh { updateError = describe(error) }
+        }
+    }
+
+    /// Installs the offered release and follows it until the device runs it (or gives up).
+    func installUpdate() {
+        guard let api, let version = systemUpdate?.latest, updateTask == nil else { return }
+        updateError = nil
+        updateTask = Task {
+            defer { updateTask = nil }
+            do {
+                systemUpdate = try await api.startUpdate(version: version)
+            } catch {
+                updateError = describe(error)
+                return
+            }
+            let tracker = UpdateTracker(target: version, startedAt: Date())
+            var progress = UpdateProgress.running(target: version, state: "requested", message: nil)
+            updateProgress = progress
+            while progress.isRunning, !Task.isCancelled {
+                try? await Task.sleep(for: UpdateTracker.pollInterval)
+                do {
+                    // minicam is restarting: no answer for a while is expected.
+                    guard let status = try await api.systemUpdate() else { throw MinicamError.invalidResponse }
+                    systemUpdate = status
+                    progress = tracker.progress(after: status, at: Date())
+                } catch {
+                    progress = tracker.progressWhenUnreachable(at: Date())
+                }
+                updateProgress = progress
+            }
+        }
+    }
+
+    private func forgetUpdate() {
+        updateTask?.cancel()
+        updateTask = nil
+        systemUpdate = nil
+        updateProgress = nil
+        updateError = nil
     }
 
     func refresh() async {
@@ -251,6 +319,7 @@ final class AppModel {
         path = NavigationPath()
         phase = .signedOut
         centralStatus.clear()
+        forgetUpdate()
         await api?.logout()
     }
 
@@ -302,6 +371,7 @@ final class AppModel {
         camerasLoaded = false
         user = nil
         phase = .signedOut
+        forgetUpdate()
     }
 
     private func run(_ work: @escaping () async throws -> Void) async {
