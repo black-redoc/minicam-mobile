@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.minicam.mobile.data.VideoZoom
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 
 /**
@@ -71,8 +72,8 @@ fun GlassIconButton(
 @Composable
 fun ZoomButtons(zoom: VideoZoom, onZoom: (VideoZoom) -> Unit, modifier: Modifier = Modifier, size: Dp = 40.dp) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        GlassIconButton("Zoom in", onClick = { onZoom(zoom.zoomIn()) }, size = size, enabled = zoom.canZoomIn) { ZoomIcon(plus = true) }
-        GlassIconButton("Zoom out", onClick = { onZoom(zoom.zoomOut()) }, size = size, enabled = zoom.canZoomOut) { ZoomIcon(plus = false) }
+        GlassIconButton(tr("Zoom in"), onClick = { onZoom(zoom.zoomIn()) }, size = size, enabled = zoom.canZoomIn) { ZoomIcon(plus = true) }
+        GlassIconButton(tr("Zoom out"), onClick = { onZoom(zoom.zoomOut()) }, size = size, enabled = zoom.canZoomOut) { ZoomIcon(plus = false) }
     }
 }
 

@@ -141,7 +141,7 @@ struct ClipPlayerView: View {
     private var controls: some View {
         ZStack {
             HStack(spacing: 28) {
-                GlassIconButton(label: "Back", systemImage: "backward.end.fill", size: 40) {
+                GlassIconButton(label: tr("Back"), systemImage: "backward.end.fill", size: 40) {
                     // Spec 008 AC6: the first seconds go to the clip above, later start over.
                     if backOpensPreviousClip(position: playback.currentTime, hasPrevious: hasPrevious) {
                         onPrevious()
@@ -151,14 +151,14 @@ struct ClipPlayerView: View {
                     scheduleHide()
                 }
                 GlassIconButton(
-                    label: playback.isPlaying ? "Pause" : "Play",
+                    label: playback.isPlaying ? tr("Pause") : tr("Play"),
                     systemImage: playback.isPlaying ? "pause.fill" : "play.fill",
                     size: 52
                 ) {
                     playback.togglePlay()
                     scheduleHide()
                 }
-                GlassIconButton(label: "Next clip", systemImage: "forward.end.fill", size: 40) {
+                GlassIconButton(label: tr("Next clip"), systemImage: "forward.end.fill", size: 40) {
                     onNext()
                     scheduleHide()
                 }
@@ -175,7 +175,7 @@ struct ClipPlayerView: View {
                         .foregroundStyle(.white)
                     Spacer()
                     GlassIconButton(
-                        label: isFullscreen ? "Exit fullscreen" : "Enter fullscreen",
+                        label: isFullscreen ? tr("Exit fullscreen") : tr("Enter fullscreen"),
                         systemImage: isFullscreen
                             ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
                         size: 36
@@ -249,8 +249,8 @@ private struct ClipTimeBar: View {
         }
         .frame(height: 28)
         .accessibilityElement()
-        .accessibilityLabel("Playback position")
-        .accessibilityValue("\(formatClipDuration(playback.shownTime)) of \(formatClipDuration(playback.duration))")
+        .accessibilityLabel(tr("Playback position"))
+        .accessibilityValue(tr("%1$s of %2$s", formatClipDuration(playback.shownTime), formatClipDuration(playback.duration)))
         .accessibilityAdjustableAction { direction in
             let step: Double = direction == .increment ? 5 : -5
             playback.seek(to: playback.currentTime + step)

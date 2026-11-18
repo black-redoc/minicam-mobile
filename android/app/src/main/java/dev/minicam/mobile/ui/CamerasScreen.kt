@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.push.PushSwitch
 import dev.minicam.mobile.ui.theme.CamColors
 
@@ -50,7 +51,7 @@ fun CamerasScreen(viewModel: AppViewModel) {
         if (granted) {
             viewModel.setPushEnabled(true)
         } else {
-            viewModel.pushMessage = "Notifications are blocked. Allow them for minicam in Android Settings."
+            viewModel.pushMessage = tr("Notifications are blocked. Allow them for minicam in Android Settings.")
         }
     }
     LaunchedEffect(viewModel.pushMessage) {
@@ -81,7 +82,7 @@ fun CamerasScreen(viewModel: AppViewModel) {
         } else if (viewModel.cameras.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    viewModel.errorMessage ?: "No cameras yet. Ask an admin to grant you one.",
+                    viewModel.errorMessage ?: tr("No cameras yet. Ask an admin to grant you one."),
                     color = CamColors.Muted,
                     fontSize = 14.sp,
                 )
@@ -144,7 +145,7 @@ private fun Header(
     ) {
         BrandTitle()
         Box(Modifier.weight(1f))
-        TextButton(onClick = onRefresh) { Text("Refresh", color = CamColors.Muted, fontSize = 13.sp) }
+        TextButton(onClick = onRefresh) { Text(tr("Refresh"), color = CamColors.Muted, fontSize = 13.sp) }
         Box {
             TextButton(onClick = { menuOpen = true }) { Text("⋮", color = CamColors.Muted, fontSize = 18.sp) }
             DropdownMenu(
@@ -153,7 +154,7 @@ private fun Header(
                 modifier = Modifier.background(CamColors.Surface),
             ) {
                 DropdownMenuItem(
-                    text = { Text("Recordings", color = CamColors.Text) },
+                    text = { Text(tr("Recordings"), color = CamColors.Text) },
                     onClick = {
                         menuOpen = false
                         onOpen(Screen.RECORDINGS)
@@ -161,10 +162,10 @@ private fun Header(
                 )
                 if (isAdmin) {
                     listOf(
-                        Screen.CAMERA_SETTINGS to "Camera settings",
-                        Screen.AI_DETECTION to "AI detection",
-                        Screen.ADMIN to "Admin",
-                        Screen.CENTRAL_DASHBOARD to "Connect to dashboard",
+                        Screen.CAMERA_SETTINGS to tr("Camera settings"),
+                        Screen.AI_DETECTION to tr("AI detection"),
+                        Screen.ADMIN to tr("Admin"),
+                        Screen.CENTRAL_DASHBOARD to tr("Connect to dashboard"),
                     ).forEach { (screen, label) ->
                         DropdownMenuItem(
                             text = { Text(label, color = CamColors.Text) },
@@ -182,10 +183,10 @@ private fun Header(
                         enabled = available,
                         text = {
                             Column {
-                                Text("Notifications on this phone", color = CamColors.Text)
+                                Text(tr("Notifications on this phone"), color = CamColors.Text)
                                 if (!available) {
                                     Text(
-                                        "Needs the device connected to the dashboard.",
+                                        tr("Needs the device connected to the dashboard."),
                                         color = CamColors.Muted,
                                         fontSize = 11.sp,
                                     )
@@ -207,7 +208,7 @@ private fun Header(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Log out", color = CamColors.Danger) },
+                    text = { Text(tr("Log out"), color = CamColors.Danger) },
                     onClick = {
                         menuOpen = false
                         onLogout()
@@ -218,3 +219,4 @@ private fun Header(
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(CamColors.Surface))
 }
+

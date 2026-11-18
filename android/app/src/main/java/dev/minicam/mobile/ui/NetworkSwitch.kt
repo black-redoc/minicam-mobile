@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.Network
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 
@@ -52,8 +53,8 @@ fun NetworkSwitch(viewModel: AppViewModel, modifier: Modifier = Modifier) {
             .background(CamColors.Bg),
     ) {
         listOf(
-            Triple(Network.LOCAL, "Local", viewModel.localAddress),
-            Triple(Network.REMOTE, "Remote", viewModel.remoteAddress),
+            Triple(Network.LOCAL, tr("Local"), viewModel.localAddress),
+            Triple(Network.REMOTE, tr("Remote"), viewModel.remoteAddress),
         ).forEach { (network, label, address) ->
             val selected = viewModel.activeNetwork == network
             Box(
@@ -63,7 +64,7 @@ fun NetworkSwitch(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                     .background(if (selected) CamColors.Accent else CamColors.Bg)
                     .semantics {
                         this.selected = selected
-                        contentDescription = if (address == null) "Add ${label.lowercase()} address" else label
+                        contentDescription = if (address == null) if (network == Network.LOCAL) tr("Add local address") else tr("Add remote address") else label
                     }
                     .clickable(enabled = !selected, role = Role.Tab) {
                         if (address == null) adding = network else viewModel.switchNetwork(network)
@@ -100,20 +101,20 @@ private fun AddAddressDialog(viewModel: AppViewModel, network: Network, onDismis
         titleContentColor = CamColors.Text,
         textContentColor = CamColors.Muted,
         title = {
-            Text(if (local) "Add local address" else "Add remote address", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (local) tr("Add local address") else tr("Add remote address"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     if (local) {
-                        "The address of this same minicam on your home Wi-Fi."
+                        tr("The address of this same minicam on your home Wi-Fi.")
                     } else {
-                        "The Cloudflare address of this same minicam, used away from home."
+                        tr("The Cloudflare address of this same minicam, used away from home.")
                     },
                     fontSize = 13.sp,
                 )
                 CamTextField(
-                    "Address",
+                    tr("Address"),
                     text,
                     { text = it },
                     keyboardType = KeyboardType.Uri,
@@ -137,8 +138,8 @@ private fun AddAddressDialog(viewModel: AppViewModel, network: Network, onDismis
             TextButton(onClick = {
                 error = viewModel.addAddress(text, network)
                 if (error == null) onDismiss()
-            }) { Text("Save and switch", color = CamColors.AccentHover, fontWeight = FontWeight.SemiBold) }
+            }) { Text(tr("Save and switch"), color = CamColors.AccentHover, fontWeight = FontWeight.SemiBold) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = CamColors.Muted) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel"), color = CamColors.Muted) } },
     )
 }

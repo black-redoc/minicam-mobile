@@ -46,6 +46,7 @@ import dev.minicam.mobile.data.MinicamApi
 import dev.minicam.mobile.data.PtzAction
 import dev.minicam.mobile.data.PtzDispatcher
 import dev.minicam.mobile.data.PtzJoystick
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 import kotlin.math.hypot
@@ -83,7 +84,7 @@ fun PtzPad(api: MinicamApi, camera: String, onError: (Throwable) -> Unit, glass:
     Box(
         Modifier
             .size(PadSize)
-            .semantics { contentDescription = "PTZ joystick" }
+            .semantics { contentDescription = tr("PTZ joystick") }
             .pointerInput(dispatcher) {
                 val follow = spring<Offset>(stiffness = Spring.StiffnessHigh)
                 val release = spring<Offset>(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)

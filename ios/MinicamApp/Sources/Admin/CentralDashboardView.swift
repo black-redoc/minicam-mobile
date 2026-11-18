@@ -23,73 +23,73 @@ struct CentralDashboardView: View {
 
     var body: some View {
         Form {
-            Section("Status") {
+            Section(tr("Status")) {
                 if let status {
-                    Text(status.connected ? "Connected" : "Not connected").foregroundStyle(Theme.text)
+                    Text(status.connected ? tr("Connected") : tr("Not connected")).foregroundStyle(Theme.text)
                     if status.connected {
                         if let url = status.url {
                             Text(verbatim: url).font(.caption).foregroundStyle(Theme.muted)
                         }
-                        Text(status.lastSyncedAt.map { "Last sync: \($0) (UTC)" } ?? "Waiting for the first sync…")
+                        Text(status.lastSyncedAt.map { tr("Last sync: %s (UTC)", $0) } ?? tr("Waiting for the first sync…"))
                             .font(.caption).foregroundStyle(Theme.muted)
                         if status.managedInEnv {
-                            Text("Set in the device's .env file: change it there.")
+                            Text(tr("Set in the device's .env file: change it there."))
                                 .font(.caption).foregroundStyle(Theme.muted)
                         }
                     }
                 } else if away {
-                    Text("Not checked yet: open this screen once on your home network.")
+                    Text(tr("Not checked yet: open this screen once on your home network."))
                         .font(.caption).foregroundStyle(Theme.muted)
                 } else if error == nil {
                     SkeletonRow(index: 0, trailing: false)
                 }
                 if let saved {
-                    Text("As of \(saved.savedAt.formatted(date: .abbreviated, time: .shortened)), on your home network.")
+                    Text(tr("As of %s, on your home network.", saved.savedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(I18n.locale))))
                         .font(.caption).foregroundStyle(Theme.muted)
                 }
             }
             .adminRow()
 
             if let progress {
-                Section("Progress") {
-                    ProgressRow(label: "Dashboard", state: progress.dashboard, detail: progress.dashboardText)
-                    ProgressRow(label: "Remote access", state: progress.remoteAccess, detail: progress.remoteAccessText)
+                Section(tr("Progress")) {
+                    ProgressRow(label: tr("Dashboard"), state: progress.dashboard, detail: progress.dashboardText)
+                    ProgressRow(label: tr("Remote access"), state: progress.remoteAccess, detail: progress.remoteAccessText)
                 }
                 .adminRow()
             }
 
             if away {
-                Text("To connect, pair again or disconnect, switch to your home network (Local).")
+                Text(tr("To connect, pair again or disconnect, switch to your home network (Local)."))
                     .font(.caption).foregroundStyle(Theme.muted)
                     .adminRow()
             } else if status?.managedInEnv != true {
-                Section(status?.connected == true ? "Pair again (new token)" : "Connect") {
+                Section(status?.connected == true ? tr("Pair again (new token)") : tr("Connect")) {
                     Text("""
-                        In the dashboard open Sites, press "Pair device" on this device's site and type the \
+                        In the dashboard open Sites, press tr("Pair device") on this device's site and type the \
                         code it shows (valid once, for 10 minutes), or scan its QR with the phone's camera. \
                         The device fetches its own token and, if the dashboard offers it, its remote access: \
                         nothing secret is copied by hand.
                         """)
                         .font(.caption).foregroundStyle(Theme.muted)
                     if let linkHost {
-                        Text("Connect this device to \(linkHost)?")
+                        Text(tr("Connect this device to %s?", linkHost))
                             .font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
-                        Text("Only continue if you opened this code from your own dashboard: it decides who can watch from outside.")
+                        Text(tr("Only continue if you opened this code from your own dashboard: it decides who can watch from outside."))
                             .font(.caption).foregroundStyle(Theme.muted)
                     }
                     Button {
                         scanning = true
                     } label: {
-                        Label("Scan QR code", systemImage: "qrcode.viewfinder")
+                        Label(tr("Scan QR code"), systemImage: "qrcode.viewfinder")
                     }
                     .disabled(busy)
-                    LabeledField(label: "Dashboard address") {
+                    LabeledField(label: tr("Dashboard address")) {
                         TextField("https://admin.example.com", text: $url)
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                     }
-                    LabeledField(label: "Pairing code") {
+                    LabeledField(label: tr("Pairing code")) {
                         TextField("ABCD-EFGH", text: $code)
                             .font(.body.monospaced())
                             .textInputAutocapitalization(.characters)
@@ -100,14 +100,14 @@ struct CentralDashboardView: View {
                             }
                     }
                     if status?.connected == true {
-                        Button("Disconnect", role: .destructive) { Task { await unpair() } }
+                        Button(tr("Disconnect"), role: .destructive) { Task { await unpair() } }
                             .disabled(busy)
                     }
                 }
                 .adminRow()
 
                 Section {
-                    SaveButton(label: status?.connected == true ? "Pair again" : "Connect", busy: busy,
+                    SaveButton(label: status?.connected == true ? tr("Pair again") : tr("Connect"), busy: busy,
                                enabled: !code.trimmingCharacters(in: .whitespaces).isEmpty) {
                         Task { await pair() }
                     }
@@ -119,7 +119,7 @@ struct CentralDashboardView: View {
             }
         }
         .adminForm()
-        .navigationTitle("Connect to dashboard")
+        .navigationTitle(tr("Connect to dashboard"))
         .task { await load() }
         .fullScreenCover(isPresented: $scanning) {
             QRScannerSheet { text in
@@ -161,11 +161,11 @@ struct CentralDashboardView: View {
         error = nil
         success = nil
         guard let dashboard = CentralURL.normalize(url) else {
-            error = "Enter the dashboard's https:// address, e.g. https://admin.example.com"
+            error = tr("Enter the dashboard's https:// address, e.g. https://admin.example.com")
             return
         }
         guard let pairing = PairingCode.normalize(code) else {
-            error = "The code has 8 letters and digits, like ABCD-EFGH."
+            error = tr("The code has 8 letters and digits, like ABCD-EFGH.")
             return
         }
         busy = true
@@ -182,8 +182,8 @@ struct CentralDashboardView: View {
             return
         }
         if let current = await model.attempt({ _ in }, { try await api.centralStatus() }) { keep(current) }
-        success = "WAN access is now managed in the dashboard."
-            + (result.wanURL.map { " From outside your home network, sign in at \($0)" } ?? "")
+        success = tr("WAN access is now managed in the dashboard.")
+            + (result.wanURL.map { tr(" From outside your home network, sign in at %s", $0) } ?? "")
     }
 
     private func unpair() async {
@@ -194,7 +194,7 @@ struct CentralDashboardView: View {
         defer { busy = false }
         if let current = await model.attempt({ error = $0 }, { try await api.unpairFromCentral() }) {
             keep(current)
-            success = "Disconnected. WAN access is managed on the device again."
+            success = tr("Disconnected. WAN access is managed on the device again.")
         }
     }
 }

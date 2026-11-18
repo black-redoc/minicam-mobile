@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.R
 import dev.minicam.mobile.data.StreamStatus
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 
@@ -131,7 +132,7 @@ fun Skeleton(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier.clearAndSetSemantics { contentDescription = "Loading" },
+        modifier.clearAndSetSemantics { contentDescription = tr("Loading") },
         verticalArrangement = Arrangement.spacedBy(spacing),
         content = content,
     )
@@ -154,9 +155,9 @@ fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
 @Composable
 fun StatusBadge(status: StreamStatus) {
     val (color, label) = when (status) {
-        StreamStatus.CONNECTED -> CamColors.Success to "Live"
-        StreamStatus.DISCONNECTED -> CamColors.Danger to "Disconnected"
-        StreamStatus.CONNECTING -> CamColors.Muted to "Connecting…"
+        StreamStatus.CONNECTED -> CamColors.Success to tr("Live")
+        StreamStatus.DISCONNECTED -> CamColors.Danger to tr("Disconnected")
+        StreamStatus.CONNECTING -> CamColors.Muted to tr("Connecting…")
     }
     Row(
         Modifier
@@ -198,7 +199,7 @@ fun CamTextField(
                     IconButton(onClick = { revealed = !revealed }) {
                         Icon(
                             painterResource(if (revealed) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
-                            contentDescription = if (revealed) "Hide $label" else "Show $label",
+                            contentDescription = if (revealed) tr("Hide %s", label) else tr("Show %s", label),
                             tint = CamColors.Muted,
                         )
                     }

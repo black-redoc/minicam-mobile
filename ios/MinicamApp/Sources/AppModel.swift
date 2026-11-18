@@ -88,9 +88,9 @@ final class AppModel {
 
     private static func addressError(_ error: Error) -> String {
         if case ServerConfigError.insecureRemoteHost = error {
-            return "Plain http:// is only allowed on your local network. Use https://."
+            return tr("Plain http:// is only allowed on your local network. Use https://.")
         }
-        return "Enter a valid server address, e.g. https://cam.example.com"
+        return tr("Enter a valid server address, e.g. https://cam.example.com")
     }
 
     /// Uses the other saved address of the same server (docs/adr/0013). Nothing is sent to the
@@ -120,8 +120,8 @@ final class AppModel {
         }
         guard config.network == network else {
             return network == .local
-                ? "A local address starts with http://, e.g. http://192.168.1.20:8080"
-                : "A remote address starts with https://"
+                ? tr("A local address starts with http://, e.g. http://192.168.1.20:8080")
+                : tr("A remote address starts with https://")
         }
         addresses.add(config)
         await switchNetwork(to: network)
@@ -138,7 +138,7 @@ final class AppModel {
                 Task { await refresh() }
             }
         } catch {
-            errorMessage = "Cloudflare Access login failed. Try again."
+            errorMessage = tr("Cloudflare Access login failed. Try again.")
         }
     }
 
@@ -184,9 +184,12 @@ final class AppModel {
         guard let api = applyServerURL() else { return }
         await run {
             let claim = try await api.requestSetupCode()
-            self.setupCodeMessage = "The green LED is blinking a \(claim.digits)-digit code. Count the blinks of "
-                + "each digit; a longer pause separates digits, an even longer one starts again. It is valid "
-                + "for \(claim.expiresIn / 60) minutes."
+            self.setupCodeMessage = tr(
+                "The green LED is blinking a %1$d-digit code. Count the blinks of each digit; a longer pause "
+                    + "separates digits, an even longer one starts again. It is valid for %2$d minutes.",
+                claim.digits,
+                claim.expiresIn / 60
+            )
         }
     }
 
@@ -207,7 +210,7 @@ final class AppModel {
     /// dashboard" with the form filled in; it never sends anything by itself.
     func openPairLink(_ url: URL) {
         guard let link = PairLink.parse(url) else {
-            errorMessage = "That link is not a minicam dashboard code."
+            errorMessage = tr("That link is not a minicam dashboard code.")
             return
         }
         pendingPairLink.store(link)
@@ -220,8 +223,10 @@ final class AppModel {
         if phase == .signedIn, api?.config.isWAN == false, user?.isAdmin == true {
             path = NavigationPath([AdminRoute.centralDashboard])
         } else {
-            errorMessage = "To use the dashboard code, sign in as an admin while you're on the device's "
-                + "home network. The code is kept for 10 minutes."
+            errorMessage = tr(
+                "To use the dashboard code, sign in as an admin while you're on the device's "
+                    + "home network. The code is kept for 10 minutes."
+            )
         }
     }
 
@@ -259,24 +264,24 @@ final class AppModel {
     func describe(_ error: Error) -> String {
         switch error {
         case MinicamError.invalidCredentials:
-            return "Invalid email or password"
+            return tr("Invalid email or password")
         case MinicamError.unauthorized:
             signOutLocally()
-            return "Your session expired. Sign in again."
+            return tr("Your session expired. Sign in again.")
         case MinicamError.accessRequired:
             store.set(nil, for: .accessToken)
             signOutLocally()
-            return "Sign in with Cloudflare Access again."
+            return tr("Sign in with Cloudflare Access again.")
         case MinicamError.rateLimited:
-            return "Too many attempts. Wait a few minutes."
+            return tr("Too many attempts. Wait a few minutes.")
         case let MinicamError.forbidden(detail), let MinicamError.rejected(detail):
             return detail
         case MinicamError.notFound:
-            return "Not found or not allowed."
+            return tr("Not found or not allowed.")
         case let MinicamError.server(code):
-            return "The server failed (\(code))."
+            return tr("The server failed (%d).", code)
         default:
-            return "Can't reach the server."
+            return tr("Can't reach the server.")
         }
     }
 

@@ -18,7 +18,7 @@ public struct PairLink: Equatable, Sendable, CustomStringConvertible {
     /// The dashboard's host, shown for confirmation before anything is sent.
     public var host: String { URLComponents(string: url)?.host ?? url }
 
-    public static let notAPairQR = "That QR is not a minicam dashboard code."
+    public static let notAPairQR = tr("That QR is not a minicam dashboard code.")
 
     /// A value read by the in-app scanner (docs/adr/0012): only a pair link is accepted.
     public static func fromScan(_ raw: String?) -> PairLink? {
@@ -91,23 +91,23 @@ public struct ConnectProgress: Equatable, Sendable {
     public func afterPairing(_ status: CentralStatus) -> ConnectProgress {
         var next = self
         next.dashboard = .done
-        next.dashboardText = status.site.map { "Connected as \($0.name) (\($0.hostname))" } ?? "Connected"
+        next.dashboardText = status.site.map { tr("Connected as %s", "\($0.name) (\($0.hostname))") } ?? tr("Connected")
         guard let tunnel = status.tunnel else {
             next.remoteAccess = .skipped
-            next.remoteAccessText = "This dashboard does not set up remote access."
+            next.remoteAccessText = tr("This dashboard does not set up remote access.")
             return next
         }
         switch tunnel.state {
         case "installing":
             next.remoteAccess = .working
-            next.remoteAccessText = "Setting up https://\(tunnel.hostname ?? "…")… (about a minute)"
-                + (tunnel.replaced ? " It replaces the remote access set up from this app." : "")
+            next.remoteAccessText = tr("Setting up https://%s… (about a minute)", tunnel.hostname ?? "…")
+                + (tunnel.replaced ? tr(" It replaces the remote access set up from this app.") : "")
         case "skipped":
             next.remoteAccess = .skipped
             next.remoteAccessText = tunnel.message
         default:
             next.remoteAccess = .failed
-            next.remoteAccessText = tunnel.message ?? "Remote access was not set up."
+            next.remoteAccessText = tunnel.message ?? tr("Remote access was not set up.")
         }
         return next
     }
@@ -118,11 +118,11 @@ public struct ConnectProgress: Equatable, Sendable {
         switch status.state {
         case .running:
             next.remoteAccess = .done
-            next.remoteAccessText = "Ready at https://\(status.hostname ?? "")"
+            next.remoteAccessText = tr("Ready at https://%s", status.hostname ?? "")
             next.wanURL = status.hostname.map { "https://\($0)" }
         case .error:
             next.remoteAccess = .failed
-            next.remoteAccessText = status.message ?? "The tunnel did not start."
+            next.remoteAccessText = status.message ?? tr("The tunnel did not start.")
         default:
             next.remoteAccess = .working
         }

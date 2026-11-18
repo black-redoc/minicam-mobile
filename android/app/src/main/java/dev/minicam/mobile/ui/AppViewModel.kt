@@ -31,6 +31,7 @@ import dev.minicam.mobile.data.mobilePushStatus
 import dev.minicam.mobile.data.network
 import dev.minicam.mobile.data.requestSetupCode
 import dev.minicam.mobile.data.setupStatus
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.push.FirebasePush
 import dev.minicam.mobile.push.PushRegistration
 import dev.minicam.mobile.push.PushSwitch
@@ -152,8 +153,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun addressError(e: ServerConfigException) = when (e.reason) {
         ServerConfigException.Reason.INSECURE_REMOTE_HOST ->
-            "Plain http:// is only allowed on your local network. Use https://."
-        else -> "Enter a valid server address, e.g. https://cam.example.com"
+            tr("Plain http:// is only allowed on your local network. Use https://.")
+        else -> tr("Enter a valid server address, e.g. https://cam.example.com")
     }
 
     /**
@@ -184,9 +185,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (config.network != network) {
             return if (network == Network.LOCAL) {
-                "A local address starts with http://, e.g. http://192.168.1.20:8080"
+                tr("A local address starts with http://, e.g. http://192.168.1.20:8080")
             } else {
-                "A remote address starts with https://"
+                tr("A remote address starts with https://")
             }
         }
         addresses.add(config)
@@ -214,7 +215,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     refresh()
                 }
             }
-            .onFailure { errorMessage = "Cloudflare Access login failed. Try again." }
+            .onFailure { errorMessage = tr("Cloudflare Access login failed. Try again.") }
     }
 
     /** Prefilled on the login screen, so signing back in only needs the password. */
@@ -238,7 +239,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun openPairLink(link: String) {
         val parsed = PairLink.parse(link)
         if (parsed == null) {
-            errorMessage = "That link is not a minicam dashboard code."
+            errorMessage = tr("That link is not a minicam dashboard code.")
             return
         }
         pendingPairLink.store(parsed)
@@ -253,8 +254,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             selectedCamera = null
             screen = Screen.CENTRAL_DASHBOARD
         } else {
-            errorMessage = "To use the dashboard code, sign in as an admin while you're on the device's " +
-                "home network. The code is kept for 10 minutes."
+            errorMessage = tr("To use the dashboard code, sign in as an admin while you're on the device's " +
+                "home network. The code is kept for 10 minutes.")
         }
     }
 
@@ -292,9 +293,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val api = applyServerUrl() ?: return
         launchBusy {
             val claim = api.requestSetupCode()
-            setupCodeMessage = "The green LED is blinking a ${claim.digits}-digit code. " +
-                "Count the blinks of each digit; a longer pause separates digits, an even longer one starts " +
-                "again. It is valid for ${claim.expiresIn / 60} minutes."
+            setupCodeMessage = tr(
+                "The green LED is blinking a %1\$d-digit code. " +
+                    "Count the blinks of each digit; a longer pause separates digits, an even longer one starts " +
+                    "again. It is valid for %2\$d minutes.",
+                claim.digits,
+                claim.expiresIn / 60,
+            )
         }
     }
 
@@ -355,7 +360,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (on) push.enable(api) else push.disable(api)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                pushMessage = "Could not turn on notifications. ${describe(e)}"
+                pushMessage = tr("Could not turn on notifications. %s", describe(e))
             }
             pushSwitch = push.switchState(available = true)
         }
@@ -388,23 +393,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * so every screen gets the same behavior (spec 001 AC4).
      */
     fun describe(error: Throwable): String = when (error) {
-        MinicamException.InvalidCredentials -> "Invalid email or password"
+        MinicamException.InvalidCredentials -> tr("Invalid email or password")
         MinicamException.Unauthorized -> {
             signOutLocally()
-            "Your session expired. Sign in again."
+            tr("Your session expired. Sign in again.")
         }
         MinicamException.AccessRequired -> {
             store.set(CredentialKey.ACCESS_TOKEN, null)
             accessTokenPresent = false
             signOutLocally()
-            "Sign in with Cloudflare Access again."
+            tr("Sign in with Cloudflare Access again.")
         }
-        MinicamException.RateLimited -> "Too many attempts. Wait a few minutes."
+        MinicamException.RateLimited -> tr("Too many attempts. Wait a few minutes.")
         is MinicamException.Forbidden -> error.detail
         is MinicamException.Rejected -> error.detail
-        MinicamException.NotFound -> "Not found or not allowed."
-        is MinicamException.Server -> "The server failed (${error.code})."
-        else -> "Can't reach the server."
+        MinicamException.NotFound -> tr("Not found or not allowed.")
+        is MinicamException.Server -> tr("The server failed (%d).", error.code)
+        else -> tr("Can't reach the server.")
     }
 
     private fun signOutLocally() {

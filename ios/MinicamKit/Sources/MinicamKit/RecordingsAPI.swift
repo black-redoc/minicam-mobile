@@ -214,8 +214,8 @@ public func recordingDays(
     }
     return days.map { day, items in
         let label = switch day {
-        case today: "Today"
-        case yesterday: "Yesterday"
+        case today: tr("Today")
+        case yesterday: tr("Yesterday")
         default: formatter.string(from: day)
         }
         return RecordingDay(label: label, recordings: items)

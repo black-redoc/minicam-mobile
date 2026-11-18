@@ -39,37 +39,37 @@ struct AIDetectionView: View {
                 if let catalogError { FormMessage(error: catalogError) }
             } header: {
                 HStack {
-                    Text("Model catalog")
+                    Text(tr("Model catalog"))
                     Spacer()
-                    if let release = catalog?.release, !release.isEmpty { Text("Release \(release)") }
+                    if let release = catalog?.release, !release.isEmpty { Text(tr("Release %s", release)) }
                 }
             }
             .adminRow()
 
-            Section("AI detection") {
+            Section(tr("AI detection")) {
                 if loaded {
-                    Picker("Backend", selection: $backend) {
-                        Text("None").tag(DetectionBackend.none)
-                        Text("ONNX (CPU)").tag(DetectionBackend.onnx)
+                    Picker(tr("Backend"), selection: $backend) {
+                        Text(tr("None")).tag(DetectionBackend.none)
+                        Text(tr("ONNX (CPU)")).tag(DetectionBackend.onnx)
                     }
-                    LabeledField(label: "Confidence threshold") {
+                    LabeledField(label: tr("Confidence threshold")) {
                         TextField("0.5", text: $confidence).keyboardType(.decimalPad)
                     }
-                    LabeledField(label: "Inference FPS") {
+                    LabeledField(label: tr("Inference FPS")) {
                         TextField("3", text: $fps).keyboardType(.decimalPad)
                     }
-                    LabeledField(label: "Model path") {
+                    LabeledField(label: tr("Model path")) {
                         TextField("/absolute/path/to/model.onnx", text: $modelPath).font(.body.monospaced())
                     }
-                    LabeledField(label: "Or fetch from URL") {
+                    LabeledField(label: tr("Or fetch from URL")) {
                         HStack {
                             TextField("https://…/yolo11n-int8.onnx", text: $modelURL).keyboardType(.URL)
-                            Button("Fetch") { Task { await fetch() } }
+                            Button(tr("Fetch")) { Task { await fetch() } }
                                 .buttonStyle(.bordered)
                                 .disabled(fetching)
                         }
                     }
-                    Text("1. Install a catalog model, or fetch one from a URL. 2. Set it as the active backend and save.")
+                    Text(tr("1. Install a catalog model, or fetch one from a URL. 2. Set it as the active backend and save."))
                         .font(.caption).foregroundStyle(Theme.muted)
                 } else if error == nil {
                     ForEach(0..<4, id: \.self) { FieldSkeletonRow(index: $0) }
@@ -83,7 +83,7 @@ struct AIDetectionView: View {
             }
         }
         .adminForm()
-        .navigationTitle("AI detection")
+        .navigationTitle(tr("AI detection"))
         .task {
             async let catalog: Void = loadCatalog()
             await loadSettings()
@@ -101,11 +101,11 @@ struct AIDetectionView: View {
             }
             Spacer()
             if asset.active {
-                Badge(text: "Active", color: Theme.success)
+                Badge(text: tr("Active"), color: Theme.success)
             } else if installing == asset.name {
                 ProgressView()
             } else {
-                Button(asset.installed ? "Activate" : "Install & activate") { Task { await install(asset) } }
+                Button(asset.installed ? tr("Activate") : tr("Install & activate")) { Task { await install(asset) } }
                     .buttonStyle(.bordered)
                     .font(.caption)
                     .disabled(installing != nil)
@@ -117,7 +117,7 @@ struct AIDetectionView: View {
         guard let api = model.api else { return }
         if let result = await model.attempt({ catalogStatus = $0 }, { try await api.modelCatalog() }) {
             catalog = result
-            catalogStatus = result.assets.isEmpty ? "The catalog is empty." : nil
+            catalogStatus = result.assets.isEmpty ? tr("The catalog is empty.") : nil
         }
     }
 
@@ -153,14 +153,14 @@ struct AIDetectionView: View {
         success = nil
         let url = modelURL.trimmingCharacters(in: .whitespaces)
         guard url.hasPrefix("https://") else {
-            error = "Enter an https:// model URL first."
+            error = tr("Enter an https:// model URL first.")
             return
         }
         fetching = true
         defer { fetching = false }
         if let path = await model.attempt({ error = $0 }, { try await api.fetchModel(url: url) }) {
             modelPath = path
-            success = "Model downloaded. Tap Save to activate it."
+            success = tr("Model downloaded. Tap Save to activate it.")
         }
     }
 
@@ -169,11 +169,11 @@ struct AIDetectionView: View {
         error = nil
         success = nil
         guard let threshold = Double(userInput: confidence), (0...1).contains(threshold) else {
-            error = "Confidence threshold must be between 0 and 1."
+            error = tr("Confidence threshold must be between 0 and 1.")
             return
         }
         guard let inferenceFPS = Double(userInput: fps), inferenceFPS > 0 else {
-            error = "Inference FPS must be greater than 0."
+            error = tr("Inference FPS must be greater than 0.")
             return
         }
         let settings = DetectionSettings(
@@ -184,7 +184,7 @@ struct AIDetectionView: View {
         defer { saving = false }
         if let saved = await model.attempt({ error = $0 }, { try await api.saveDetectionSettings(settings) }) {
             populate(saved)
-            success = "Settings saved."
+            success = tr("Settings saved.")
             await loadCatalog()
         }
     }

@@ -1,5 +1,6 @@
 package dev.minicam.mobile.data
 
+import dev.minicam.mobile.i18n.tr
 import java.io.OutputStream
 import java.time.Instant
 import java.time.LocalDate
@@ -143,8 +144,8 @@ fun recordingDays(
     val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)
     return recordings.groupBy { it.started.atZone(zone).toLocalDate() }.map { (date, items) ->
         val label = when (date) {
-            today -> "Today"
-            today.minusDays(1) -> "Yesterday"
+            today -> tr("Today")
+            today.minusDays(1) -> tr("Yesterday")
             else -> date.format(dateFormat)
         }
         RecordingDay(date, label, items)

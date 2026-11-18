@@ -1,5 +1,6 @@
 package dev.minicam.mobile.push
 
+import dev.minicam.mobile.i18n.tr
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
@@ -17,7 +18,7 @@ data class DetectionPush(
     val body: String = "",
 ) {
     /** "person detected on entrance", built here if the server sent no text. */
-    val message: String get() = body.ifBlank { "${classes.joinToString(", ")} detected on $camera" }
+    val message: String get() = body.ifBlank { tr("%1\$s detected on %2\$s", classes.joinToString(", "), camera) }
 }
 
 /**

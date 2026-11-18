@@ -12,7 +12,7 @@ struct CameraSettingsView: View {
         Form {
             Section {
                 NavigationLink(value: CameraFormRoute(camera: nil)) {
-                    Label("Add camera", systemImage: "plus")
+                    Label(tr("Add camera"), systemImage: "plus")
                 }
                 .adminRow()
             }
@@ -22,7 +22,7 @@ struct CameraSettingsView: View {
             Section {
                 if let cameras {
                     if cameras.isEmpty {
-                        Text("No cameras configured yet.").foregroundStyle(Theme.muted)
+                        Text(tr("No cameras configured yet.")).foregroundStyle(Theme.muted)
                     }
                     ForEach(cameras) { camera in
                         NavigationLink(value: CameraFormRoute(camera: camera)) {
@@ -32,31 +32,31 @@ struct CameraSettingsView: View {
                             }
                         }
                         .swipeActions {
-                            Button("Delete", role: .destructive) { pendingDelete = camera.name }
+                            Button(tr("Delete"), role: .destructive) { pendingDelete = camera.name }
                         }
                         .contextMenu {
-                            Button("Delete", systemImage: "trash", role: .destructive) { pendingDelete = camera.name }
+                            Button(tr("Delete"), systemImage: "trash", role: .destructive) { pendingDelete = camera.name }
                         }
                     }
                 } else if error == nil {
                     ForEach(0..<3, id: \.self) { SkeletonRow(index: $0) }
                 }
             } footer: {
-                if cameras?.isEmpty == false { Text("Swipe left on a camera to delete it.") }
+                if cameras?.isEmpty == false { Text(tr("Swipe left on a camera to delete it.")) }
             }
             .adminRow()
         }
         .adminForm()
-        .navigationTitle("Camera settings")
+        .navigationTitle(tr("Camera settings"))
         .navigationDestination(for: CameraFormRoute.self) { CameraFormView(camera: $0.camera) }
         .task { await load() }
         .refreshable { await load() }
         .confirmationDialog(
-            "Delete camera \"\(pendingDelete ?? "")\"?",
+            tr("Delete camera \"%s\"?", pendingDelete ?? ""),
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(tr("Delete"), role: .destructive) {
                 if let name = pendingDelete { Task { await delete(name) } }
             }
         }
@@ -102,15 +102,15 @@ struct CameraFormView: View {
     var body: some View {
         Form {
             Section {
-                LabeledField(label: "Name") { TextField("my-camera", text: $form.name) }
+                LabeledField(label: tr("Name")) { TextField("my-camera", text: $form.name) }
                 if camera != nil {
-                    Text("Rename requires all connected streams to switch to the new name.")
+                    Text(tr("Rename requires all connected streams to switch to the new name."))
                         .font(.caption).foregroundStyle(Theme.muted)
                 }
-                LabeledField(label: "Host / IP") {
+                LabeledField(label: tr("Host / IP")) {
                     HStack {
                         TextField("192.168.1.x", text: $form.host).keyboardType(.URL)
-                        Button("Search") { Task { await discover() } }
+                        Button(tr("Search")) { Task { await discover() } }
                             .buttonStyle(.bordered)
                             .disabled(discovering)
                     }
@@ -119,35 +119,35 @@ struct CameraFormView: View {
             .adminRow()
 
             if discovering || discovered != nil || discoverError != nil {
-                Section("Found on network") { discoveryResults }.adminRow()
+                Section(tr("Found on network")) { discoveryResults }.adminRow()
             }
 
             Section {
-                LabeledField(label: "RTSP port") { TextField("554", text: $rtspPort).keyboardType(.numberPad) }
-                LabeledField(label: "ONVIF port") { TextField("8000", text: $onvifPort).keyboardType(.numberPad) }
-                LabeledField(label: "Username") { TextField("", text: $form.user).textContentType(.username) }
-                LabeledField(label: "Password") {
+                LabeledField(label: tr("RTSP port")) { TextField("554", text: $rtspPort).keyboardType(.numberPad) }
+                LabeledField(label: tr("ONVIF port")) { TextField("8000", text: $onvifPort).keyboardType(.numberPad) }
+                LabeledField(label: tr("Username")) { TextField("", text: $form.user).textContentType(.username) }
+                LabeledField(label: tr("Password")) {
                     // Never prefilled (the server redacts it): blank keeps the current one.
-                    PasswordField(placeholder: "Leave blank to keep current", text: $form.password, contentType: nil)
+                    PasswordField(placeholder: tr("Leave blank to keep current"), text: $form.password, contentType: nil)
                 }
-                LabeledField(label: "Channel") { TextField("1", text: $channel).keyboardType(.numberPad) }
+                LabeledField(label: tr("Channel")) { TextField("1", text: $channel).keyboardType(.numberPad) }
             } footer: {
-                Text("Leave the password blank to keep the existing one.")
+                Text(tr("Leave the password blank to keep the existing one."))
             }
             .adminRow()
 
-            Section("Object detection") { detectionClasses }.adminRow()
+            Section(tr("Object detection")) { detectionClasses }.adminRow()
 
             Section {
-                Picker("Notifications", selection: $form.notifications) {
-                    Text("Use global setting (Admin)").tag(NotificationMode.inherit)
-                    Text("On for this camera").tag(NotificationMode.on)
-                    Text("Off for this camera").tag(NotificationMode.off)
+                Picker(tr("Notifications"), selection: $form.notifications) {
+                    Text(tr("Use global setting (Admin)")).tag(NotificationMode.inherit)
+                    Text(tr("On for this camera")).tag(NotificationMode.on)
+                    Text(tr("Off for this camera")).tag(NotificationMode.off)
                 }
             } header: {
-                Text("Detection notifications")
+                Text(tr("Detection notifications"))
             } footer: {
-                Text("Notifies when any of the detection classes above is seen.")
+                Text(tr("Notifies when any of the detection classes above is seen."))
             }
             .adminRow()
 
@@ -157,17 +157,17 @@ struct CameraFormView: View {
             }
         }
         .adminForm()
-        .navigationTitle(camera == nil ? "Add camera" : "Edit camera")
+        .navigationTitle(camera == nil ? tr("Add camera") : tr("Edit camera"))
         .task { await load() }
     }
 
     @ViewBuilder private var discoveryResults: some View {
         if discovering {
-            ProgressView("Searching for cameras on the network…")
+            ProgressView(tr("Searching for cameras on the network…"))
         } else if let discoverError {
             Text(discoverError).foregroundStyle(Theme.danger)
         } else if let discovered, discovered.isEmpty {
-            Text("No cameras found on the network.").foregroundStyle(Theme.muted)
+            Text(tr("No cameras found on the network.")).foregroundStyle(Theme.muted)
         } else {
             ForEach(discovered ?? [], id: \.self) { found in
                 HStack {
@@ -176,7 +176,7 @@ struct CameraFormView: View {
                         Text(found.name).font(.caption).foregroundStyle(Theme.muted)
                     }
                     Spacer()
-                    Button("Use") { form.host = found.host }.buttonStyle(.bordered)
+                    Button(tr("Use")) { form.host = found.host }.buttonStyle(.bordered)
                 }
             }
         }
@@ -187,7 +187,7 @@ struct CameraFormView: View {
             Text(classesError).foregroundStyle(Theme.danger)
         } else if let availableClasses {
             if availableClasses.isEmpty {
-                Text("No detection backend configured on this device.").foregroundStyle(Theme.muted)
+                Text(tr("No detection backend configured on this device.")).foregroundStyle(Theme.muted)
             }
             if availableClasses.count > Self.maxVisibleClasses {
                 // Show at most maxVisibleClasses rows; the rest scroll inside this one row.
@@ -230,7 +230,7 @@ struct CameraFormView: View {
         rtspPort = String(form.rtspPort)
         onvifPort = String(form.onvifPort)
         channel = String(form.channel)
-        if let classes = await model.attempt({ _ in classesError = "Could not load detection classes." }, {
+        if let classes = await model.attempt({ _ in classesError = tr("Could not load detection classes.") }, {
             try await api.detectionClasses()
         }) {
             availableClasses = classes
@@ -241,7 +241,7 @@ struct CameraFormView: View {
         guard let api = model.api else { return }
         discovering = true
         discoverError = nil
-        discovered = await model.attempt({ _ in discoverError = "Discovery failed. Check network connectivity." }, {
+        discovered = await model.attempt({ _ in discoverError = tr("Discovery failed. Check network connectivity.") }, {
             try await api.discoverCameras()
         })
         discovering = false
@@ -254,17 +254,17 @@ struct CameraFormView: View {
         config.host = config.host.trimmingCharacters(in: .whitespaces)
         config.user = config.user.trimmingCharacters(in: .whitespaces)
         guard !config.name.isEmpty, !config.host.isEmpty else {
-            error = "Name and host are required."
+            error = tr("Name and host are required.")
             return
         }
         guard let rtsp = Int(rtspPort.trimmingCharacters(in: .whitespaces)),
               let onvif = Int(onvifPort.trimmingCharacters(in: .whitespaces)), (1...65535).contains(rtsp),
               (1...65535).contains(onvif) else {
-            error = "Ports must be between 1 and 65535."
+            error = tr("Ports must be between 1 and 65535.")
             return
         }
         guard let ch = Int(channel.trimmingCharacters(in: .whitespaces)), ch >= 1 else {
-            error = "Channel must be 1 or more."
+            error = tr("Channel must be 1 or more.")
             return
         }
         config.rtspPort = rtsp

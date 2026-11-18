@@ -39,9 +39,9 @@ struct CamerasView: View {
             .overlay {
                 if model.cameras.isEmpty, !showsSkeleton {
                     ContentUnavailableView(
-                        "No cameras",
+                        tr("No cameras"),
                         systemImage: "video.slash",
-                        description: Text(model.errorMessage ?? "Ask an admin to grant you a camera.")
+                        description: Text(model.errorMessage ?? tr("Ask an admin to grant you a camera."))
                     )
                 }
             }
@@ -62,28 +62,28 @@ struct CamerasView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         NavigationLink(value: RecordingsRoute()) {
-                            Label("Recordings", systemImage: "video.badge.checkmark")
+                            Label(tr("Recordings"), systemImage: "video.badge.checkmark")
                         }
                         // Admins only (ADR 0004); the server enforces it either way.
                         if model.user?.isAdmin == true {
                             NavigationLink(value: AdminRoute.cameraSettings) {
-                                Label("Camera settings", systemImage: "video.badge.ellipsis")
+                                Label(tr("Camera settings"), systemImage: "video.badge.ellipsis")
                             }
                             NavigationLink(value: AdminRoute.aiDetection) {
-                                Label("AI detection", systemImage: "sparkles")
+                                Label(tr("AI detection"), systemImage: "sparkles")
                             }
                             NavigationLink(value: AdminRoute.admin) {
-                                Label("Admin", systemImage: "person.2")
+                                Label(tr("Admin"), systemImage: "person.2")
                             }
                             NavigationLink(value: AdminRoute.centralDashboard) {
-                                Label("Connect to dashboard", systemImage: "building.2")
+                                Label(tr("Connect to dashboard"), systemImage: "building.2")
                             }
                             Divider()
                         }
-                        Button("Log out", role: .destructive) { Task { await model.logout() } }
+                        Button(tr("Log out"), role: .destructive) { Task { await model.logout() } }
                     } label: {
                         Image(systemName: "ellipsis")
-                            .accessibilityLabel("More options")
+                            .accessibilityLabel(tr("More options"))
                     }
                     .accessibilityIdentifier("moreOptions")
                 }

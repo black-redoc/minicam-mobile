@@ -34,6 +34,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.minicam.mobile.data.QrDecoder
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -60,8 +61,8 @@ fun QrScannerDialog(onResult: (String) -> Unit, onDismiss: () -> Unit) {
             when {
                 granted -> CameraPreview(onResult)
                 denied -> Text(
-                    "minicam needs the camera only to read the dashboard's QR. Allow it in Settings → Apps → " +
-                        "minicam → Permissions, or type the code instead.",
+                    tr("minicam needs the camera only to read the dashboard's QR. Allow it in Settings → Apps → " +
+                        "minicam → Permissions, or type the code instead."),
                     color = CamColors.Text,
                     fontSize = 14.sp,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
@@ -72,8 +73,8 @@ fun QrScannerDialog(onResult: (String) -> Unit, onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (granted) Text("Point the camera at the QR in the dashboard", color = CamColors.Text, fontSize = 14.sp)
-                SecondaryButton("Cancel", onClick = onDismiss)
+                if (granted) Text(tr("Point the camera at the QR in the dashboard"), color = CamColors.Text, fontSize = 14.sp)
+                SecondaryButton(tr("Cancel"), onClick = onDismiss)
             }
         }
     }

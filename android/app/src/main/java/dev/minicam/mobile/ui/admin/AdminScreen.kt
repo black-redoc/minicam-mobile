@@ -40,6 +40,7 @@ import dev.minicam.mobile.data.saveNotificationSettings
 import dev.minicam.mobile.data.setPermission
 import dev.minicam.mobile.data.setWanAccess
 import dev.minicam.mobile.data.userAccess
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.push.PushSwitch
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.CamTextField
@@ -98,17 +99,17 @@ fun AdminScreen(viewModel: AppViewModel) {
         }
     }
 
-    AdminScaffold("Admin", onBack = { viewModel.screen = Screen.CAMERAS }) {
+    AdminScaffold(tr("Admin"), onBack = { viewModel.screen = Screen.CAMERAS }) {
         CreateUserSection(viewModel, api) { scope.launch { loadUsers() } }
         NotificationsSection(viewModel, api)
         RecordingSettingsSection(viewModel, api)
 
-        SectionTitle("Users & camera permissions")
+        SectionTitle(tr("Users & camera permissions"))
         FormMessage(usersError)
         val list = users
         when {
             list == null -> if (usersError == null) ListSkeleton()
-            list.isEmpty() -> Hint("No users yet.")
+            list.isEmpty() -> Hint(tr("No users yet."))
             else -> list.forEach { access ->
                 UserCard(
                     access = access,
@@ -124,9 +125,9 @@ fun AdminScreen(viewModel: AppViewModel) {
 
     pendingDelete?.let { access ->
         ConfirmDialog(
-            title = "Delete user",
-            message = "Delete \"${access.user.email}\"? This also revokes their sessions and camera permissions.",
-            confirmLabel = "Delete",
+            title = tr("Delete user"),
+            message = tr("Delete \"%s\"? This also revokes their sessions and camera permissions.", access.user.email),
+            confirmLabel = tr("Delete"),
             onConfirm = {
                 scope.launch {
                     usersError = null
@@ -148,12 +149,12 @@ private fun CreateUserSection(viewModel: AppViewModel, api: MinicamApi, onCreate
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Section("Create user") {
-        CamTextField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
-        CamTextField("Password", password, { password = it }, keyboardType = KeyboardType.Password, secret = true, placeholder = "At least 8 characters")
-        LabeledCheckbox("Admin", isAdmin) { isAdmin = it }
+    Section(tr("Create user")) {
+        CamTextField(tr("Email"), email, { email = it }, keyboardType = KeyboardType.Email)
+        CamTextField(tr("Password"), password, { password = it }, keyboardType = KeyboardType.Password, secret = true, placeholder = tr("At least 8 characters"))
+        LabeledCheckbox(tr("Admin"), isAdmin) { isAdmin = it }
         FormMessage(error)
-        PrimaryButton("Create", enabled = email.isNotBlank() && password.length >= 8, busy = busy) {
+        PrimaryButton(tr("Create"), enabled = email.isNotBlank() && password.length >= 8, busy = busy) {
             scope.launch {
                 busy = true
                 error = null
@@ -185,27 +186,27 @@ private fun NotificationsSection(viewModel: AppViewModel, api: MinicamApi) {
         }
     }
 
-    Section("Detection notifications") {
+    Section(tr("Detection notifications")) {
         val current = settings
         if (current == null) {
             if (error == null) FormSkeleton(fields = 1, toggle = true)
         } else {
-            LabeledSwitch("Notify on detections for all cameras", current.enabled) {
+            LabeledSwitch(tr("Notify on detections for all cameras"), current.enabled) {
                 settings = current.copy(enabled = it)
                 saved = false
             }
-            CamTextField("Cooldown per camera (seconds)", cooldown, {
+            CamTextField(tr("Cooldown per camera (seconds)"), cooldown, {
                 cooldown = it
                 saved = false
             }, keyboardType = KeyboardType.Number)
             Hint(
-                "Notifies users who can view a camera when one of its selected detection classes is seen. " +
-                    "A camera's own setting (Camera settings → Detection notifications) overrides this switch.",
+                tr("Notifies users who can view a camera when one of its selected detection classes is seen. " +
+                    "A camera's own setting (Camera settings → Detection notifications) overrides this switch."),
             )
-            PrimaryButton("Save", busy = busy) {
+            PrimaryButton(tr("Save"), busy = busy) {
                 val seconds = cooldown.trim().toIntOrNull()
                 if (seconds == null || seconds !in 1..86400) {
-                    error = "Cooldown must be between 1 and 86400 seconds."
+                    error = tr("Cooldown must be between 1 and 86400 seconds.")
                     return@PrimaryButton
                 }
                 scope.launch {
@@ -221,7 +222,7 @@ private fun NotificationsSection(viewModel: AppViewModel, api: MinicamApi) {
                 }
             }
         }
-        FormMessage(error, if (saved) "Saved." else null)
+        FormMessage(error, if (saved) tr("Saved.") else null)
         // Only pushes are filtered, so builds without Firebase have nothing to schedule.
         if (viewModel.pushSwitch != PushSwitch.HIDDEN) NotificationScheduleBlock(viewModel.notificationSchedule)
     }
@@ -240,31 +241,31 @@ private fun RecordingSettingsSection(viewModel: AppViewModel, api: MinicamApi) {
         viewModel.attempt({ error = it }) { api.recordingSettings() }?.let { settings = it }
     }
 
-    Section("Event recordings") {
+    Section(tr("Event recordings")) {
         val current = settings
         if (current == null) {
             if (error == null) FormSkeleton(fields = 1, toggle = true)
         } else {
-            LabeledSwitch("Record a clip while a camera detects one of its classes", current.enabled) {
+            LabeledSwitch(tr("Record a clip while a camera detects one of its classes"), current.enabled) {
                 settings = current.copy(enabled = it)
                 saved = false
             }
             OptionPicker(
-                label = "Storage limit",
+                label = tr("Storage limit"),
                 options = current.options.map { it.gb to "${it.gb} GB" },
                 selected = current.maxStorageGb,
                 // Limits the disk can't hold stay visible but can't be chosen, like the web.
-                unavailable = current.options.filter { !it.available }.associate { it.gb to "Not enough space" },
+                unavailable = current.options.filter { !it.available }.associate { it.gb to tr("Not enough space") },
             ) {
                 settings = current.copy(maxStorageGb = it)
                 saved = false
             }
-            Hint("Recordings use ${formatStorageBytes(current.usedBytes)} · ${formatStorageBytes(current.freeBytes)} free on disk")
+            Hint(tr("Recordings use %1\$s · %2\$s free on disk", formatStorageBytes(current.usedBytes), formatStorageBytes(current.freeBytes)))
             Hint(
-                "Clips start about 3 seconds before a detection and stop about 5 seconds after the last one. " +
-                    "When the limit is reached, the oldest clips are deleted. Users watch them from ⋮ → Recordings.",
+                tr("Clips start about 3 seconds before a detection and stop about 5 seconds after the last one. " +
+                    "When the limit is reached, the oldest clips are deleted. Users watch them from ⋮ → Recordings."),
             )
-            PrimaryButton("Save", busy = busy) {
+            PrimaryButton(tr("Save"), busy = busy) {
                 scope.launch {
                     busy = true
                     error = null
@@ -277,7 +278,7 @@ private fun RecordingSettingsSection(viewModel: AppViewModel, api: MinicamApi) {
                 }
             }
         }
-        FormMessage(error, if (saved) "Saved." else null)
+        FormMessage(error, if (saved) tr("Saved.") else null)
     }
 }
 
@@ -306,22 +307,22 @@ private fun UserCard(
             Spacer(Modifier.weight(1f))
             // The server refuses to delete yourself; don't offer it.
             if (!isSelf) {
-                TextButton(onClick = onDelete) { Text("Delete", color = CamColors.Danger, fontSize = 13.sp) }
+                TextButton(onClick = onDelete) { Text(tr("Delete"), color = CamColors.Danger, fontSize = 13.sp) }
             }
         }
-        LabeledSwitch("WAN access", access.wanAccess, onChange = onWanAccess)
-        Hint("Viewing streams and PTZ from outside the local network, through Cloudflare Access.")
-        Hint("Listen: hearing the camera's microphone in the live view. It needs View too.")
+        LabeledSwitch(tr("WAN access"), access.wanAccess, onChange = onWanAccess)
+        Hint(tr("Viewing streams and PTZ from outside the local network, through Cloudflare Access."))
+        Hint(tr("Listen: hearing the camera's microphone in the live view. It needs View too."))
 
         if (cameras.isEmpty()) {
-            Hint("No cameras configured yet.")
+            Hint(tr("No cameras configured yet."))
         } else {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Camera", color = CamColors.Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    Text("View", color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
-                    Text("PTZ", color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
-                    Text("Listen", color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
+                    Text(tr("Camera"), color = CamColors.Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text(tr("View"), color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
+                    Text(tr("PTZ"), color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
+                    Text(tr("Listen"), color = CamColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.width(56.dp))
                 }
                 cameras.forEach { camera ->
                     val permission = byCamera[camera] ?: CameraPermission(access.user.id, camera, canView = false, canUsePtz = false)

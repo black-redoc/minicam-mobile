@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.NotificationSchedule
 import dev.minicam.mobile.data.NotificationScheduleStore
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import dev.minicam.mobile.ui.theme.CamDimens
 
@@ -47,35 +48,35 @@ fun NotificationScheduleBlock(store: NotificationScheduleStore) {
     }
 
     HorizontalDivider(color = CamColors.Border)
-    Text("Schedule on this phone", color = CamColors.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-    LabeledSwitch("Only notify on these days and hours", schedule.enabled) { on -> update { it.copy(enabled = on) } }
+    Text(tr("Schedule on this phone"), color = CamColors.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+    LabeledSwitch(tr("Only notify on these days and hours"), schedule.enabled) { on -> update { it.copy(enabled = on) } }
     if (schedule.enabled) {
         DayChips(schedule.days) { days -> update { it.copy(days = days) } }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { update { it.copy(days = NotificationSchedule.WEEKDAYS) } }) {
-                Text("Mon–Fri", color = CamColors.AccentHover, fontSize = 13.sp)
+                Text(tr("Mon–Fri"), color = CamColors.AccentHover, fontSize = 13.sp)
             }
             TextButton(onClick = { update { it.copy(days = NotificationSchedule.EVERY_DAY) } }) {
-                Text("Every day", color = CamColors.AccentHover, fontSize = 13.sp)
+                Text(tr("Every day"), color = CamColors.AccentHover, fontSize = 13.sp)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.weight(1f)) {
-                OptionPicker("From", timeOptions, schedule.startMinute) { m -> update { it.copy(startMinute = m) } }
+                OptionPicker(tr("From"), timeOptions, schedule.startMinute) { m -> update { it.copy(startMinute = m) } }
             }
             Box(Modifier.weight(1f)) {
-                OptionPicker("To", timeOptions, schedule.endMinute) { m -> update { it.copy(endMinute = m) } }
+                OptionPicker(tr("To"), timeOptions, schedule.endMinute) { m -> update { it.copy(endMinute = m) } }
             }
         }
         if (schedule.days.isEmpty()) {
-            Text("Pick at least one day, or no detection will be shown.", color = CamColors.Danger, fontSize = 12.sp)
+            Text(tr("Pick at least one day, or no detection will be shown."), color = CamColors.Danger, fontSize = 12.sp)
         } else {
-            Hint("Notifies ${schedule.summary}, in this phone's time zone.")
+            Hint(tr("Notifies %s, in this phone's time zone.", schedule.summary))
         }
     }
     Hint(
-        "Applies to every camera, only on this phone. A range that ends before it starts runs past midnight " +
-            "(8:00 PM – 6:00 AM on Mon–Fri covers Friday night until Saturday 6:00 AM).",
+        tr("Applies to every camera, only on this phone. A range that ends before it starts runs past midnight " +
+            "(8:00 PM – 6:00 AM on Mon–Fri covers Friday night until Saturday 6:00 AM)."),
     )
 }
 

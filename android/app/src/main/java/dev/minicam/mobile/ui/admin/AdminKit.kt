@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.AppViewModel
 import dev.minicam.mobile.ui.BrandTitle
 import dev.minicam.mobile.ui.Card
@@ -359,6 +360,6 @@ fun ConfirmDialog(
                 onConfirm()
             }) { Text(confirmLabel, color = CamColors.Danger, fontWeight = FontWeight.SemiBold) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = CamColors.Muted) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel"), color = CamColors.Muted) } },
     )
 }

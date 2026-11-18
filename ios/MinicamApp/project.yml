@@ -40,6 +40,9 @@ targets:
         NSBonjourServices: [_minicam._tcp]
         # Only for the in-app QR scanner of the dashboard's code (docs/adr/0012).
         NSCameraUsageDescription: minicam uses the camera only to read the QR code your minicam dashboard shows.
+        # English and Spanish (docs/adr/0017): also lists the app in iOS's per-app language setting.
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, es]
         CFBundleURLTypes:
           - CFBundleURLName: dev.minicam.mobile.access-callback
             CFBundleURLSchemes: [minicam]

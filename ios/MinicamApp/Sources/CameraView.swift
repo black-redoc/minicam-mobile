@@ -87,7 +87,7 @@ struct CameraView: View {
     private func speakerButton(size: CGFloat) -> some View {
         if camera.canListen, audioAvailable {
             glassButton(
-                audioOn ? "Turn audio off" : "Turn audio on",
+                audioOn ? tr("Turn audio off") : tr("Turn audio on"),
                 systemImage: audioOn ? "speaker.wave.2.fill" : "speaker.slash.fill", size: size
             ) { audioOn.toggle() }
         }
@@ -104,7 +104,7 @@ struct CameraView: View {
                     .overlay(alignment: .topTrailing) { ZoomButtons(zoom: $zoom, size: 40).padding(10) }
                     .overlay(alignment: .bottomLeading) { speakerButton(size: 40).padding(10) }
                     .overlay(alignment: .bottomTrailing) {
-                        glassButton("Enter fullscreen", systemImage: "arrow.up.left.and.arrow.down.right", size: 40) {
+                        glassButton(tr("Enter fullscreen"), systemImage: "arrow.up.left.and.arrow.down.right", size: 40) {
                             isFullscreen = true
                         }
                         .padding(10)
@@ -126,14 +126,14 @@ struct CameraView: View {
             videoFeed.zoomPan($zoom).ignoresSafeArea()
             VStack {
                 HStack(spacing: 12) {
-                    glassButton("Exit fullscreen", systemImage: "arrow.down.right.and.arrow.up.left") {
+                    glassButton(tr("Exit fullscreen"), systemImage: "arrow.down.right.and.arrow.up.left") {
                         isFullscreen = false
                     }
                     StatusBadge(status: status)
                     ViewingCountdown(seconds: secondsLeft)
                     Spacer()
                     if camera.canUsePTZ, !showPTZ {
-                        glassButton("Show PTZ controls", systemImage: "gamecontroller") {
+                        glassButton(tr("Show PTZ controls"), systemImage: "gamecontroller") {
                             withAnimation(.snappy) { showPTZ = true }
                         }
                     }
@@ -167,7 +167,7 @@ struct CameraView: View {
             .frame(width: diameter, height: diameter)
             .glassSurface(in: Circle())
             .overlay(alignment: .topTrailing) {
-                glassButton("Hide PTZ controls", systemImage: "xmark", size: closeSize) {
+                glassButton(tr("Hide PTZ controls"), systemImage: "xmark", size: closeSize) {
                     withAnimation(.snappy) { showPTZ = false }
                 }
                 .background(Theme.bg.opacity(0.6), in: Circle())
@@ -206,7 +206,7 @@ struct CameraView: View {
                 }
             }
         }
-        .accessibilityLabel("Live camera feed")
+        .accessibilityLabel(tr("Live camera feed"))
     }
 
     private func stream(api: MinicamAPI) async {
@@ -272,9 +272,9 @@ struct StatusBadge: View {
 
     private var label: String {
         switch status {
-        case .connected: "Live"
-        case .disconnected: "Disconnected"
-        case .connecting: "Connecting…"
+        case .connected: tr("Live")
+        case .disconnected: tr("Disconnected")
+        case .connecting: tr("Connecting…")
         }
     }
 }
@@ -285,7 +285,7 @@ struct ViewingCountdown: View {
     let seconds: Int
 
     var body: some View {
-        Text("Closes in \(seconds) s")
+        Text(tr("Closes in %d s", seconds))
             .font(.caption.weight(.semibold).monospacedDigit())
             .foregroundStyle(seconds <= 10 ? Theme.danger : .white)
             .padding(.horizontal, 10)
@@ -322,9 +322,9 @@ struct ZoomButtons: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            GlassIconButton(label: "Zoom in", systemImage: "plus", size: size) { zoom = zoom.zoomedIn() }
+            GlassIconButton(label: tr("Zoom in"), systemImage: "plus", size: size) { zoom = zoom.zoomedIn() }
                 .disabled(!zoom.canZoomIn)
-            GlassIconButton(label: "Zoom out", systemImage: "minus", size: size) { zoom = zoom.zoomedOut() }
+            GlassIconButton(label: tr("Zoom out"), systemImage: "minus", size: size) { zoom = zoom.zoomedOut() }
                 .disabled(!zoom.canZoomOut)
         }
     }
