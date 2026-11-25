@@ -41,7 +41,9 @@ struct LoginView: View {
                             .textContentType(.URL)
                             .accessibilityIdentifier("server")
                     }
-                    discoveryList
+                    if model.activeNetwork.offersDiscovery {
+                        discoveryList
+                    }
 
                     if model.needsAccessLogin {
                         Button(tr("Continue with Cloudflare Access")) {

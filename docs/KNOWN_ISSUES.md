@@ -66,3 +66,16 @@ from GitHub Releases first (11 s measured), and OkHttp's default 10 s read timeo
 download before answering. iOS uses URLSession's 60 s default and was not affected.
 Fix: those three calls use a 120 s read timeout (above Cloudflare's 100 s origin timeout); every
 other call keeps the default. Test: `slowAdminCalls_waitLongerThanTheReadTimeout`.
+
+## KI-11 Signing in on a found local address drops the remote session — Status: Resolved 2026-11-25
+Repro: only the remote address saved; on the login screen tap "Find minicam on my network", pick
+the device and sign in. Expected: the local address is added and the remote one keeps its session
+and Access token. Actual: the remote address, session and token are cleared and Remote asks to
+sign in again. Cause: `ServerAddresses.use` treated any address outside the saved pair as a new
+server, even for an empty slot. Fix: an empty slot is filled and credentials are kept (ADR 0013
+amended, spec 017 AC8). Test: `localIntoEmptySlot_keepsRemoteSession` (both platforms).
+
+## KI-12 "Find minicam on my network" shown on Remote — Status: Resolved 2026-11-25
+Repro: login screen with Remote active. Expected: no LAN search (it is a local-only action).
+Actual: the button is shown and picking a result replaces the remote address. Fix: the login screen
+only offers it on Local or with no address saved (spec 017 AC9). Test: `discovery_onlyOfferedOnLocal`.

@@ -269,3 +269,10 @@
 - Tests: Android 158/158, lint only the existing version notices, debug and release builds;
   iOS `swift test` 113/113, simulator build with no Swift warnings; minicam 1358 passed
 - Next: flash a Pi with the first image that has the helper, tag the next release, update it
+
+## 2026-11-25 — Local address keeps the remote session (KI-11, KI-12)
+- Done: an address for an empty slot fills it and keeps the session and Access token; the login
+  screen only offers "Find minicam on my network" on Local (ADR 0013 amended, spec 017 AC8/AC9)
+- Commit: see git log, branch fix/local-address-keeps-remote-session
+- Tests: Android 161/161, lint clean, debug build; iOS `swift test` 116/116, simulator build OK
+- Next: check on the S23: Remote → Find → sign in on Local → Remote without signing in again

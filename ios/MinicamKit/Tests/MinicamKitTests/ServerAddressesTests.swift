@@ -81,6 +81,38 @@ import Testing
         #expect(addresses.active?.origin == "https://other.example.com")
     }
 
+    @Test func localIntoEmptySlot_keepsRemoteSession() {
+        let store = InMemoryCredentialStore()
+        let addresses = ServerAddresses(store: store)
+        addresses.use(remote)
+        store.set("s1", for: .sessionCookie)
+        store.set("jwt", for: .accessToken)
+
+        #expect(addresses.use(local))
+        #expect(store.value(for: .sessionCookie) == "s1")
+        #expect(store.value(for: .accessToken) == "jwt")
+        #expect(addresses.remote == remote)
+        #expect(addresses.active == local)
+    }
+
+    @Test func otherLocalAddress_stillClearsEverything() throws {
+        let store = InMemoryCredentialStore()
+        let addresses = ServerAddresses(store: store)
+        addresses.use(local)
+        addresses.add(remote)
+        store.set("s1", for: .sessionCookie)
+
+        #expect(!addresses.use(try ServerConfig(parsing: "http://192.168.1.21:8080")))
+        #expect(store.value(for: .sessionCookie) == nil)
+        #expect(addresses.remote == nil)
+    }
+
+    @Test func discovery_onlyOfferedOnLocal() {
+        #expect(Network.local.offersDiscovery)
+        #expect(Optional<Network>.none.offersDiscovery)
+        #expect(!Network.remote.offersDiscovery)
+    }
+
     @Test func logout_doesNotWaitForAnUnreachableServer() async throws {
         let store = InMemoryCredentialStore()
         store.set("s1", for: .sessionCookie)
