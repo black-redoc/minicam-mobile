@@ -21,9 +21,12 @@ struct CameraView: View {
     @State private var audioAvailable = false
     @State private var detections: Detections?
     @State private var player = LivePlayer()
-    // Spec 011: at most 30 s of streaming per open; then back to the camera list.
+    // Spec 011: at most 30 s of streaming per open on the remote address; then back to the
+    // camera list. On the LAN there is no data cost, so no limit and no countdown.
     @State private var budget = ViewingBudget()
     @State private var secondsLeft = Int(ViewingBudget.limit)
+    private var timeLimited: Bool { model.api?.config.isWAN == true }
+    private var countdown: Int? { timeLimited ? secondsLeft : nil }
     /// The time starts on the first rendered frame (MJPEG or fMP4), not while connecting.
     @State private var firstFrameShown = false
 
@@ -59,8 +62,8 @@ struct CameraView: View {
         }
         // The viewing time runs under the same rule as the stream, across its restarts, from
         // the first rendered frame on. Leaving the screen closes the stream connection.
-        .task(id: scenePhase == .active && firstFrameShown) {
-            guard scenePhase == .active, firstFrameShown else { return }
+        .task(id: scenePhase == .active && firstFrameShown && timeLimited) {
+            guard scenePhase == .active, firstFrameShown, timeLimited else { return }
             budget.start()
             defer { budget.stop() }
             while !budget.expired {
@@ -100,7 +103,9 @@ struct CameraView: View {
                     .zoomPan($zoom)
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLg))
-                    .overlay(alignment: .topLeading) { ViewingCountdown(seconds: secondsLeft).padding(10) }
+                    .overlay(alignment: .topLeading) {
+                        if let countdown { ViewingCountdown(seconds: countdown).padding(10) }
+                    }
                     .overlay(alignment: .topTrailing) { ZoomButtons(zoom: $zoom, size: 40).padding(10) }
                     .overlay(alignment: .bottomLeading) { speakerButton(size: 40).padding(10) }
                     .overlay(alignment: .bottomTrailing) {
@@ -130,7 +135,7 @@ struct CameraView: View {
                         isFullscreen = false
                     }
                     StatusBadge(status: status)
-                    ViewingCountdown(seconds: secondsLeft)
+                    if let countdown { ViewingCountdown(seconds: countdown) }
                     Spacer()
                     if camera.canUsePTZ, !showPTZ {
                         glassButton(tr("Show PTZ controls"), systemImage: "gamecontroller") {

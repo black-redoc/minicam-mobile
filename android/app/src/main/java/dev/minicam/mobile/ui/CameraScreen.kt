@@ -107,9 +107,12 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     // The newest JPEG only: if decoding falls behind, older frames are skipped, as the server does.
     val jpegs = remember { MutableStateFlow<ByteArray?>(null) }
     val livePlayer = remember { LivePlayer(context) }
-    // Spec 011: at most 30 s of streaming per open; then back to the camera list.
+    // Spec 011: at most 30 s of streaming per open on the remote address; then back to the
+    // camera list. On the LAN there is no data cost, so no limit and no countdown.
+    val timeLimited = api.config.isWan
     val budget = remember { ViewingBudget() }
     var secondsLeft by remember { mutableIntStateOf(budget.remainingSeconds) }
+    val countdown = secondsLeft.takeIf { timeLimited }
     // The time starts on the first rendered frame (MJPEG or fMP4), not while connecting.
     var firstFrameShown by remember { mutableStateOf(false) }
     DisposableEffect(livePlayer) {
@@ -169,8 +172,8 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
     }
     // The viewing time runs under the same lifecycle rule as the stream, across its restarts,
     // from the first rendered frame on. Leaving the screen closes the stream connection.
-    LaunchedEffect(budget, firstFrameShown) {
-        if (!firstFrameShown) return@LaunchedEffect
+    LaunchedEffect(budget, firstFrameShown, timeLimited) {
+        if (!firstFrameShown || !timeLimited) return@LaunchedEffect
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             budget.start()
             try {
@@ -228,7 +231,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
             frame = frame,
             live = live,
             status = status,
-            secondsLeft = secondsLeft,
+            secondsLeft = countdown,
             zoom = zoom,
             onZoom = { zoom = it },
             onPan = onPan,
@@ -276,7 +279,7 @@ fun CameraScreen(viewModel: AppViewModel, camera: CameraSummary) {
                     .zoomPan(zoom, onPan),
             ) {
                 VideoFeed(frame, live, status, zoom)
-                ViewingCountdown(secondsLeft, Modifier.align(Alignment.TopStart).padding(10.dp))
+                ViewingCountdown(countdown, Modifier.align(Alignment.TopStart).padding(10.dp))
                 ZoomButtons(zoom, onZoom = { zoom = it }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
                 speaker(Modifier.align(Alignment.BottomStart).padding(10.dp), 40.dp)
                 GlassIconButton(
@@ -351,7 +354,8 @@ private fun VideoFeed(frame: ImageBitmap?, live: LiveVideo?, status: StreamStatu
  * time running out rather than a failure; red for the last 10 s.
  */
 @Composable
-private fun ViewingCountdown(seconds: Int, modifier: Modifier = Modifier) {
+private fun ViewingCountdown(seconds: Int?, modifier: Modifier = Modifier) {
+    if (seconds == null) return
     val shape = RoundedCornerShape(50)
     Text(
         tr("Closes in %d s", seconds),
@@ -394,7 +398,7 @@ private fun FullscreenCamera(
     frame: ImageBitmap?,
     live: LiveVideo?,
     status: StreamStatus,
-    secondsLeft: Int,
+    secondsLeft: Int?,
     zoom: VideoZoom,
     onZoom: (VideoZoom) -> Unit,
     onPan: (Float, Float) -> Unit,
