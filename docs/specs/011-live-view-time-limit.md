@@ -2,7 +2,8 @@
 ## Goal
 Save data transfer: each time a camera is opened, its live stream runs for at most 30 seconds.
 When the time is up the app goes back to the camera list on its own, which closes the stream
-connection; to watch again the user opens the camera again.
+connection; to watch again the user opens the camera again. The limit applies only on the
+remote (https) address: on the LAN there is no data cost, so no limit and no countdown.
 
 ## Acceptance criteria
 Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in MinicamKit).
@@ -15,6 +16,8 @@ Test names are the same on both platforms (Android: JUnit; iOS: Swift Testing in
 - [ ] AC4: When the budget expires the app returns to the camera list automatically (also from
   fullscreen, restoring portrait) and the stream connection is closed (MJPEG or fMP4, with or
   without audio) (Android + iOS) → manual
+- [ ] AC8: On the local (LAN) address the live view has no countdown and never closes on its own
+  (Android + iOS) → manual
 - [ ] AC5: Going back to the camera list and opening the camera again starts a new 30 s → manual
 - [x] AC6: The countdown reads whole seconds rounded up (30 … 1) → test:
   `viewingBudget_roundsSecondsUp`
