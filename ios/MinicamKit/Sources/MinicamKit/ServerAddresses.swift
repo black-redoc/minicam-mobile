@@ -8,6 +8,15 @@ public enum Network: String, Sendable, CaseIterable, Identifiable {
     public var id: String { rawValue }
 }
 
+public extension Optional where Wrapped == Network {
+    /// "Find minicam on my network" only makes sense for a local address (no address yet counts as local).
+    var offersDiscovery: Bool { self != .remote }
+}
+
+public extension Network {
+    var offersDiscovery: Bool { self != .remote }
+}
+
 public extension ServerConfig {
     var network: Network { isWAN ? .remote : .local }
     var origin: String { baseURL.absoluteString }
@@ -15,7 +24,8 @@ public extension ServerConfig {
 
 /// The local (`http`, LAN host) and remote (`https`) address of one minicam, and which one is
 /// active (docs/adr/0013). Both reach the same server, so switching keeps the session and the
-/// Access token; an address outside the pair is another server and clears them.
+/// Access token; an address outside the pair is another server and clears them. An address for an
+/// empty slot is taken as the other address of the same server.
 public struct ServerAddresses: Sendable {
     private let store: CredentialStore
 
@@ -41,11 +51,13 @@ public struct ServerAddresses: Sendable {
 
     public subscript(network: Network) -> ServerConfig? { network == .local ? local : remote }
 
-    /// Makes `config` the active address. Returns true when it is one of the saved pair (the
-    /// session is kept); otherwise it is a new server and every credential is cleared.
+    /// Makes `config` the active address. Returns true when it is one of the saved pair or fills
+    /// the empty slot (the session is kept); otherwise it is a new server and every credential is
+    /// cleared.
     @discardableResult
     public func use(_ config: ServerConfig) -> Bool {
-        if self[config.network] == config {
+        let saved = self[config.network]
+        if saved == nil || saved == config {
             save(config, activate: true)
             return true
         }

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.minicam.mobile.data.DeviceSetupState
 import dev.minicam.mobile.data.SetupCode
+import dev.minicam.mobile.data.offersDiscovery
 import dev.minicam.mobile.i18n.tr
 import dev.minicam.mobile.ui.theme.CamColors
 import kotlinx.coroutines.delay
@@ -52,8 +53,10 @@ fun LoginScreen(viewModel: AppViewModel) {
         delay(600)
         viewModel.checkSetup()
     }
-    DisposableEffect(searching) {
-        if (searching) viewModel.discovery.start()
+    // Discovery is only offered on Local: switching to Remote stops a running search.
+    val discoveryOffered = viewModel.activeNetwork.offersDiscovery()
+    DisposableEffect(searching, discoveryOffered) {
+        if (searching && discoveryOffered) viewModel.discovery.start()
         onDispose { viewModel.discovery.stop() }
     }
 
@@ -94,15 +97,17 @@ fun LoginScreen(viewModel: AppViewModel) {
             // Switch, or add the missing address, instead of retyping (docs/adr/0013).
             NetworkSwitch(viewModel)
             CamTextField(tr("Server"), viewModel.serverUrlText, { viewModel.serverUrlText = it }, keyboardType = KeyboardType.Uri)
-            DiscoveryList(
-                searching = searching,
-                servers = discovered.map { it.name to it.baseUrl },
-                onToggle = { searching = !searching },
-                onPick = { url ->
-                    viewModel.serverUrlText = url
-                    searching = false
-                },
-            )
+            if (discoveryOffered) {
+                DiscoveryList(
+                    searching = searching,
+                    servers = discovered.map { it.name to it.baseUrl },
+                    onToggle = { searching = !searching },
+                    onPick = { url ->
+                        viewModel.serverUrlText = url
+                        searching = false
+                    },
+                )
+            }
 
             when {
                 viewModel.needsAccessLogin -> {

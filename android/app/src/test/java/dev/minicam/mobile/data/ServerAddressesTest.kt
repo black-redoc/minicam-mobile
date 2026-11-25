@@ -106,6 +106,39 @@ class ServerAddressesTest {
     }
 
     @Test
+    fun localIntoEmptySlot_keepsRemoteSession() {
+        val addresses = ServerAddresses(store)
+        addresses.use(remote)
+        store.set(CredentialKey.SESSION_COOKIE, "s1")
+        store.set(CredentialKey.ACCESS_TOKEN, "jwt")
+
+        assertTrue(addresses.use(local))
+        assertEquals("s1", store.get(CredentialKey.SESSION_COOKIE))
+        assertEquals("jwt", store.get(CredentialKey.ACCESS_TOKEN))
+        assertEquals(remote, addresses.remote)
+        assertEquals(local, addresses.active)
+    }
+
+    @Test
+    fun otherLocalAddress_stillClearsEverything() {
+        val addresses = ServerAddresses(store)
+        addresses.use(local)
+        addresses.add(remote)
+        store.set(CredentialKey.SESSION_COOKIE, "s1")
+
+        assertFalse(addresses.use(ServerConfig.parse("http://192.168.1.21:8080")))
+        assertNull(store.get(CredentialKey.SESSION_COOKIE))
+        assertNull(addresses.remote)
+    }
+
+    @Test
+    fun discovery_onlyOfferedOnLocal() {
+        assertTrue(Network.LOCAL.offersDiscovery())
+        assertTrue((null as Network?).offersDiscovery())
+        assertFalse(Network.REMOTE.offersDiscovery())
+    }
+
+    @Test
     fun logout_doesNotWaitForAnUnreachableServer() = runBlocking {
         lanA.enqueue(MockResponse.Builder().code(200).headersDelay(30, TimeUnit.SECONDS).build())
         store.set(CredentialKey.SESSION_COOKIE, "s1")

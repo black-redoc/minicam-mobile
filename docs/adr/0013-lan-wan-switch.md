@@ -24,6 +24,11 @@ works over both addresses of the same server.
   "Find minicam on my network".
 - Typing an address that is **not** one of the saved pair means a different server: the session,
   the Access token and the other address are cleared, as today.
+- **Amended 2026-11-25:** an address for an **empty** slot (e.g. a local address picked with
+  "Find minicam on my network" while only the remote one is saved) fills that slot and keeps the
+  session and the Access token. Only an address that replaces a saved one clears everything.
+- "Find minicam on my network" is only offered on the login screen while Local is active (or no
+  address is saved yet); on Remote the local address is added through "+ Local".
 - **Sign-out never waits on the network**: the local session is cleared first, and the server
   logout is sent best-effort with a 3 s limit.
 

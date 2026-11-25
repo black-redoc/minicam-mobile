@@ -5,10 +5,14 @@ enum class Network { LOCAL, REMOTE }
 
 val ServerConfig.network: Network get() = if (isWan) Network.REMOTE else Network.LOCAL
 
+/** "Find minicam on my network" only makes sense for a local address (no address yet counts as local). */
+fun Network?.offersDiscovery(): Boolean = this != Network.REMOTE
+
 /**
  * The local (`http`, LAN host) and remote (`https`) address of one minicam, and which one is
  * active (docs/adr/0013). Both reach the same server, so switching keeps the session and the
- * Access token; an address outside the pair is another server and clears them.
+ * Access token; an address outside the pair is another server and clears them. An address for an
+ * empty slot is taken as the other address of the same server.
  */
 class ServerAddresses(private val store: CredentialStore) {
     init {
@@ -31,11 +35,13 @@ class ServerAddresses(private val store: CredentialStore) {
     operator fun get(network: Network): ServerConfig? = if (network == Network.LOCAL) local else remote
 
     /**
-     * Makes [config] the active address. Returns true when it is one of the saved pair (the
-     * session is kept); otherwise it is a new server and every credential is cleared.
+     * Makes [config] the active address. Returns true when it is one of the saved pair or fills
+     * the empty slot (the session is kept); otherwise it is a new server and every credential is
+     * cleared.
      */
     fun use(config: ServerConfig): Boolean {
-        if (this[config.network] == config) {
+        val saved = this[config.network]
+        if (saved == null || saved == config) {
             save(config, activate = true)
             return true
         }
